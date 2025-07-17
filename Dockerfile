@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
-COPY requirements.txt .
+COPY python/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
@@ -19,4 +19,4 @@ COPY . .
 RUN useradd -m -u 1000 botuser && chown -R botuser:botuser /app
 USER botuser
 
-CMD ["python", "main.py"]
+CMD ["python", "python/main.py"]
