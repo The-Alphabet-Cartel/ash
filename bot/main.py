@@ -40,6 +40,7 @@ class AshBot(commands.Bot):
         self.resources_channel_id = int(os.getenv('RESOURCES_CHANNEL_ID'))
         self.staff_ping_user = os.getenv('STAFF_PING_USER')
         self.crisis_response_role_id = os.getenv('CRISIS_RESPONSE_ROLE_ID')
+        self.crisis_response_channel_id = int(os.getenv('CRISIS_RESPONSE_CHANNEL_ID'))
         
         # Rate limiting
         self.user_cooldowns = {}
@@ -97,6 +98,8 @@ class AshBot(commands.Bot):
                 # Handle crisis escalation
                 if keyword_result['crisis_level'] == 'high':
                     await self.handle_crisis_escalation(message, response)
+                elif keyword_result['crisis_level'] == 'medium':
+                    await self.handle_medium_crisis(message, response)
                 else:
                     await message.reply(response)
                     
@@ -141,9 +144,9 @@ class AshBot(commands.Bot):
             except Exception as e:
                 logger.error(f"Error sending crisis DM to staff: {e}")
         
-        # Ping crisis response team in resources channel
-        resources_channel = self.get_channel(self.resources_channel_id)
-        if resources_channel and self.crisis_response_role_id:
+        # Ping crisis response team in dedicated crisis channel
+        crisis_channel = self.get_channel(self.crisis_response_channel_id)
+        if crisis_channel and self.crisis_response_role_id:
             try:
                 role_mention = f"<@&{self.crisis_response_role_id}>"
                 
@@ -158,15 +161,48 @@ class AshBot(commands.Bot):
                 alert_embed.add_field(name="Action Needed", value="Please respond to provide crisis support", inline=False)
                 alert_embed.add_field(name="Jump to Message", value=f"[Click here]({message.jump_url})", inline=False)
                 
-                await resources_channel.send(f"{role_mention}", embed=alert_embed)
+                await crisis_channel.send(f"{role_mention}", embed=alert_embed)
                 logger.warning(f"Crisis response team alerted for {message.author} in {message.channel}")
                 
             except Exception as e:
                 logger.error(f"Error pinging crisis response team: {e}")
         else:
-            logger.warning("Crisis response team role not configured or resources channel not found")
+            logger.warning("Crisis response team role not configured or crisis response channel not found")
             
         logger.warning(f"Full crisis escalation completed for {message.author} in {message.channel}")
+    
+    async def handle_medium_crisis(self, message, ash_response):
+        """Handle medium-crisis situations with team notification (no staff DM)"""
+        
+        # Send Ash's response
+        await message.reply(ash_response)
+        
+        # Ping crisis response team in dedicated crisis channel (no staff DM for medium)
+        crisis_channel = self.get_channel(self.crisis_response_channel_id)
+        if crisis_channel and self.crisis_response_role_id:
+            try:
+                role_mention = f"<@&{self.crisis_response_role_id}>"
+                
+                alert_embed = discord.Embed(
+                    title="⚠️ Medium Crisis Alert",
+                    description=f"Significant distress detected - team awareness needed",
+                    color=discord.Color.orange(),
+                    timestamp=message.created_at
+                )
+                alert_embed.add_field(name="Location", value=f"{message.channel.mention} in {message.guild.name}", inline=True)
+                alert_embed.add_field(name="User", value=message.author.mention, inline=True)
+                alert_embed.add_field(name="Crisis Level", value="Medium - Monitor situation", inline=True)
+                alert_embed.add_field(name="Jump to Message", value=f"[Click here]({message.jump_url})", inline=False)
+                
+                await crisis_channel.send(f"{role_mention}", embed=alert_embed)
+                logger.info(f"Medium crisis team alert sent for {message.author} in {message.channel}")
+                
+            except Exception as e:
+                logger.error(f"Error sending medium crisis alert: {e}")
+        else:
+            logger.warning("Crisis response team role not configured or crisis response channel not found")
+            
+        logger.info(f"Medium crisis handling completed for {message.author} in {message.channel}")
     
     async def check_rate_limits(self, user_id):
         """Check if user is within rate limits"""
