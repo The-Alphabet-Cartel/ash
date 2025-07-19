@@ -319,8 +319,7 @@ class AshBot(commands.Bot):
                 else:
                     await message.reply(response)
                 
-                # Reset conversation timer (keep conversation active)
-                conv_data['start_time'] = time.time()
+                # Don't reset conversation timer - let it expire naturally after 5 minutes from start
                 
                 self.daily_call_count += 1
                 logger.info(f"Follow-up response to {message.author} (crisis: {effective_crisis_level})")
