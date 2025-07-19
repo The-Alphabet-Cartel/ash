@@ -25,11 +25,11 @@ services:
       - ./bot/logs:/app/logs
       - ./bot/data:/app/data
     depends_on:
-      - redis
+      - ash-redis
     networks:
       - ash-network
 
-  redis:
+  ash-redis:
     image: redis:7-alpine
     container_name: ash-redis
     restart: unless-stopped
