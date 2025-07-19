@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  ash:
+    # For production: pull from GitHub Container Registry
+    image: ghcr.io/PapaBearDoes/ash/ash:latest
+    
+    # For local development: build locally
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    
+    container_name: ash
+    restart: unless-stopped
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - GUILD_ID=${GUILD_ID}
+      - RESOURCES_CHANNEL_ID=${RESOURCES_CHANNEL_ID}
+      - STAFF_PING_USER=${STAFF_PING_USER}
+      - CRISIS_RESPONSE_ROLE_ID=${CRISIS_RESPONSE_ROLE_ID}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - MAX_DAILY_CALLS=${MAX_DAILY_CALLS:-1000}
+      - RATE_LIMIT_PER_USER=${RATE_LIMIT_PER_USER:-10}
+    volumes:
+      - ./bot/logs:/app/logs
+      - ./bot/data:/app/data
+    depends_on:
+      - redis
+    networks:
+      - ash-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: ash-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - ash-network
+
+volumes:
+  redis_data:
+
+networks:
+  ash-network:
+    driver: bridge
