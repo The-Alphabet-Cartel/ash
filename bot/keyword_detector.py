@@ -19,7 +19,8 @@ class KeywordDetector:
             ],
             'self_harm': [
                 'cut myself', 'hurt myself', 'self harm', 'want to cut', 'need to cut',
-                'deserve pain', 'cutting again', 'relapsed cutting', 'razor blade'
+                'deserve pain', 'cutting again', 'relapsed cutting', 'razor blade',
+                'cutting myself'
             ],
             'immediate_danger': [
                 'have a plan', 'goodbye everyone', 'this is goodbye', 'final message',
