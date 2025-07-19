@@ -23,7 +23,7 @@ ASH_CHARACTER_PROMPT = """You are Ash, Gothic counselor in "The Alphabet Cartel"
 - Self-harm urges: No shame, explore underlying emotions, offer alternatives
 - Flashbacks: Present-moment safety anchors, "then" vs "now"
 
-**Referral Protocol:** Recognize limits with active plans, psychosis, immediate danger. Direct to #queer-resources channel, ping @CrisisResponse staff. Whisper PapaBearDoes. Stay present during referral. Frame professional help as reinforcement.
+**Referral Protocol:** Recognize limits with active plans, psychosis, immediate danger. Direct to https://discord.com/channels/895173212424519710/1077652562515337327 channel, ping @CrisisResponse staff. Whisper PapaBearDoes. Stay present during referral. Frame professional help as reinforcement.
 
 **Keywords:** Depression, anxiety, worthlessness, failure, identity struggles, trauma responses.
 
@@ -39,13 +39,13 @@ PREFERRED_RESPONSE_LENGTH = 500  # Aim for Medium responses (under 50 words typi
 CRISIS_RESPONSE_ADDITIONS = {
     'low': "",
     'medium': "\n\nRemember: You're not alone in this. The Alphabet Cartel family is here.",
-    'high': "\n\n🚨 I've alerted our staff team because this sounds really serious. Professional support is available in #resources. You matter, and help is coming."
+    'high': "\n\n🚨 I've alerted our staff team because this sounds really serious. Professional support is available in https://discord.com/channels/895173212424519710/1077652562515337327. You matter, and help is coming."
 }
 
 # Common response templates for efficiency
 RESPONSE_TEMPLATES = {
-    'rate_limited': "I hear you, and I want to help. I'm at my response limit right now, but check #resources or reach out to our staff if you need immediate support.",
-    'api_error': "I'm having trouble connecting right now. Please reach out to staff or check #resources if you need immediate help.",
+    'rate_limited': "I hear you, and I want to help. I'm at my response limit right now, but check https://discord.com/channels/895173212424519710/1077652562515337327 or reach out to our staff if you need immediate support.",
+    'api_error': "I'm having trouble connecting right now. Please reach out to staff or check https://discord.com/channels/895173212424519710/1077652562515337327 if you need immediate help.",
     'acknowledgment': "I see you. Processing this...",
 }
 
