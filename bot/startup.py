@@ -24,7 +24,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('../logs/ash_startup.log'),
+        logging.FileHandler('./logs/ash_startup.log'),
         logging.StreamHandler()
     ]
 )
@@ -89,7 +89,7 @@ async def test_connections():
 
 async def create_directories():
     """Create necessary directories for logs and data"""
-    directories = ['../logs', '../data']
+    directories = ['./logs', './data']
     
     for directory in directories:
         os.makedirs(directory, exist_ok=True)
