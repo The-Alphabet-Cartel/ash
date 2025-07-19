@@ -1,7 +1,7 @@
 services:
   ash:
     # For production: pull from GitHub Container Registry
-    image: ghcr.io/the-alphabet-cartel/ash/ash:latest
+    image: ghcr.io/the-alphabet-cartel/ash:latest
     
     # For local development: build locally
     # build:
