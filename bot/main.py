@@ -16,7 +16,7 @@ logging.basicConfig(
     level=getattr(logging, os.getenv('LOG_LEVEL', 'INFO')),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('/app/logs/ash.log'),
+        logging.FileHandler('../logs/ash.log'),
         logging.StreamHandler()
     ]
 )
@@ -39,6 +39,7 @@ class AshBot(commands.Bot):
         self.guild_id = int(os.getenv('GUILD_ID'))
         self.resources_channel_id = int(os.getenv('RESOURCES_CHANNEL_ID'))
         self.staff_ping_user = os.getenv('STAFF_PING_USER')
+        self.crisis_response_role_id = os.getenv('CRISIS_RESPONSE_ROLE_ID')
         
         # Rate limiting
         self.user_cooldowns = {}
@@ -107,28 +108,65 @@ class AshBot(commands.Bot):
             await message.add_reaction('❌')
     
     async def handle_crisis_escalation(self, message, ash_response):
-        """Handle high-crisis situations with staff notification"""
+        """Handle high-crisis situations with staff DM and role ping"""
         
         # Send Ash's response
         await message.reply(ash_response)
         
-        # Ping resources channel and staff
+        # DM the staff member directly
+        if self.staff_ping_user:
+            try:
+                staff_user = await self.fetch_user(int(self.staff_ping_user))
+                
+                embed = discord.Embed(
+                    title="🚨 Crisis Support Needed - URGENT",
+                    description=f"High-crisis keywords detected requiring immediate attention",
+                    color=discord.Color.red(),
+                    timestamp=message.created_at
+                )
+                embed.add_field(name="User", value=f"{message.author.mention} ({message.author.display_name})", inline=True)
+                embed.add_field(name="Channel", value=f"{message.channel.mention} ({message.channel.name})", inline=True)
+                embed.add_field(name="Server", value=message.guild.name, inline=True)
+                embed.add_field(name="Original Message", value=message.content[:1000] + ("..." if len(message.content) > 1000 else ""), inline=False)
+                embed.add_field(name="Jump to Message", value=f"[Click here]({message.jump_url})", inline=False)
+                embed.add_field(name="Resources Channel", value=f"<#{self.resources_channel_id}>", inline=False)
+                
+                await staff_user.send(embed=embed)
+                logger.warning(f"Crisis escalation DM sent to staff for {message.author} in {message.channel}")
+                
+            except discord.NotFound:
+                logger.error(f"Staff user ID {self.staff_ping_user} not found")
+            except discord.Forbidden:
+                logger.error(f"Cannot send DM to staff user - DMs may be disabled")
+            except Exception as e:
+                logger.error(f"Error sending crisis DM to staff: {e}")
+        
+        # Ping crisis response team in resources channel
         resources_channel = self.get_channel(self.resources_channel_id)
-        if resources_channel:
-            staff_mention = f"<@{self.staff_ping_user}>" if self.staff_ping_user else "@Staff"
+        if resources_channel and self.crisis_response_role_id:
+            try:
+                role_mention = f"<@&{self.crisis_response_role_id}>"
+                
+                alert_embed = discord.Embed(
+                    title="🚨 Crisis Response Team Alert",
+                    description=f"High-crisis situation detected requiring team response",
+                    color=discord.Color.red(),
+                    timestamp=message.created_at
+                )
+                alert_embed.add_field(name="Location", value=f"{message.channel.mention} in {message.guild.name}", inline=True)
+                alert_embed.add_field(name="User", value=message.author.mention, inline=True)
+                alert_embed.add_field(name="Action Needed", value="Please respond to provide crisis support", inline=False)
+                alert_embed.add_field(name="Jump to Message", value=f"[Click here]({message.jump_url})", inline=False)
+                
+                await resources_channel.send(f"{role_mention}", embed=alert_embed)
+                logger.warning(f"Crisis response team alerted for {message.author} in {message.channel}")
+                
+            except Exception as e:
+                logger.error(f"Error pinging crisis response team: {e}")
+        else:
+            logger.warning("Crisis response team role not configured or resources channel not found")
             
-            embed = discord.Embed(
-                title="🚨 Crisis Support Needed",
-                description=f"High-crisis keywords detected in <#{message.channel.id}>",
-                color=discord.Color.red()
-            )
-            embed.add_field(name="User", value=message.author.mention, inline=True)
-            embed.add_field(name="Channel", value=message.channel.mention, inline=True)
-            embed.add_field(name="Message Link", value=f"[Jump to message]({message.jump_url})", inline=False)
-            
-            await resources_channel.send(f"{staff_mention}", embed=embed)
-            
-        logger.warning(f"Crisis escalation triggered for {message.author} in {message.channel}")
+        logger.warning(f"Full crisis escalation completed for {message.author} in {message.channel}")
     
     async def check_rate_limits(self, user_id):
         """Check if user is within rate limits"""
