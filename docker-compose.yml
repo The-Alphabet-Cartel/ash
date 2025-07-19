@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   ash:
     # For production: pull from GitHub Container Registry
