@@ -1,5 +1,5 @@
 """
-Ash Character Definition for The Alphabet Cartel Discord Bot
+Ash Character Definition for The Alphabet Cartel Mental Health Discord Bot
 Contains the character prompt and response configurations for Claude API
 """
 
