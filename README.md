@@ -1,2 +1,2 @@
-# ash
+# Ash
  Mental Health Discord Bot
