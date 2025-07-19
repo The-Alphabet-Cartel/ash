@@ -16,7 +16,7 @@ logging.basicConfig(
     level=getattr(logging, os.getenv('LOG_LEVEL', 'INFO')),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('../logs/ash.log'),
+        logging.FileHandler('./logs/ash.log'),
         logging.StreamHandler()
     ]
 )
