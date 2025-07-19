@@ -24,7 +24,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('/app/logs/ash_startup.log'),
+        logging.FileHandler('../logs/ash_startup.log'),
         logging.StreamHandler()
     ]
 )
@@ -74,7 +74,7 @@ async def test_connections():
         logger.info(f"✅ Keyword detector loaded: {stats['total']} keywords across {len(stats)-1} crisis levels")
         
         # Test detection
-        test_result = detector.check_message("I feel really depressed today")
+        test_result = detector.check_message("I feel worthless and hate myself")
         if test_result['needs_response']:
             logger.info(f"✅ Keyword detection test passed: {test_result['crisis_level']} level")
         else:
@@ -89,7 +89,7 @@ async def test_connections():
 
 async def create_directories():
     """Create necessary directories for logs and data"""
-    directories = ['/app/logs', '/app/data']
+    directories = ['../logs', '../data']
     
     for directory in directories:
         os.makedirs(directory, exist_ok=True)
