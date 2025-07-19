@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from keyword_detector import KeywordDetector
 from claude_api import ClaudeAPI
 from ash_character import ASH_CHARACTER_PROMPT
+import time
 
 # Load environment variables
 load_dotenv()
@@ -47,6 +48,10 @@ class AshBot(commands.Bot):
         self.daily_call_count = 0
         self.max_daily_calls = int(os.getenv('MAX_DAILY_CALLS', 1000))
         
+        # Conversation tracking for follow-ups
+        self.active_conversations = {}  # user_id: {'start_time': time, 'crisis_level': str, 'channel_id': int}
+        self.conversation_timeout = 300  # 5 minutes in seconds
+        
     async def on_ready(self):
         logger.info(f'{self.user} has awakened in The Alphabet Cartel')
         guild = discord.utils.get(self.guilds, id=self.guild_id)
@@ -62,6 +67,15 @@ class AshBot(commands.Bot):
             
         # Only respond in the configured guild
         if not message.guild or message.guild.id != self.guild_id:
+            return
+        
+        # Clean up expired conversations
+        self.cleanup_expired_conversations()
+        
+        # Check if user is in an active conversation
+        user_id = message.author.id
+        if user_id in self.active_conversations:
+            await self.handle_conversation_followup(message)
             return
             
         # Check for keywords that indicate need for support
@@ -102,6 +116,9 @@ class AshBot(commands.Bot):
                     await self.handle_medium_crisis(message, response)
                 else:
                     await message.reply(response)
+                
+                # Start conversation tracking for all support responses
+                self.start_conversation_tracking(message.author.id, keyword_result['crisis_level'], message.channel.id)
                     
                 self.daily_call_count += 1
                 logger.info(f"Responded to {message.author} - Crisis level: {keyword_result['crisis_level']}")
@@ -225,6 +242,92 @@ class AshBot(commands.Bot):
         # Add current timestamp
         self.user_cooldowns[user_id].append(current_time)
         return True
+    
+    def start_conversation_tracking(self, user_id, crisis_level, channel_id):
+        """Start tracking a conversation for follow-up responses"""
+        self.active_conversations[user_id] = {
+            'start_time': time.time(),
+            'crisis_level': crisis_level,
+            'channel_id': channel_id
+        }
+        logger.info(f"Started conversation tracking for user {user_id} (crisis: {crisis_level})")
+    
+    def cleanup_expired_conversations(self):
+        """Remove expired conversations (older than 5 minutes)"""
+        current_time = time.time()
+        expired_users = []
+        
+        for user_id, conv_data in self.active_conversations.items():
+            if current_time - conv_data['start_time'] > self.conversation_timeout:
+                expired_users.append(user_id)
+        
+        for user_id in expired_users:
+            del self.active_conversations[user_id]
+            logger.info(f"Conversation tracking expired for user {user_id}")
+    
+    async def handle_conversation_followup(self, message):
+        """Handle follow-up messages in active conversations"""
+        user_id = message.author.id
+        conv_data = self.active_conversations[user_id]
+        
+        # Only respond in the same channel where conversation started
+        if message.channel.id != conv_data['channel_id']:
+            return
+        
+        # Check if crisis level has escalated in this follow-up message
+        keyword_result = self.keyword_detector.check_message(message.content)
+        current_crisis_level = conv_data['crisis_level']
+        new_crisis_level = keyword_result.get('crisis_level', 'none')
+        
+        # Determine if we need to escalate
+        crisis_hierarchy = {'none': 0, 'low': 1, 'medium': 2, 'high': 3}
+        if crisis_hierarchy.get(new_crisis_level, 0) > crisis_hierarchy.get(current_crisis_level, 0):
+            # Crisis has escalated - update conversation and handle escalation
+            conv_data['crisis_level'] = new_crisis_level
+            logger.warning(f"Crisis escalated from {current_crisis_level} to {new_crisis_level} for user {user_id}")
+            
+            # Use the new higher crisis level for response
+            effective_crisis_level = new_crisis_level
+        else:
+            # No escalation - continue with original crisis level
+            effective_crisis_level = current_crisis_level
+        
+        # Rate limiting check for follow-ups too
+        if not await self.check_rate_limits(user_id):
+            return
+            
+        # Daily call limit check
+        if self.daily_call_count >= self.max_daily_calls:
+            logger.warning("Daily API call limit reached")
+            return
+            
+        try:
+            # Show typing indicator
+            async with message.channel.typing():
+                # Get response from Claude as Ash
+                response = await self.claude_api.get_ash_response(
+                    message.content,
+                    effective_crisis_level,
+                    message.author.display_name
+                )
+                
+                # Handle escalated crisis responses
+                if new_crisis_level == 'high' and current_crisis_level != 'high':
+                    await self.handle_crisis_escalation(message, response)
+                elif new_crisis_level == 'medium' and current_crisis_level == 'low':
+                    await self.handle_medium_crisis(message, response)
+                else:
+                    await message.reply(response)
+                
+                # Reset conversation timer (keep conversation active)
+                conv_data['start_time'] = time.time()
+                
+                self.daily_call_count += 1
+                logger.info(f"Follow-up response to {message.author} (crisis: {effective_crisis_level})")
+                
+        except Exception as e:
+            logger.error(f"Error handling conversation follow-up: {e}")
+            await message.add_reaction('❌')
 
 # Run the bot
 if __name__ == "__main__":
