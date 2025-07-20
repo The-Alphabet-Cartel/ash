@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from keyword_detector import KeywordDetector
 from claude_api import ClaudeAPI
 from ash_character import ASH_CHARACTER_PROMPT
+from nlp_integration import RemoteNLPClient, hybrid_crisis_detection
 import time
 
 # Suppress specific aiohttp cleanup warnings
@@ -47,6 +48,7 @@ class AshBot(commands.Bot):
         self.staff_ping_user = os.getenv('STAFF_PING_USER')
         self.crisis_response_role_id = os.getenv('CRISIS_RESPONSE_ROLE_ID')
         self.crisis_response_channel_id = int(os.getenv('CRISIS_RESPONSE_CHANNEL_ID'))
+        self.nlp_client = RemoteNLPClient()
         
         # Parse allowed channels from environment variable
         allowed_channels_str = os.getenv('ALLOWED_CHANNELS', '')
@@ -68,6 +70,7 @@ class AshBot(commands.Bot):
         
     async def on_ready(self):
         logger.info(f'{self.user} has awakened in The Alphabet Cartel')
+        await self.nlp_client.test_connection()
         guild = discord.utils.get(self.guilds, id=self.guild_id)
         if guild:
             logger.info(f'Connected to guild: {guild.name}')
@@ -96,12 +99,16 @@ class AshBot(commands.Bot):
             await self.handle_conversation_followup(message)
             return
             
-        # Check for keywords that indicate need for support
-        keyword_result = self.keyword_detector.check_message(message.content)
-        
-        if keyword_result['needs_response']:
-            await self.handle_support_message(message, keyword_result)
-            
+        # Check for keywords that indicate need for support using hybrid detection
+        detection_result = await hybrid_crisis_detection(
+            self.keyword_detector, 
+            self.nlp_client, 
+            message
+        )
+
+        if detection_result['needs_response']:
+            await self.handle_support_message(message, detection_result)
+
         # Process commands
         await self.process_commands(message)
     
@@ -241,6 +248,7 @@ class AshBot(commands.Bot):
 
     async def close(self):
         """Clean shutdown of bot and API connections"""
+        await self.nlp_client.close()
         await self.claude_api.close()
         await super().close()
         logger.info("Bot shutdown complete - all connections closed")
