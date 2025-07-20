@@ -3,11 +3,16 @@ from discord.ext import commands
 import asyncio
 import logging
 import os
+import warnings
 from dotenv import load_dotenv
 from keyword_detector import KeywordDetector
 from claude_api import ClaudeAPI
 from ash_character import ASH_CHARACTER_PROMPT
 import time
+
+# Suppress specific aiohttp cleanup warnings
+warnings.filterwarnings("ignore", category=ResourceWarning, message="unclosed.*client_session.*")
+warnings.filterwarnings("ignore", category=ResourceWarning, message="unclosed.*connector.*")
 
 # Load environment variables
 load_dotenv()
@@ -43,6 +48,15 @@ class AshBot(commands.Bot):
         self.crisis_response_role_id = os.getenv('CRISIS_RESPONSE_ROLE_ID')
         self.crisis_response_channel_id = int(os.getenv('CRISIS_RESPONSE_CHANNEL_ID'))
         
+        # Parse allowed channels from environment variable
+        allowed_channels_str = os.getenv('ALLOWED_CHANNELS', '')
+        if allowed_channels_str:
+            self.allowed_channels = [int(ch.strip()) for ch in allowed_channels_str.split(',') if ch.strip()]
+        else:
+            self.allowed_channels = []  # Empty list means no restrictions
+            
+        logger.info(f"Ash will respond in {len(self.allowed_channels)} allowed channels: {self.allowed_channels}")
+        
         # Rate limiting
         self.user_cooldowns = {}
         self.daily_call_count = 0
@@ -68,6 +82,10 @@ class AshBot(commands.Bot):
         # Only respond in the configured guild
         if not message.guild or message.guild.id != self.guild_id:
             return
+        
+        # Check if channel is in allowed list (if restrictions are enabled)
+        if self.allowed_channels and message.channel.id not in self.allowed_channels:
+            return  # Silently ignore messages in non-allowed channels
         
         # Clean up expired conversations
         self.cleanup_expired_conversations()
@@ -221,6 +239,12 @@ class AshBot(commands.Bot):
             
         logger.info(f"Medium crisis handling completed for {message.author} in {message.channel}")
     
+    async def close(self):
+        """Clean shutdown of bot and API connections"""
+        await self.claude_api.close()
+        await super().close()
+        logger.info("Bot shutdown complete - all connections closed")
+    
     async def check_rate_limits(self, user_id):
         """Check if user is within rate limits"""
         current_time = asyncio.get_event_loop().time()
@@ -272,6 +296,10 @@ class AshBot(commands.Bot):
         
         # Only respond in the same channel where conversation started
         if message.channel.id != conv_data['channel_id']:
+            return
+        
+        # Double-check channel restrictions for follow-ups too
+        if self.allowed_channels and message.channel.id not in self.allowed_channels:
             return
         
         # Check if crisis level has escalated in this follow-up message

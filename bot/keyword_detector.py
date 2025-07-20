@@ -1,87 +1,31 @@
 """
 Keyword Detection System for Ash Bot
 Identifies when messages indicate need for mental health support
+Uses modular keyword files for easy maintenance
 """
 
 import re
 import logging
+from keywords import get_high_crisis_keywords, get_medium_crisis_keywords, get_low_crisis_keywords
 
 logger = logging.getLogger(__name__)
 
 class KeywordDetector:
     def __init__(self):
-        # High-crisis keywords requiring immediate staff notification
-        self.high_crisis_keywords = {
-            'suicidal_ideation': [
-                'kill myself', 'end it all', 'want to die', 'suicide', 'suicidal',
-                'better off dead', 'can\'t go on', 'no point living', 'end my life',
-                'not worth living', 'want to disappear forever', 'ready to die'
-            ],
-            'self_harm': [
-                'cut myself', 'hurt myself', 'self harm', 'want to cut', 'need to cut',
-                'deserve pain', 'cutting again', 'relapsed cutting', 'razor blade',
-                'cutting myself'
-            ],
-            'immediate_danger': [
-                'have a plan', 'goodbye everyone', 'this is goodbye', 'final message',
-                'pills ready', 'bridge tonight', 'gun loaded', 'rope tied'
-            ]
-        }
-        
-        # Medium-crisis keywords indicating significant distress
-        self.medium_crisis_keywords = {
-            'severe_depression': [
-                'can\'t take it anymore', 'everything hurts', 'so much pain',
-                'completely broken', 'lost all hope', 'nothing matters',
-                'why bother', 'give up', 'can\'t handle this', 'too much pain'
-            ],
-            'panic_anxiety': [
-                'panic attack', 'can\'t breathe', 'heart racing', 'losing control',
-                'going crazy', 'feel like dying', 'can\'t calm down', 'hyperventilating'
-            ],
-            'dissociation': [
-                'not real', 'floating away', 'watching myself', 'not in my body',
-                'everything feels fake', 'disconnected', 'out of body', 'depersonalization'
-            ],
-            'trauma_flashbacks': [
-                'happening again', 'back there', 'can\'t escape', 'reliving it',
-                'flashback', 'triggered', 'ptsd episode', 'memory won\'t stop'
-            ]
-        }
-        
-        # Low-crisis keywords indicating need for support
-        self.low_crisis_keywords = {
-            'depression_symptoms': [
-                'feel worthless', 'hate myself', 'feel empty', 'so tired',
-                'can\'t sleep', 'no energy', 'feel numb', 'so lonely',
-                'nobody cares', 'feel invisible', 'exhausted', 'hopeless'
-            ],
-            'anxiety_symptoms': [
-                'so anxious', 'worried about everything', 'overthinking',
-                'can\'t stop worrying', 'feel on edge', 'restless', 'nervous'
-            ],
-            'identity_struggles': [
-                'don\'t know who i am', 'feel fake', 'pretending', 'imposter',
-                'not good enough', 'don\'t belong', 'questioning everything',
-                'identity crisis', 'feel lost', 'confused about myself'
-            ],
-            'relationship_trauma': [
-                'feel betrayed', 'used me', 'feel unlovable', 'trust issues',
-                'abandoned again', 'nobody understands', 'rejected', 'alone'
-            ],
-            'lgbtq_struggles': [
-                'coming out', 'family rejected me', 'not accepted', 'dysphoria',
-                'internalized homophobia', 'feel different', 'closeted',
-                'transition struggles', 'pronouns ignored', 'deadnamed'
-            ],
-            'failure_feelings': [
-                'such a failure', 'disappointed everyone', 'screwed up again',
-                'can\'t do anything right', 'let everyone down', 'failed at life'
-            ]
-        }
+        # Load keywords from modular files
+        self.high_crisis_keywords = get_high_crisis_keywords()
+        self.medium_crisis_keywords = get_medium_crisis_keywords()
+        self.low_crisis_keywords = get_low_crisis_keywords()
         
         # Compile regex patterns for efficient matching
         self._compile_patterns()
+        
+        # Log keyword loading stats
+        high_count = sum(len(keywords) for keywords in self.high_crisis_keywords.values())
+        medium_count = sum(len(keywords) for keywords in self.medium_crisis_keywords.values())
+        low_count = sum(len(keywords) for keywords in self.low_crisis_keywords.values())
+        
+        logger.info(f"Loaded keywords - High: {high_count}, Medium: {medium_count}, Low: {low_count}, Total: {high_count + medium_count + low_count}")
         
     def _compile_patterns(self):
         """Compile keyword patterns into regex for efficient matching"""
@@ -225,3 +169,21 @@ class KeywordDetector:
             'low_crisis': low_count,
             'total': high_count + medium_count + low_count
         }
+    
+    def reload_keywords(self):
+        """Reload keywords from files (useful for updates without restart)"""
+        logger.info("Reloading keywords from modular files...")
+        
+        # Reload from files
+        self.high_crisis_keywords = get_high_crisis_keywords()
+        self.medium_crisis_keywords = get_medium_crisis_keywords()
+        self.low_crisis_keywords = get_low_crisis_keywords()
+        
+        # Recompile patterns
+        self._compile_patterns()
+        
+        # Log new stats
+        stats = self.get_keyword_stats()
+        logger.info(f"Reloaded keywords - High: {stats['high_crisis']}, Medium: {stats['medium_crisis']}, Low: {stats['low_crisis']}, Total: {stats['total']}")
+        
+        return stats

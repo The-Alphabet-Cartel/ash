@@ -31,9 +31,18 @@ class ClaudeAPI:
             raise ValueError("Claude API key is required")
     
     async def _get_session(self):
-        """Get or create aiohttp session"""
+        """Get or create aiohttp session with explicit connector management"""
         if self.session is None or self.session.closed:
+            # Create connector with explicit settings for clean shutdown
+            connector = aiohttp.TCPConnector(
+                limit=10,
+                ttl_dns_cache=300,
+                use_dns_cache=True,
+                enable_cleanup_closed=True
+            )
+            
             self.session = aiohttp.ClientSession(
+                connector=connector,
                 headers={
                     'Content-Type': 'application/json',
                     'x-api-key': self.api_key,
@@ -106,6 +115,10 @@ class ClaudeAPI:
                 elif response.status == 429:
                     logger.warning("Claude API rate limit hit")
                     return RESPONSE_TEMPLATES['rate_limited']
+                
+                elif response.status == 529:
+                    logger.warning("Claude API temporarily overloaded")
+                    return "I'm having trouble connecting right now due to high demand. Please try again in a moment, or reach out to our crisis team if you need immediate help."
                     
                 elif response.status == 401:
                     logger.error("Claude API authentication failed")
@@ -178,10 +191,12 @@ class ClaudeAPI:
         logger.info(f"Reset daily counter from {old_count} to 0")
     
     async def close(self):
-        """Close the aiohttp session"""
+        """Close the aiohttp session and all connections"""
         if self.session and not self.session.closed:
             await self.session.close()
-            logger.info("Claude API session closed")
+            # Give time for underlying connections to close
+            await asyncio.sleep(0.1)
+            logger.info("Claude API session and connections closed")
 
 class ClaudeAPIError(Exception):
     """Custom exception for Claude API errors"""
