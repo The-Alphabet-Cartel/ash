@@ -162,6 +162,3 @@ cython_debug/
 ash-env/
 bot/logs/
 bot/data/
-.github/
-.gitattributes
-.gitignore
