@@ -238,7 +238,7 @@ class AshBot(commands.Bot):
             logger.warning("Crisis response team role not configured or crisis response channel not found")
             
         logger.info(f"Medium crisis handling completed for {message.author} in {message.channel}")
-    
+
     async def close(self):
         """Clean shutdown of bot and API connections"""
         await self.claude_api.close()

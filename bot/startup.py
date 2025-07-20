@@ -37,7 +37,7 @@ async def test_connections():
     # Test environment variables
     required_vars = [
         'DISCORD_TOKEN', 'CLAUDE_API_KEY', 'GUILD_ID', 
-        'RESOURCES_CHANNEL_ID', 'STAFF_PING_USER'
+        'RESOURCES_CHANNEL_ID', 'CRISIS_RESPONSE_CHANNEL_ID', 'STAFF_PING_USER'
     ]
     
     missing_vars = []

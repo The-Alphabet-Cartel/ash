@@ -9,7 +9,7 @@ import os
 from typing import Optional
 import aiohttp
 import json
-from ash_character import format_ash_prompt, get_crisis_addition, RESPONSE_TEMPLATES
+from ash_character import format_ash_prompt, get_crisis_addition, get_response_templates
 
 logger = logging.getLogger(__name__)
 
@@ -114,36 +114,37 @@ class ClaudeAPI:
                     
                 elif response.status == 429:
                     logger.warning("Claude API rate limit hit")
-                    return RESPONSE_TEMPLATES['rate_limited']
+                    return get_response_templates()['rate_limited']
                 
                 elif response.status == 529:
                     logger.warning("Claude API temporarily overloaded")
-                    return "I'm having trouble connecting right now due to high demand. Please try again in a moment, or reach out to our crisis team if you need immediate help."
+                    resources_channel = os.getenv('RESOURCES_CHANNEL_NAME', 'resources')
+                    return f"I'm having trouble connecting right now due to high demand. Please try again in a moment, or reach out to our crisis team if you need immediate help."
                     
                 elif response.status == 401:
                     logger.error("Claude API authentication failed")
-                    return RESPONSE_TEMPLATES['api_error']
+                    return get_response_templates()['api_error']
                     
                 else:
                     error_text = await response.text()
                     logger.error(f"Claude API error {response.status}: {error_text}")
-                    return RESPONSE_TEMPLATES['api_error']
+                    return get_response_templates()['api_error']
                     
         except asyncio.TimeoutError:
             logger.error("Claude API request timed out")
-            return RESPONSE_TEMPLATES['api_error']
+            return get_response_templates()['api_error']
             
         except aiohttp.ClientError as e:
             logger.error(f"Network error calling Claude API: {e}")
-            return RESPONSE_TEMPLATES['api_error']
+            return get_response_templates()['api_error']
             
         except KeyError as e:
             logger.error(f"Unexpected API response format: {e}")
-            return RESPONSE_TEMPLATES['api_error']
+            return get_response_templates()['api_error']
             
         except Exception as e:
             logger.error(f"Unexpected error in Claude API call: {e}")
-            return RESPONSE_TEMPLATES['api_error']
+            return get_response_templates()['api_error']
     
     async def test_connection(self) -> bool:
         """
@@ -160,7 +161,7 @@ class ClaudeAPI:
                 "test_user"
             )
             
-            if test_response == RESPONSE_TEMPLATES['api_error']:
+            if test_response == get_response_templates()['api_error']:
                 return False
                 
             logger.info("Claude API connection test successful")
@@ -193,10 +194,31 @@ class ClaudeAPI:
     async def close(self):
         """Close the aiohttp session and all connections"""
         if self.session and not self.session.closed:
-            await self.session.close()
-            # Give time for underlying connections to close
-            await asyncio.sleep(0.1)
-            logger.info("Claude API session and connections closed")
+            try:
+                # Store connector reference before closing session
+                connector = getattr(self.session, '_connector', None)
+                
+                # Close session
+                await self.session.close()
+                
+                # Manually close connector if it exists
+                if connector and not connector._closed:
+                    await connector.close()
+                
+                # Wait for all pending operations
+                await asyncio.sleep(0.1)
+                
+                # Force garbage collection to clean up references
+                import gc
+                gc.collect()
+                
+                self.session = None
+                logger.info("Claude API session cleaned up")
+                
+            except Exception as e:
+                logger.debug(f"Minor cleanup issue (not critical): {e}")
+        else:
+            logger.debug("Claude API session already closed")
 
 class ClaudeAPIError(Exception):
     """Custom exception for Claude API errors"""

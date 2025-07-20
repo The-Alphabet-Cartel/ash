@@ -68,6 +68,15 @@ RELATIONSHIP_CRISIS = [
     'relationship imploding', 'family disowned me', 'kicked out'
 ]
 
+# LGBTQIA+ specific medium crisis situations
+LGBTQIA_MEDIUM_CRISIS = [
+    'family rejected me completely', 'disowned for being gay', 'thrown out for being trans',
+    'conversion therapy threat', 'parents sending me away', 'religious trauma response',
+    'severe dysphoria episode', 'body feels wrong', 'can\'t handle deadnaming',
+    'misgendering destroying me', 'passing anxiety', 'transition regret fears',
+    'internalized homophobia crushing', 'self hate spiraling', 'closet suffocating me'
+]
+
 # Combine all medium crisis categories
 MEDIUM_CRISIS_KEYWORDS = {
     'severe_depression': SEVERE_DEPRESSION,
@@ -75,7 +84,7 @@ MEDIUM_CRISIS_KEYWORDS = {
     'dissociation': DISSOCIATION,
     'trauma_flashbacks': TRAUMA_FLASHBACKS,
     'severe_overwhelm': SEVERE_OVERWHELM,
-    'relationship_crisis': RELATIONSHIP_CRISIS
+    'relationship_crisis': RELATIONSHIP_CRISIS + LGBTQIA_MEDIUM_CRISIS
 }
 
 def get_medium_crisis_keywords():
@@ -139,15 +148,3 @@ def get_keyword_count():
         total += count
     counts['total'] = total
     return counts
-
-# LGBTQIA+ specific medium crisis situations
-LGBTQIA_MEDIUM_CRISIS = [
-    'family rejected me completely', 'disowned for being gay', 'thrown out for being trans',
-    'conversion therapy threat', 'parents sending me away', 'religious trauma response',
-    'severe dysphoria episode', 'body feels wrong', 'can\'t handle deadnaming',
-    'misgendering destroying me', 'passing anxiety', 'transition regret fears',
-    'internalized homophobia crushing', 'self hate spiraling', 'closet suffocating me'
-]
-
-# Add LGBTQIA+ specific keywords to relationship crisis category
-MEDIUM_CRISIS_KEYWORDS['relationship_crisis'].extend(LGBTQIA_MEDIUM_CRISIS)

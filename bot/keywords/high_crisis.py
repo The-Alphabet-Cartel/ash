@@ -42,11 +42,18 @@ SEVERE_HOPELESSNESS = [
     'nothing can help', 'will never be okay', 'born to suffer'
 ]
 
+# Additional high-risk phrases that might emerge
+ADDITIONAL_HIGH_RISK = [
+    'loading the gun', 'tying the noose', 'final livestream', 'last video',
+    'overdose tonight', 'jumping off', 'step in front', 'carbon monoxide',
+    'slitting my wrists', 'bleeding out', 'end the pain forever'
+]
+
 # Combine all high crisis categories
 HIGH_CRISIS_KEYWORDS = {
     'suicidal_ideation': SUICIDAL_IDEATION,
     'self_harm': SELF_HARM,
-    'immediate_danger': IMMEDIATE_DANGER,
+    'immediate_danger': IMMEDIATE_DANGER + ADDITIONAL_HIGH_RISK,
     'severe_hopelessness': SEVERE_HOPELESSNESS
 }
 
@@ -111,13 +118,3 @@ def get_keyword_count():
         total += count
     counts['total'] = total
     return counts
-
-# Additional high-risk phrases that might emerge
-ADDITIONAL_HIGH_RISK = [
-    'loading the gun', 'tying the noose', 'final livestream', 'last video',
-    'overdose tonight', 'jumping off', 'step in front', 'carbon monoxide',
-    'slitting my wrists', 'bleeding out', 'end the pain forever'
-]
-
-# Add additional high-risk to immediate danger category
-HIGH_CRISIS_KEYWORDS['immediate_danger'].extend(ADDITIONAL_HIGH_RISK)

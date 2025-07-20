@@ -28,8 +28,5 @@ USER botuser
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD python -c "import asyncio; import os; from claude_api import ClaudeAPI; asyncio.run(ClaudeAPI().test_connection())" || exit 1
 
-# Create a startup script that ensures directory permissions
-RUN echo '#!/bin/bash\nmkdir -p logs data\nexec python startup.py' > /app/start.sh && chmod +x /app/start.sh
-
 # Start the bot
-CMD ["/app/start.sh"]
+CMD ["python", "startup.py"]

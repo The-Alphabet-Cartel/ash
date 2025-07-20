@@ -18,6 +18,15 @@ DEPRESSION_SYMPTOMS = [
     'dark thoughts', 'negative spiral', 'mood is off'
 ]
 
+# Seasonal and situational struggles
+SEASONAL_SITUATIONAL = [
+    'seasonal depression', 'winter blues', 'holiday stress',
+    'anniversary sadness', 'birthday depression', 'new year anxiety',
+    'monday blues', 'sunday scaries', 'post vacation depression',
+    'moving stress', 'change is hard', 'transition anxiety',
+    'graduation sadness', 'empty nest', 'milestone anxiety'
+]
+
 # Anxiety symptoms - manageable worry and stress
 ANXIETY_SYMPTOMS = [
     'so anxious', 'worried about everything', 'overthinking',
@@ -97,7 +106,7 @@ WORK_SCHOOL_STRESS = [
 
 # Combine all low crisis categories
 LOW_CRISIS_KEYWORDS = {
-    'depression_symptoms': DEPRESSION_SYMPTOMS,
+    'depression_symptoms': DEPRESSION_SYMPTOMS + SEASONAL_SITUATIONAL,
     'anxiety_symptoms': ANXIETY_SYMPTOMS,
     'identity_struggles': IDENTITY_STRUGGLES,
     'relationship_trauma': RELATIONSHIP_TRAUMA,
@@ -168,15 +177,3 @@ def get_keyword_count():
         total += count
     counts['total'] = total
     return counts
-
-# Seasonal and situational struggles
-SEASONAL_SITUATIONAL = [
-    'seasonal depression', 'winter blues', 'holiday stress',
-    'anniversary sadness', 'birthday depression', 'new year anxiety',
-    'monday blues', 'sunday scaries', 'post vacation depression',
-    'moving stress', 'change is hard', 'transition anxiety',
-    'graduation sadness', 'empty nest', 'milestone anxiety'
-]
-
-# Add seasonal/situational to depression symptoms
-LOW_CRISIS_KEYWORDS['depression_symptoms'].extend(SEASONAL_SITUATIONAL)
