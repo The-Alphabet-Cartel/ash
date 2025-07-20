@@ -160,7 +160,5 @@ cython_debug/
 #.idea/
 
 ash-env/
-bot/logs/
-bot/data/
-.env
+bot/logs/*.log
 devNotes/
