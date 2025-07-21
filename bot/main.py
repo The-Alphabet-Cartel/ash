@@ -93,7 +93,7 @@ class AshBot(commands.Bot):
             bot_member = guild.get_member(self.user.id)
             if bot_member:
                 perms = bot_member.guild_permissions
-                logger.info(f'Bot permissions: use_slash_commands={perms.use_slash_commands}')
+                logger.info(f'Bot permissions: send_messages={perms.send_messages}, manage_roles={perms.manage_roles}')
             
             # Try to fetch existing commands
             try:
