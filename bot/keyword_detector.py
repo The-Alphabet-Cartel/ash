@@ -4,7 +4,9 @@ Identifies when messages indicate need for mental health support
 Uses modular keyword files for easy maintenance
 """
 
+import os
 import re
+import json
 import logging
 from keywords import get_high_crisis_keywords, get_medium_crisis_keywords, get_low_crisis_keywords
 
@@ -26,6 +28,9 @@ class KeywordDetector:
         low_count = sum(len(keywords) for keywords in self.low_crisis_keywords.values())
         
         logger.info(f"Loaded keywords - High: {high_count}, Medium: {medium_count}, Low: {low_count}, Total: {high_count + medium_count + low_count}")
+        
+        # Load custom keywords on startup
+        self.load_custom_keywords()
         
     def _compile_patterns(self):
         """Compile keyword patterns into regex for efficient matching"""
@@ -187,3 +192,47 @@ class KeywordDetector:
         logger.info(f"Reloaded keywords - High: {stats['high_crisis']}, Medium: {stats['medium_crisis']}, Low: {stats['low_crisis']}, Total: {stats['total']}")
         
         return stats
+
+    def load_custom_keywords(self):
+        """Load custom keywords from file and add to detector"""
+        custom_keywords_file = './data/custom_keywords.json'
+        
+        try:
+            if os.path.exists(custom_keywords_file):
+                with open(custom_keywords_file, 'r') as f:
+                    custom_data = json.load(f)
+                
+                # Add custom keywords to existing categories
+                for crisis_level, data in custom_data.items():
+                    if crisis_level.endswith('_crisis'):
+                        custom_phrases = data.get('custom_phrases', [])
+                        if custom_phrases:
+                            # Convert 'high_crisis' to 'high' for the detector
+                            detector_level = crisis_level.replace('_crisis', '')
+                            self.add_custom_keywords(detector_level, 'custom_phrases', custom_phrases)
+                
+                logger.info(f"Loaded custom keywords from {custom_keywords_file}")
+            else:
+                logger.info("No custom keywords file found - will be created when first keyword is added")
+                
+        except Exception as e:
+            logger.error(f"Error loading custom keywords: {e}")
+
+    def clear_custom_keywords(self):
+        """Clear all custom keywords from detector"""
+        try:
+            # Clear custom phrases from each crisis level
+            for crisis_level in ['high', 'medium', 'low']:
+                if crisis_level == 'high' and 'custom_phrases' in self.high_crisis_keywords:
+                    del self.high_crisis_keywords['custom_phrases']
+                elif crisis_level == 'medium' and 'custom_phrases' in self.medium_crisis_keywords:
+                    del self.medium_crisis_keywords['custom_phrases']
+                elif crisis_level == 'low' and 'custom_phrases' in self.low_crisis_keywords:
+                    del self.low_crisis_keywords['custom_phrases']
+            
+            # Recompile patterns after clearing
+            self._compile_patterns()
+            logger.info("Cleared all custom keywords")
+            
+        except Exception as e:
+            logger.error(f"Error clearing custom keywords: {e}")

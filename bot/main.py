@@ -1,15 +1,16 @@
-import discord
-from discord.ext import commands
 import asyncio
 import logging
 import os
 import warnings
+import time
+import discord
+from discord.ext import commands
 from dotenv import load_dotenv
 from keyword_detector import KeywordDetector
 from claude_api import ClaudeAPI
 from ash_character import ASH_CHARACTER_PROMPT
 from nlp_integration import RemoteNLPClient, hybrid_crisis_detection
-import time
+from crisis_commands import CrisisKeywordCommands
 
 # Suppress specific aiohttp cleanup warnings
 warnings.filterwarnings("ignore", category=ResourceWarning, message="unclosed.*client_session.*")
@@ -87,8 +88,31 @@ class AshBot(commands.Bot):
         guild = discord.utils.get(self.guilds, id=self.guild_id)
         if guild:
             logger.info(f'Connected to guild: {guild.name}')
+            logger.info(f'Slash commands ready for Crisis Response team')
+            
+            # Log available slash commands
+            commands = await self.tree.fetch_commands(guild=guild)
+            if commands:
+                cmd_names = [cmd.name for cmd in commands]
+                logger.info(f'Available slash commands: {", ".join(cmd_names)}')
+            
         else:
             logger.error(f'Could not find guild with ID: {self.guild_id}')
+
+    async def setup_hook(self):
+        """Setup hook to add cogs and sync commands"""
+        try:
+            # Add the crisis keyword commands cog
+            await self.add_cog(CrisisKeywordCommands(self))
+            logger.info("Crisis keyword commands cog loaded")
+            
+            # Sync slash commands to your guild
+            guild = discord.Object(id=self.guild_id)
+            synced = await self.tree.sync(guild=guild)
+            logger.info(f"Synced {len(synced)} slash commands to guild {self.guild_id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to setup cogs or sync slash commands: {e}")
 
     async def on_message(self, message):
         # Ignore bot messages
