@@ -129,7 +129,8 @@ class AshBot(commands.Bot):
         
         try:
             # Load the cog
-            cog = CrisisKeywordCommands(self)
+            #cog = CrisisKeywordCommands(self)
+            cog = TestCommands(self)
             await self.add_cog(cog)
             logger.info("✅ CrisisKeywordCommands cog added successfully")
             
