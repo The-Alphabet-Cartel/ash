@@ -48,7 +48,7 @@ def get_crisis_response_additions():
     
     return {
         'low': "",
-        'medium': f"\n\nRemember: You're not alone in this. The Alphabet Cartel family is here.",
+        'medium': f"\n\nRemember: You're not alone in this. We are here.",
         'high': f"\n\n🚨 I've alerted our staff team because this sounds really serious. Professional support is available in #{resources_channel}. You matter, and help is coming."
     }
 
