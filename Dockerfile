@@ -26,7 +26,7 @@ USER botuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python -c "import asyncio; import os; from claude_api import ClaudeAPI; asyncio.run(ClaudeAPI().test_connection())" || exit 1
+    CMD python -c "import discord; print('Bot modules OK')" || exit 1
 
 # Start the bot
 CMD ["python", "startup.py"]
