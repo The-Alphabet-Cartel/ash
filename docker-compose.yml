@@ -10,15 +10,22 @@ services:
     
     container_name: ash
     restart: unless-stopped
+    networks:
+      - ash-network
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
-      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
       - GUILD_ID=${GUILD_ID}
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
       - RESOURCES_CHANNEL_ID=${RESOURCES_CHANNEL_ID}
-      - STAFF_PING_USER=${STAFF_PING_USER}
-      - CRISIS_RESPONSE_ROLE_ID=${CRISIS_RESPONSE_ROLE_ID}
       - CRISIS_RESPONSE_CHANNEL_ID=${CRISIS_RESPONSE_CHANNEL_ID}
       - ALLOWED_CHANNELS=${ALLOWED_CHANNELS}
+      - STAFF_PING_USER=${STAFF_PING_USER}
+      - CRISIS_RESPONSE_ROLE_ID=${CRISIS_RESPONSE_ROLE_ID}
+      - RESOURCES_CHANNEL_NAME=${RESOURCES_CHANNEL_NAME}
+      - CRISIS_RESPONSE_ROLE_NAME=${CRISIS_RESPONSE_ROLE_NAME}
+      - STAFF_PING_NAME=${STAFF_PING_NAME}
+      - NLP_SERVICE_HOST=${NLP_SERVICE_HOST}
+      - NLP_SERVICE_PORT=${NLP_SERVICE_PORT:-8881}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - MAX_DAILY_CALLS=${MAX_DAILY_CALLS:-1000}
       - RATE_LIMIT_PER_USER=${RATE_LIMIT_PER_USER:-10}
@@ -26,9 +33,14 @@ services:
       - ./bot/logs:/app/logs
       - ./bot/data:/app/data
     depends_on:
-      - ash-redis
-    networks:
-      - ash-network
+      ash-redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import discord; print('OK')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   ash-redis:
     image: redis:7-alpine
