@@ -23,6 +23,9 @@ class CrisisKeywordCommands(commands.Cog):
         
         # Ensure custom keywords file exists
         self._ensure_custom_keywords_file()
+        
+        # Log that commands are being registered
+        logger.info(f"🔧 Registering crisis keyword commands with role ID: {self.crisis_response_role_id}")
     
     def _ensure_custom_keywords_file(self):
         """Create custom keywords file if it doesn't exist"""
@@ -140,6 +143,7 @@ class CrisisKeywordCommands(commands.Cog):
         keyword="The keyword or phrase to add (can contain spaces)"
     )
     @app_commands.choices(crisis_level=CRISIS_LEVELS)
+    @app_commands.guild_only()
     async def add_keyword(self, interaction: discord.Interaction, crisis_level: str, keyword: str):
         """Add a custom keyword to specified crisis level"""
         
@@ -218,6 +222,7 @@ class CrisisKeywordCommands(commands.Cog):
         keyword="The keyword or phrase to remove"
     )
     @app_commands.choices(crisis_level=CRISIS_LEVELS)
+    @app_commands.guild_only()
     async def remove_keyword(self, interaction: discord.Interaction, crisis_level: str, keyword: str):
         """Remove a custom keyword from specified crisis level"""
         
@@ -273,6 +278,7 @@ class CrisisKeywordCommands(commands.Cog):
     @app_commands.command(name="list_keywords", description="List all custom keywords for a crisis level")
     @app_commands.describe(crisis_level="Which crisis level to list keywords for")
     @app_commands.choices(crisis_level=CRISIS_LEVELS)
+    @app_commands.guild_only()
     async def list_keywords(self, interaction: discord.Interaction, crisis_level: str):
         """List all custom keywords for specified crisis level"""
         
@@ -323,6 +329,7 @@ class CrisisKeywordCommands(commands.Cog):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="keyword_stats", description="Show statistics for all custom keywords")
+    @app_commands.guild_only()
     async def keyword_stats(self, interaction: discord.Interaction):
         """Show statistics for all custom keywords"""
         

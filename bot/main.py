@@ -124,18 +124,51 @@ class AshBot(commands.Bot):
 
     async def setup_hook(self):
         """Setup hook to add cogs and sync commands"""
+        logger.info("🔄 Starting setup_hook...")
+        
         try:
-            # Add the crisis keyword commands cog
-            await self.add_cog(CrisisKeywordCommands(self))
-            logger.info("Crisis keyword commands cog loaded")
+            # Load the cog
+            cog = CrisisKeywordCommands(self)
+            await self.add_cog(cog)
+            logger.info("✅ CrisisKeywordCommands cog added successfully")
             
-            # Sync slash commands to your guild
-            guild = discord.Object(id=self.guild_id)
-            synced = await self.tree.sync(guild=guild)
-            logger.info(f"Synced {len(synced)} slash commands to guild {self.guild_id}")
+            # Check how many commands the cog has
+            cog_commands = [cmd for cmd in self.tree.walk_commands()]
+            logger.info(f"📋 Found {len(cog_commands)} commands in tree:")
+            for cmd in cog_commands:
+                logger.info(f"   - {cmd.name}: {cmd.description}")
+            
+            # Check if we can access the guild
+            guild_obj = discord.Object(id=self.guild_id)
+            logger.info(f"🎯 Target guild ID: {self.guild_id}")
+            
+            # Attempt to sync commands
+            logger.info("🔄 Syncing slash commands...")
+            synced = await self.tree.sync(guild=guild_obj)
+            
+            logger.info(f"✅ Successfully synced {len(synced)} commands!")
+            for cmd in synced:
+                logger.info(f"   📋 /{cmd.name} - {cmd.description}")
+                
+            return True
+            
+        except discord.Forbidden as e:
+            logger.error(f"❌ FORBIDDEN: Bot lacks permissions to sync commands")
+            logger.error(f"   Error details: {e}")
+            logger.error("   💡 Solution: Re-invite bot with 'applications.commands' scope")
+            return False
+            
+        except discord.HTTPException as e:
+            logger.error(f"❌ HTTP Error syncing commands: {e}")
+            if e.status == 403:
+                logger.error("   💡 This is likely a permissions issue")
+            return False
             
         except Exception as e:
-            logger.error(f"Failed to setup cogs or sync slash commands: {e}")
+            logger.error(f"❌ Unexpected error in setup_hook: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
 
     async def on_message(self, message):
         # Ignore bot messages
