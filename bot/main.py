@@ -88,13 +88,36 @@ class AshBot(commands.Bot):
         guild = discord.utils.get(self.guilds, id=self.guild_id)
         if guild:
             logger.info(f'Connected to guild: {guild.name}')
-            logger.info(f'Slash commands ready for Crisis Response team')
             
-            # Log available slash commands
-            commands = await self.tree.fetch_commands(guild=guild)
-            if commands:
-                cmd_names = [cmd.name for cmd in commands]
-                logger.info(f'Available slash commands: {", ".join(cmd_names)}')
+            # Check bot permissions in guild
+            bot_member = guild.get_member(self.user.id)
+            if bot_member:
+                perms = bot_member.guild_permissions
+                logger.info(f'Bot permissions: use_slash_commands={perms.use_slash_commands}')
+            
+            # Try to fetch existing commands
+            try:
+                commands = await self.tree.fetch_commands(guild=guild)
+                if commands:
+                    cmd_names = [cmd.name for cmd in commands]
+                    logger.info(f'✅ Available slash commands: {", ".join(cmd_names)}')
+                else:
+                    logger.warning('⚠️ No slash commands found in guild')
+                    
+                    # Try global commands
+                    global_commands = await self.tree.fetch_commands()
+                    if global_commands:
+                        global_names = [cmd.name for cmd in global_commands]
+                        logger.info(f'ℹ️ Global commands available: {", ".join(global_names)}')
+                    else:
+                        logger.error('❌ No commands found globally either')
+                        
+            except discord.Forbidden:
+                logger.error('❌ Bot lacks permission to fetch commands')
+            except Exception as e:
+                logger.error(f'❌ Error fetching commands: {e}')
+            
+            logger.info(f'🎯 Crisis Response role ID: {self.crisis_response_role_id}')
             
         else:
             logger.error(f'Could not find guild with ID: {self.guild_id}')
