@@ -77,8 +77,6 @@ ash/
 ├── Dockerfile                 # Container build instructions
 ├── docker-compose.yml         # Container orchestration
 ├── requirements.txt           # Python dependencies
-├── .github/workflows/         # GitHub Actions CI/CD
-│   └── ash-build.yml
 └── bot/                       # Application code
     ├── main.py               # Main bot application
     ├── ash_character.py      # Character definition and prompts
