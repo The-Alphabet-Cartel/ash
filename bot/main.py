@@ -10,7 +10,8 @@ from keyword_detector import KeywordDetector
 from claude_api import ClaudeAPI
 from ash_character import ASH_CHARACTER_PROMPT
 from nlp_integration import RemoteNLPClient, hybrid_crisis_detection
-from crisis_commands import CrisisKeywordCommands
+#from crisis_commands import CrisisKeywordCommands
+from test_commands import TestCommands
 
 # Suppress specific aiohttp cleanup warnings
 warnings.filterwarnings("ignore", category=ResourceWarning, message="unclosed.*client_session.*")
@@ -137,37 +138,50 @@ class AshBot(commands.Bot):
             logger.info(f"📋 Found {len(cog_commands)} commands in tree:")
             for cmd in cog_commands:
                 logger.info(f"   - {cmd.name}: {cmd.description}")
+                # Check command details
+                logger.info(f"     Guild only: {getattr(cmd, 'guild_only', 'unknown')}")
+                logger.info(f"     Command type: {type(cmd).__name__}")
             
-            # Check if we can access the guild
+            # Try global sync first (appears faster, up to 1 hour to propagate)
+            logger.info("🌍 Trying global sync first...")
+            try:
+                global_synced = await self.tree.sync()
+                logger.info(f"✅ Global sync: {len(global_synced)} commands")
+                if global_synced:
+                    for cmd in global_synced:
+                        logger.info(f"   🌍 /{cmd.name} - {cmd.description}")
+            except Exception as e:
+                logger.error(f"❌ Global sync failed: {e}")
+            
+            # Now try guild sync
             guild_obj = discord.Object(id=self.guild_id)
-            logger.info(f"🎯 Target guild ID: {self.guild_id}")
+            logger.info(f"🎯 Trying guild sync to: {self.guild_id}")
             
-            # Attempt to sync commands
-            logger.info("🔄 Syncing slash commands...")
-            synced = await self.tree.sync(guild=guild_obj)
+            try:
+                guild_synced = await self.tree.sync(guild=guild_obj)
+                logger.info(f"✅ Guild sync: {len(guild_synced)} commands")
+                if guild_synced:
+                    for cmd in guild_synced:
+                        logger.info(f"   🏰 /{cmd.name} - {cmd.description}")
+                else:
+                    logger.warning("⚠️ Guild sync returned 0 commands but no error")
+            except discord.Forbidden as e:
+                logger.error(f"❌ FORBIDDEN during guild sync: {e}")
+                logger.error("   Bot might lack guild-specific permissions")
+            except discord.HTTPException as e:
+                logger.error(f"❌ HTTP error during guild sync: {e}")
+                logger.error(f"   Status: {e.status}, Response: {e.response}")
+            except Exception as e:
+                logger.error(f"❌ Unexpected error during guild sync: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
             
-            logger.info(f"✅ Successfully synced {len(synced)} commands!")
-            for cmd in synced:
-                logger.info(f"   📋 /{cmd.name} - {cmd.description}")
-                
             return True
             
-        except discord.Forbidden as e:
-            logger.error(f"❌ FORBIDDEN: Bot lacks permissions to sync commands")
-            logger.error(f"   Error details: {e}")
-            logger.error("   💡 Solution: Re-invite bot with 'applications.commands' scope")
-            return False
-            
-        except discord.HTTPException as e:
-            logger.error(f"❌ HTTP Error syncing commands: {e}")
-            if e.status == 403:
-                logger.error("   💡 This is likely a permissions issue")
-            return False
-            
         except Exception as e:
-            logger.error(f"❌ Unexpected error in setup_hook: {e}")
+            logger.error(f"❌ Setup hook failed completely: {e}")
             import traceback
-            traceback.print_exc()
+            logger.error(traceback.format_exc())
             return False
 
     async def on_message(self, message):
