@@ -43,13 +43,26 @@ class AshBot(commands.Bot):
         
         self.keyword_detector = KeywordDetector()
         self.claude_api = ClaudeAPI()
-        self.guild_id = int(os.getenv('GUILD_ID'))
-        self.resources_channel_id = int(os.getenv('RESOURCES_CHANNEL_ID'))
-        self.staff_ping_user = os.getenv('STAFF_PING_USER')
-        self.crisis_response_role_id = os.getenv('CRISIS_RESPONSE_ROLE_ID')
-        self.crisis_response_channel_id = int(os.getenv('CRISIS_RESPONSE_CHANNEL_ID'))
         self.nlp_client = RemoteNLPClient()
-        
+
+        self.guild_id = int(os.getenv('GUILD_ID', '0'))
+        self.resources_channel_id = int(os.getenv('RESOURCES_CHANNEL_ID', '0'))
+        self.crisis_response_channel_id = int(os.getenv('CRISIS_RESPONSE_CHANNEL_ID', '0'))
+        self.crisis_response_role_id = os.getenv('CRISIS_RESPONSE_ROLE_ID', '0')
+        self.staff_ping_user = os.getenv('STAFF_PING_USER', '0')
+
+        # Add validation
+        if not self.guild_id:
+            raise ValueError("GUILD_ID environment variable is required")
+        if not self.resources_channel_id:
+            raise ValueError("RESOURCES_CHANNEL_ID environment variable is required")
+        if not self.crisis_response_channel_id:
+            raise ValueError("CRISIS_RESPONSE_CHANNEL_ID environment variable is required")
+        if not self.crisis_response_role_id:
+            raise ValueError("CRISIS_RESPONSE_ROLE_ID environment variable is required")
+        if not self.staff_ping_user:
+            raise ValueError("STAFF_PING_USER environment variable is required")
+
         # Parse allowed channels from environment variable
         allowed_channels_str = os.getenv('ALLOWED_CHANNELS', '')
         if allowed_channels_str:
@@ -255,7 +268,8 @@ class AshBot(commands.Bot):
     
     async def check_rate_limits(self, user_id):
         """Check if user is within rate limits"""
-        current_time = asyncio.get_event_loop().time()
+        # Instead of: current_time = asyncio.get_event_loop().time()
+        current_time = time.time()
         rate_limit = int(os.getenv('RATE_LIMIT_PER_USER', 10))
         
         if user_id not in self.user_cooldowns:
