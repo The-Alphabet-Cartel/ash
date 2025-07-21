@@ -10,8 +10,7 @@ from keyword_detector import KeywordDetector
 from claude_api import ClaudeAPI
 from ash_character import ASH_CHARACTER_PROMPT
 from nlp_integration import RemoteNLPClient, hybrid_crisis_detection
-#from crisis_commands import CrisisKeywordCommands
-from test_commands import TestCommands
+from crisis_commands import CrisisKeywordCommands
 
 # Suppress specific aiohttp cleanup warnings
 warnings.filterwarnings("ignore", category=ResourceWarning, message="unclosed.*client_session.*")
@@ -124,63 +123,42 @@ class AshBot(commands.Bot):
             logger.error(f'Could not find guild with ID: {self.guild_id}')
 
     async def setup_hook(self):
-        """Setup hook to add cogs and sync commands"""
+        """Setup hook to add cogs and sync commands globally"""
         logger.info("🔄 Starting setup_hook...")
         
         try:
-            # Load the cog
-            #cog = CrisisKeywordCommands(self)
-            cog = TestCommands(self)
+            cog = CrisisKeywordCommands(self)
             await self.add_cog(cog)
             logger.info("✅ CrisisKeywordCommands cog added successfully")
             
-            # Check how many commands the cog has
+            # Check commands in tree
             cog_commands = [cmd for cmd in self.tree.walk_commands()]
             logger.info(f"📋 Found {len(cog_commands)} commands in tree:")
             for cmd in cog_commands:
                 logger.info(f"   - {cmd.name}: {cmd.description}")
-                # Check command details
-                logger.info(f"     Guild only: {getattr(cmd, 'guild_only', 'unknown')}")
-                logger.info(f"     Command type: {type(cmd).__name__}")
             
-            # Try global sync first (appears faster, up to 1 hour to propagate)
-            logger.info("🌍 Trying global sync first...")
+            # Use global sync since guild sync is broken
+            logger.info("🌍 Using global sync (commands will appear within 1 hour)...")
             try:
                 global_synced = await self.tree.sync()
-                logger.info(f"✅ Global sync: {len(global_synced)} commands")
+                logger.info(f"✅ Global sync successful: {len(global_synced)} commands")
+                
                 if global_synced:
+                    logger.info("📋 Synced commands:")
                     for cmd in global_synced:
                         logger.info(f"   🌍 /{cmd.name} - {cmd.description}")
+                    logger.info("⏰ Commands will appear in Discord within 1 hour")
+                else:
+                    logger.warning("⚠️ Global sync returned 0 commands")
+                    
             except Exception as e:
                 logger.error(f"❌ Global sync failed: {e}")
-            
-            # Now try guild sync
-            guild_obj = discord.Object(id=self.guild_id)
-            logger.info(f"🎯 Trying guild sync to: {self.guild_id}")
-            
-            try:
-                guild_synced = await self.tree.sync(guild=guild_obj)
-                logger.info(f"✅ Guild sync: {len(guild_synced)} commands")
-                if guild_synced:
-                    for cmd in guild_synced:
-                        logger.info(f"   🏰 /{cmd.name} - {cmd.description}")
-                else:
-                    logger.warning("⚠️ Guild sync returned 0 commands but no error")
-            except discord.Forbidden as e:
-                logger.error(f"❌ FORBIDDEN during guild sync: {e}")
-                logger.error("   Bot might lack guild-specific permissions")
-            except discord.HTTPException as e:
-                logger.error(f"❌ HTTP error during guild sync: {e}")
-                logger.error(f"   Status: {e.status}, Response: {e.response}")
-            except Exception as e:
-                logger.error(f"❌ Unexpected error during guild sync: {e}")
-                import traceback
-                logger.error(traceback.format_exc())
+                return False
             
             return True
             
         except Exception as e:
-            logger.error(f"❌ Setup hook failed completely: {e}")
+            logger.error(f"❌ Setup hook failed: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return False
