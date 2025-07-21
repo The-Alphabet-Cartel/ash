@@ -18,7 +18,7 @@ class RemoteNLPClient:
     def __init__(self):
         # Configure the remote NLP service
         self.nlp_host = os.getenv('NLP_SERVICE_HOST', 'YOUR_AI_RIG_IP_ADDRESS')
-        self.nlp_port = os.getenv('NLP_SERVICE_PORT', '8001')
+        self.nlp_port = os.getenv('NLP_SERVICE_PORT', '8881')
         self.nlp_url = f"http://{self.nlp_host}:{self.nlp_port}"
         
         # Connection settings
@@ -199,5 +199,5 @@ async def hybrid_crisis_detection(keyword_detector, nlp_client, message):
 """
 # Remote NLP Service Configuration
 NLP_SERVICE_HOST=192.168.1.100  # Replace with your AI rig's IP address
-NLP_SERVICE_PORT=8001
+NLP_SERVICE_PORT=8881
 """
