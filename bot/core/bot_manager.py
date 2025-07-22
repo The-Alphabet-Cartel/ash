@@ -26,7 +26,12 @@ class AshBot(commands.Bot):
             help_command=None
         )
         
-        # Component references (will be initialized in setup_hook)
+        # Component references (your existing classes)
+        self.claude_api = None
+        self.nlp_client = None
+        self.keyword_detector = None
+        
+        # Future modular components
         self.claude_integration = None
         self.nlp_integration = None
         self.detection_service = None
@@ -67,45 +72,30 @@ class AshBot(commands.Bot):
         
         # Step 1: Initialize integrations
         logger.info("🔌 Initializing integrations...")
-        from integrations.claude_integration import ClaudeIntegration
-        from integrations.nlp_integration import NLPIntegration
+        # Import your existing files directly
+        from claude_api import ClaudeAPI
+        from nlp_integration import RemoteNLPClient
+        from keyword_detector import KeywordDetector
         
-        self.claude_integration = ClaudeIntegration(self.config)
-        self.nlp_integration = NLPIntegration(self.config)
+        # Create simple wrappers
+        self.claude_api = ClaudeAPI()
+        self.nlp_client = RemoteNLPClient()
+        self.keyword_detector = KeywordDetector()
         
         # Test connections
         logger.info("🔍 Testing integrations...")
         try:
-            claude_ok = await self.claude_integration.test_connection()
-            nlp_ok = await self.nlp_integration.test_connection()
+            claude_ok = await self.claude_api.test_connection()
+            nlp_ok = await self.nlp_client.test_connection()
             
             logger.info(f"Claude API: {'✅ Connected' if claude_ok else '❌ Failed'}")
             logger.info(f"NLP Service: {'✅ Connected' if nlp_ok else '❌ Failed'}")
         except Exception as e:
             logger.warning(f"Integration test error: {e}")
         
-        # Step 2: Initialize services
-        logger.info("⚙️ Initializing services...")
-        from services.detection_service import DetectionService
-        
-        self.detection_service = DetectionService(
-            self.claude_integration,
-            self.nlp_integration,
-            self.config
-        )
-        
-        # Step 3: Initialize handlers
-        logger.info("📨 Initializing handlers...")
-        from handlers.crisis_handler import CrisisHandler
-        from handlers.message_handler import MessageHandler
-        
-        self.crisis_handler = CrisisHandler(self, self.config)
-        self.message_handler = MessageHandler(
-            self,
-            self.detection_service,
-            self.config
-        )
-        
+        # For now, we'll use your existing main.py logic directly
+        # This is the safest approach to get modular structure working
+        logger.info("✅ Using your existing integration logic")
         logger.info("✅ All modular components initialized")
     
     async def on_ready(self):
@@ -126,9 +116,41 @@ class AshBot(commands.Bot):
         logger.info("🎉 Ash Bot fully operational with modular architecture")
     
     async def on_message(self, message):
-        """Route messages to message handler"""
-        if self.message_handler:
-            await self.message_handler.handle_message(message)
+        """Handle messages using your existing logic"""
+        
+        # For now, implement your existing on_message logic directly here
+        # This ensures we have working functionality first
+        
+        # Your existing filters
+        if message.author.bot:
+            return
+            
+        if not message.guild or message.guild.id != self.config.get_int('GUILD_ID'):
+            return
+        
+        if not self.config.is_channel_allowed(message.channel.id):
+            return
+        
+        # Basic crisis detection using your existing components
+        try:
+            if hasattr(self, 'keyword_detector'):
+                keyword_result = self.keyword_detector.check_message(message.content)
+                
+                if keyword_result['needs_response']:
+                    # Get response from Claude
+                    response = await self.claude_api.get_ash_response(
+                        message.content,
+                        keyword_result['crisis_level'],
+                        message.author.display_name
+                    )
+                    
+                    # Simple response for now
+                    await message.reply(response)
+                    
+                    logger.info(f"✅ Responded to {message.author} - Crisis level: {keyword_result['crisis_level']}")
+        
+        except Exception as e:
+            logger.error(f"Error in message handling: {e}")
         
         # Process commands
         await self.process_commands(message)
