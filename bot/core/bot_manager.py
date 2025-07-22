@@ -70,9 +70,9 @@ class AshBot(commands.Bot):
         self.claude_integration = ClaudeIntegration(self.config)
         self.nlp_integration = NLPIntegration(self.config)
         
-        # Test connections
-        await self.claude_integration.test_connection()
-        await self.nlp_integration.test_connection()
+        # Test connections (don't await here - just initialize)
+        logger.info("🔌 Integrations initialized (connection tests will run on bot start)")
+        # Note: Connection tests will happen in on_ready() event
         
         # Step 2: Initialize services (business logic)
         logger.info("⚙️ Initializing services...")
@@ -116,6 +116,17 @@ class AshBot(commands.Bot):
     async def on_ready(self):
         """Bot ready event - final setup"""
         logger.info(f'✅ {self.user} has awakened in The Alphabet Cartel')
+        
+        # Now test connections (in async context)
+        logger.info("🔍 Testing integrations...")
+        try:
+            claude_ok = await self.claude_integration.test_connection()
+            nlp_ok = await self.nlp_integration.test_connection()
+            
+            logger.info(f"Claude API: {'✅ Connected' if claude_ok else '❌ Failed'}")
+            logger.info(f"NLP Service: {'✅ Connected' if nlp_ok else '❌ Failed'}")
+        except Exception as e:
+            logger.warning(f"Integration test error: {e}")
         
         # Log guild information
         guild = discord.utils.get(self.guilds, id=self.config.get_int('GUILD_ID'))
