@@ -16,13 +16,22 @@ logger = logging.getLogger(__name__)
 class MessageHandler:
     """Enhanced message processing with your existing logic + improvements"""
     
-    def __init__(self, bot, claude_api, nlp_client, keyword_detector, crisis_handler, config):
+    def __init__(self, bot, claude_api, nlp_client, keyword_detector, crisis_handler, config, security_manager=None):
+        """Enhanced initialization with optional security manager"""
+        
         self.bot = bot
         self.claude_api = claude_api
         self.nlp_client = nlp_client
         self.keyword_detector = keyword_detector
         self.crisis_handler = crisis_handler
         self.config = config
+        
+        # NEW: Add security manager (optional for backwards compatibility)
+        self.security_manager = security_manager
+        if self.security_manager:
+            logger.info("✅ Security manager integrated with message handler")
+        else:
+            logger.info("⚠️ Security manager not provided - running without security features")
         
         # Your existing conversation tracking (enhanced)
         self.active_conversations = {}
@@ -50,14 +59,12 @@ class MessageHandler:
         }
         
         self.guild_id = config.get_int('GUILD_ID')
-
-        # NEW: Add security manager
-        self.security_manager = security_manager
-
+        
         logger.info("📨 Enhanced message handler initialized")
         logger.info(f"   🎯 Guild ID: {self.guild_id}")
         logger.info(f"   📊 Rate limits: {self.rate_limit_per_user}/hour per user, {self.max_daily_calls}/day total")
         logger.info(f"   💬 Conversation timeout: {self.conversation_timeout}s")
+        logger.info(f"   🔐 Security manager: {'✅ Enabled' if self.security_manager else '❌ Disabled'}")
     
     async def handle_message(self, message: Message):
         """Enhanced main message handling with comprehensive logging"""
@@ -205,21 +212,20 @@ class MessageHandler:
             async with message.channel.typing():
                 crisis_level = detection_result['crisis_level']
                 
-                # Log crisis detection as security event
-                if self.security_manager:
-                    self.security_manager.log_security_event(
-                        f"crisis_detected_{crisis_level}",
-                        message.author.id,
-                        message.guild.id,
-                        message.channel.id,
-                        {
-                            "crisis_level": crisis_level,
-                            "method": detection_result.get('method', 'unknown'),
-                            "confidence": detection_result.get('confidence', 0),
-                            "message_preview": message.content[:50] + "..." if len(message.content) > 50 else message.content
-                        },
-                        "warning" if crisis_level == "high" else "info"
-                    )
+                # Log crisis detection as security event (safe version)
+                self._log_security_event(
+                    f"crisis_detected_{crisis_level}",
+                    message.author.id,
+                    message.guild.id,
+                    message.channel.id,
+                    {
+                        "crisis_level": crisis_level,
+                        "method": detection_result.get('method', 'unknown'),
+                        "confidence": detection_result.get('confidence', 0),
+                        "message_preview": message.content[:50] + "..." if len(message.content) > 50 else message.content
+                    },
+                    "warning" if crisis_level == "high" else "info"
+                )
                 
                 # Get response using Claude API
                 response = await self.claude_api.get_ash_response(
@@ -231,24 +237,37 @@ class MessageHandler:
                 # Use enhanced crisis handler
                 await self.crisis_handler.handle_crisis_response(message, crisis_level, response)
                 
-                # ... rest of existing method ...
+                # Your existing conversation tracking (enhanced)
+                self.start_conversation_tracking(message.author.id, crisis_level, message.channel.id)
+                
+                # Update counters
+                self.daily_call_count += 1
+                await self.record_api_call(message.author.id)
+                self.message_stats['crisis_responses_given'] += 1
+                
+                # Enhanced logging
+                logger.info(f"✅ Crisis response completed:")
+                logger.info(f"   👤 User: {message.author} ({message.author.id})")
+                logger.info(f"   🚨 Level: {crisis_level}")
+                logger.info(f"   🔍 Method: {detection_result.get('method', 'unknown')}")
+                logger.info(f"   📊 Confidence: {detection_result.get('confidence', 0):.2f}")
+                logger.info(f"   📈 Total responses today: {self.message_stats['crisis_responses_given']}")
                 
         except Exception as e:
             logger.error(f"❌ Error handling crisis response: {e}")
             
-            # Log error as security event
-            if self.security_manager:
-                self.security_manager.log_security_event(
-                    "crisis_response_error",
-                    message.author.id,
-                    message.guild.id,
-                    message.channel.id,
-                    {"error": str(e), "crisis_level": detection_result.get('crisis_level', 'unknown')},
-                    "error"
-                )
+            # Log error as security event (safe version)
+            self._log_security_event(
+                "crisis_response_error",
+                message.author.id,
+                message.guild.id,
+                message.channel.id,
+                {"error": str(e), "crisis_level": detection_result.get('crisis_level', 'unknown')},
+                "error"
+            )
             
             await message.add_reaction('❌')
-    
+
     async def _handle_conversation_followup(self, message: Message):
         """Enhanced conversation follow-up with escalation detection"""
         
@@ -487,3 +506,11 @@ class MessageHandler:
                 logger.error(f"User {user_id} has been locked out due to repeated rate limit violations")
         
         return rate_limit_ok
+
+    def _log_security_event(self, event_type: str, user_id: int, guild_id: int, channel_id: int, details: dict = None, severity: str = "info"):
+        """Helper method to safely log security events"""
+        if self.security_manager:
+            self.security_manager.log_security_event(event_type, user_id, guild_id, channel_id, details, severity)
+        else:
+            # Fallback to regular logging if no security manager
+            logger.info(f"Security Event (no manager): {event_type} - User: {user_id} - Details: {details}")
