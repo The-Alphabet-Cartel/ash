@@ -62,7 +62,9 @@ class KeywordDiscoveryService:
                     }
                 }
                 
-                async with session.post(f"{self.nlp_url}/extract_phrases", json=payload) as response:
+                # Set longer timeout for manual discovery (user expects delay)
+                timeout = aiohttp.ClientTimeout(total=10.0)
+                async with session.post(f"{self.nlp_url}/extract_phrases", json=payload, timeout=timeout) as response:
                     if response.status == 200:
                         data = await response.json()
                         return await self._process_extracted_phrases(data, message)
@@ -70,8 +72,70 @@ class KeywordDiscoveryService:
                         logger.warning(f"NLP server error {response.status} for phrase extraction")
                         return None
                         
+        except asyncio.TimeoutError:
+            logger.warning("NLP phrase extraction timed out (manual discovery)")
+            return None
         except Exception as e:
             logger.error(f"Error in missed crisis analysis: {e}")
+            return None
+    
+    async def analyze_for_background_learning(self, message: str, user_id: str, channel_id: str, crisis_level: str):
+        """
+        BACKGROUND ANALYSIS - Does not block real-time responses
+        Analyzes messages that triggered responses to learn patterns
+        """
+        if not self.discovery_enabled:
+            return
+        
+        try:
+            # Very short timeout - if NLP server is slow, skip silently
+            async with aiohttp.ClientSession() as session:
+                payload = {
+                    "message": message,
+                    "user_id": user_id,
+                    "channel_id": channel_id,
+                    "parameters": {
+                        "min_phrase_length": 2,
+                        "max_phrase_length": 4,  # Shorter phrases for background
+                        "crisis_focus": True,
+                        "community_specific": True,
+                        "min_confidence": max(0.7, self.min_confidence)  # Higher threshold for background
+                    }
+                }
+                
+                # Very short timeout for background analysis
+                timeout = aiohttp.ClientTimeout(total=3.0)
+                async with session.post(f"{self.nlp_url}/extract_phrases", json=payload, timeout=timeout) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        result = await self._process_extracted_phrases(data, message)
+                        
+                        if result and result.get('discovered_keywords'):
+                            # Only log high-confidence background discoveries
+                            high_conf_keywords = [
+                                kw for kw in result['discovered_keywords'] 
+                                if kw.get('confidence', 0) > 0.75
+                            ]
+                            if high_conf_keywords:
+                                logger.info(f"🔍 Background discovery found {len(high_conf_keywords)} high-confidence keywords")
+                                
+                                # Add to pending suggestions with background flag
+                                for kw in high_conf_keywords:
+                                    kw['source'] = 'background_learning'
+                                    kw['background'] = True
+                                
+                                return result
+                    else:
+                        # Don't log errors for background analysis - NLP server might be busy
+                        return None
+                        
+        except asyncio.TimeoutError:
+            # Expected - NLP server taking too long, skip silently
+            logger.debug("Background discovery skipped - NLP server timeout")
+            return None
+        except Exception as e:
+            # Log but don't fail
+            logger.debug(f"Background discovery error (non-critical): {e}")
             return None
     
     async def discover_from_conversation_batch(self, messages: List[Dict]) -> List[Dict]:
@@ -255,12 +319,17 @@ class KeywordDiscoveryManager:
         self.discovery_service = KeywordDiscoveryService(bot.keyword_detector)
         self.pending_suggestions = []  # Keywords waiting for team review
         
+        # Background task management
+        self.background_tasks = set()  # Track background tasks
+        self.max_background_tasks = 5  # Limit concurrent background analysis
+        
     async def on_crisis_response_given(self, message, response_type: str, human_responded: bool = False):
         """
-        Called after Ash responds to a crisis - learn from the interaction
+        Called after Ash responds to a crisis - ASYNC background learning
         """
+        # If there are manual interventions, prioritize those for immediate analysis
         if human_responded and response_type in ['medium', 'high']:
-            # Human intervention suggests we might have missed something
+            # Manual intervention - run immediately (user tolerates delay)
             discovery_result = await self.discovery_service.analyze_missed_crisis(
                 message.content, 
                 str(message.author.id), 
@@ -268,7 +337,96 @@ class KeywordDiscoveryManager:
             )
             
             if discovery_result and discovery_result.get('discovered_keywords'):
-                await self._handle_new_discoveries(discovery_result['discovered_keywords'], message.channel)
+                await self._handle_urgent_discoveries(discovery_result['discovered_keywords'], message.channel)
+        else:
+            # Regular bot response - queue background analysis (don't block)
+            await self._queue_background_analysis(message, response_type)
+    
+    async def _queue_background_analysis(self, message, crisis_level: str):
+        """Queue background analysis without blocking real-time responses"""
+        
+        # Limit concurrent background tasks
+        if len(self.background_tasks) >= self.max_background_tasks:
+            logger.debug("Skipping background analysis - too many concurrent tasks")
+            return
+        
+        # Create background task
+        task = asyncio.create_task(
+            self._run_background_analysis(message, crisis_level)
+        )
+        
+        # Track the task
+        self.background_tasks.add(task)
+        
+        # Clean up when done
+        task.add_done_callback(self.background_tasks.discard)
+    
+    async def _run_background_analysis(self, message, crisis_level: str):
+        """Run background analysis in separate task"""
+        try:
+            discovery_result = await self.discovery_service.analyze_for_background_learning(
+                message.content,
+                str(message.author.id), 
+                str(message.channel.id),
+                crisis_level
+            )
+            
+            if discovery_result and discovery_result.get('discovered_keywords'):
+                await self._handle_background_discoveries(discovery_result['discovered_keywords'])
+                
+        except Exception as e:
+            # Background errors shouldn't affect bot operation
+            logger.debug(f"Background analysis error (non-critical): {e}")
+    
+    async def _handle_background_discoveries(self, keywords: List[Dict]):
+        """Handle keywords discovered in background analysis"""
+        # Only keep high-confidence background discoveries
+        high_confidence_keywords = [
+            kw for kw in keywords 
+            if kw.get('confidence', 0) > 0.75
+        ]
+        
+        if high_confidence_keywords:
+            # Add to pending suggestions silently
+            for keyword in high_confidence_keywords:
+                keyword['source'] = 'background_learning'
+                keyword['priority'] = 'low'  # Background discoveries are lower priority
+                
+            self.pending_suggestions.extend(high_confidence_keywords)
+            
+            # Only notify if we found multiple high-confidence keywords
+            if len(high_confidence_keywords) >= 3:
+                await self._send_background_discovery_notification(high_confidence_keywords)
+    
+    async def _send_background_discovery_notification(self, keywords: List[Dict]):
+        """Send low-priority notification for background discoveries"""
+        crisis_channel = self.bot.get_channel(self.bot.crisis_response_channel_id)
+        if not crisis_channel:
+            return
+            
+        import discord
+        embed = discord.Embed(
+            title="🔍 Background Learning Update",
+            description=f"Discovered {len(keywords)} potential keywords from recent conversations",
+            color=discord.Color.blue()
+        )
+        
+        keyword_preview = [kw['keyword'] for kw in keywords[:3]]
+        embed.add_field(
+            name="Sample Keywords",
+            value=", ".join(f"`{kw}`" for kw in keyword_preview),
+            inline=False
+        )
+        
+        embed.add_field(
+            name="Review",
+            value="Use `/discovery_suggestions` to review all pending keywords",
+            inline=False
+        )
+        
+        # Send as low-priority message (no ping)
+        await crisis_channel.send(embed=embed)
+        logger.info(f"📢 Sent background discovery notification: {len(keywords)} keywords")
     
     async def on_manual_crisis_intervention(self, message, crisis_level: str):
         """
