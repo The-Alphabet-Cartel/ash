@@ -220,13 +220,21 @@ class MessageHandler:
             del self.active_conversations[user_id]
             logger.debug(f"Conversation tracking expired for user {user_id}")
     
-    # Placeholder methods for crisis handling (we'll implement these next)
+    # Crisis handling methods - now delegate to crisis handler
     async def _handle_high_crisis(self, message, response):
-        """Handle high crisis - will implement next"""
-        await message.reply(response)
-        logger.warning(f"🚨 HIGH CRISIS: {message.author} - full escalation needed")
+        """Handle high crisis using crisis handler"""
+        if hasattr(self.bot, 'crisis_handler'):
+            await self.bot.crisis_handler.handle_high_crisis(message, response)
+        else:
+            # Fallback if crisis handler not initialized yet
+            await message.reply(response)
+            logger.warning(f"🚨 HIGH CRISIS: {message.author} - crisis handler not available")
     
     async def _handle_medium_crisis(self, message, response):
-        """Handle medium crisis - will implement next"""
-        await message.reply(response)
-        logger.info(f"⚠️ MEDIUM CRISIS: {message.author} - team alert needed")
+        """Handle medium crisis using crisis handler"""
+        if hasattr(self.bot, 'crisis_handler'):
+            await self.bot.crisis_handler.handle_medium_crisis(message, response)
+        else:
+            # Fallback if crisis handler not initialized yet
+            await message.reply(response)
+            logger.info(f"⚠️ MEDIUM CRISIS: {message.author} - crisis handler not available")

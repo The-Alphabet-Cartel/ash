@@ -11,6 +11,7 @@ from integrations.claude_integration import ClaudeIntegration
 from integrations.nlp_integration import NLPIntegration
 from services.detection_service import DetectionService
 from handlers.message_handler import MessageHandler
+from handlers.crisis_handler import CrisisHandler
 from crisis_commands import CrisisKeywordCommands
 from discovery_commands import DiscoveryCommands
 
@@ -38,6 +39,7 @@ class AshBot(commands.Bot):
         self.nlp_integration = None
         self.detection_service = None
         self.message_handler = None
+        self.crisis_handler = None
         
         logger.info("🤖 AshBot initialized with modular architecture")
     
@@ -82,6 +84,7 @@ class AshBot(commands.Bot):
         
         # Step 3: Initialize handlers (Discord event handling)
         logger.info("📨 Initializing handlers...")
+        self.crisis_handler = CrisisHandler(self, self.config)
         self.message_handler = MessageHandler(
             self,
             self.detection_service,
