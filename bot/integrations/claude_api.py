@@ -26,7 +26,12 @@ class ClaudeAPI:
         self.calls_today = 0
         self.last_call_time = 0
         self.min_call_interval = 1.0  # Minimum seconds between calls
-        
+
+        # Resource management
+        from utils.resource_managers import ResourceCleanupMixin
+        self._cleanup_mixin = ResourceCleanupMixin()
+        self._cleanup_mixin.register_cleanup(self.close)
+
         if not self.api_key:
             logger.error("CLAUDE_API_KEY not found in environment variables")
             raise ValueError("Claude API key is required")
@@ -34,42 +39,23 @@ class ClaudeAPI:
         logger.info(f"🤖 Claude API initialized with model: {self.model}")
 
     async def _get_session(self):
-        """Get or create aiohttp session with explicit connector management"""
-        if self.session is None or self.session.closed:
-            # Create connector with explicit settings for clean shutdown
-            connector = aiohttp.TCPConnector(
-                limit=10,
-                ttl_dns_cache=300,
-                use_dns_cache=True,
-                enable_cleanup_closed=True
-            )
-            
-            self.session = aiohttp.ClientSession(
-                connector=connector,
-                headers={
-                    'Content-Type': 'application/json',
-                    'x-api-key': self.api_key,
-                    'anthropic-version': '2023-06-01'
-                },
-                timeout=aiohttp.ClientTimeout(total=30)
-            )
-        return self.session
+        """Get session using resource manager"""
+        from utils.resource_managers import session_manager
+        
+        headers = {
+            'Content-Type': 'application/json',
+            'x-api-key': self.api_key,
+            'anthropic-version': '2023-06-01'
+        }
+        
+        # Use the resource-managed session
+        return await session_manager.get_session("claude", headers=headers).__aenter__()
     
     # Remove the @asynccontextmanager decorator and _request_context method for now
     # Keep the rest of your methods as they were...
     
     async def get_ash_response(self, user_message: str, crisis_level: str = 'low', username: str = 'friend') -> str:
-        """
-        Get response from Claude as Ash character
-        
-        Args:
-            user_message (str): The user's message
-            crisis_level (str): Crisis level from keyword detector
-            username (str): Discord username for personalization
-            
-        Returns:
-            str: Ash's response
-        """
+        """Enhanced response with resource management and better error handling"""
         
         try:
             # Rate limiting
@@ -81,73 +67,62 @@ class ClaudeAPI:
             # Format the prompt with Ash's character
             prompt = format_ash_prompt(user_message, crisis_level, username)
             
-            # Prepare API request
-            session = await self._get_session()
+            # Use resource-managed session
+            from utils.resource_managers import managed_claude_session
             
-            payload = {
-                "model": self.model,
-                "max_tokens": self.max_tokens,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                "temperature": 0.7,  # Slight randomness for natural responses
-                "top_p": 0.9
-            }
-            
-            logger.info(f"Sending request to Claude API for {username} (crisis: {crisis_level})")
-            
-            async with session.post(self.base_url, json=payload) as response:
-                self.last_call_time = asyncio.get_event_loop().time()
-                self.calls_today += 1
+            async with managed_claude_session(self.api_key) as session:
+                payload = {
+                    "model": self.model,
+                    "max_tokens": self.max_tokens,
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ],
+                    "temperature": 0.7,
+                    "top_p": 0.9
+                }
                 
-                if response.status == 200:
-                    data = await response.json()
-                    ash_response = data['content'][0]['text'].strip()
-                    
-                    # Add crisis-level specific additions
-                    crisis_addition = get_crisis_addition(crisis_level)
-                    final_response = ash_response + crisis_addition
-                    
-                    # Ensure response isn't too long for Discord
-                    if len(final_response) > 2000:
-                        final_response = final_response[:1997] + "..."
-                    
-                    logger.info(f"Successfully got response from Claude ({len(final_response)} chars)")
-                    return final_response
-                    
-                elif response.status == 429:
-                    logger.warning("Claude API rate limit hit")
-                    return get_response_templates()['rate_limited']
+                logger.info(f"Sending request to Claude API for {username} (crisis: {crisis_level})")
                 
-                elif response.status == 529:
-                    logger.warning("Claude API temporarily overloaded")
-                    resources_channel = os.getenv('RESOURCES_CHANNEL_NAME', 'resources')
-                    return f"I'm having trouble connecting right now due to high demand. Please try again in a moment, or reach out to our crisis team if you need immediate help."
+                async with session.post(self.base_url, json=payload) as response:
+                    self.last_call_time = asyncio.get_event_loop().time()
+                    self.calls_today += 1
                     
-                elif response.status == 401:
-                    logger.error("Claude API authentication failed")
-                    return get_response_templates()['api_error']
+                    if response.status == 200:
+                        data = await response.json()
+                        ash_response = data['content'][0]['text'].strip()
+                        
+                        # Add crisis-level specific additions
+                        crisis_addition = get_crisis_addition(crisis_level)
+                        final_response = ash_response + crisis_addition
+                        
+                        # Ensure response isn't too long for Discord
+                        if len(final_response) > 2000:
+                            final_response = final_response[:1997] + "..."
+                        
+                        logger.info(f"Successfully got response from Claude ({len(final_response)} chars)")
+                        return final_response
+                        
+                    elif response.status == 429:
+                        logger.warning("Claude API rate limit hit")
+                        return get_response_templates()['rate_limited']
                     
-                else:
-                    error_text = await response.text()
-                    logger.error(f"Claude API error {response.status}: {error_text}")
-                    return get_response_templates()['api_error']
-                    
-        except asyncio.TimeoutError:
-            logger.error("Claude API request timed out")
-            return get_response_templates()['api_error']
-            
-        except aiohttp.ClientError as e:
-            logger.error(f"Network error calling Claude API: {e}")
-            return get_response_templates()['api_error']
-            
-        except KeyError as e:
-            logger.error(f"Unexpected API response format: {e}")
-            return get_response_templates()['api_error']
-            
+                    elif response.status == 529:
+                        logger.warning("Claude API temporarily overloaded")
+                        resources_channel = os.getenv('RESOURCES_CHANNEL_NAME', 'resources')
+                        return f"I'm having trouble connecting right now due to high demand. Please try again in a moment, or reach out to our crisis team if you need immediate help."
+                        
+                    elif response.status == 401:
+                        logger.error("Claude API authentication failed")
+                        return get_response_templates()['api_error']
+                        
+                    else:
+                        error_text = await response.text()
+                        logger.error(f"Claude API error {response.status}: {error_text}")
+                        return get_response_templates()['api_error']
+                        
         except Exception as e:
             logger.error(f"Unexpected error in Claude API call: {e}")
             return get_response_templates()['api_error']
@@ -198,33 +173,29 @@ class ClaudeAPI:
         logger.info(f"Reset daily counter from {old_count} to 0")
     
     async def close(self):
-        """Close the aiohttp session and all connections"""
-        if self.session and not self.session.closed:
-            try:
-                # Store connector reference before closing session
-                connector = getattr(self.session, '_connector', None)
-                
-                # Close session
-                await self.session.close()
-                
-                # Manually close connector if it exists
-                if connector and not connector._closed:
-                    await connector.close()
-                
-                # Wait for all pending operations
-                await asyncio.sleep(0.1)
-                
-                # Force garbage collection to clean up references
-                import gc
-                gc.collect()
-                
-                self.session = None
-                logger.info("Claude API session cleaned up")
-                
-            except Exception as e:
-                logger.debug(f"Minor cleanup issue (not critical): {e}")
-        else:
-            logger.debug("Claude API session already closed")
+        """Enhanced cleanup using resource management"""
+        logger.info("🔄 Claude API cleanup starting...")
+        
+        try:
+            # Use resource manager cleanup
+            from utils.resource_managers import session_manager
+            await session_manager.close_session("claude")
+            
+            logger.info("✅ Claude API cleanup completed")
+            
+        except Exception as e:
+            logger.debug(f"Minor Claude API cleanup issue: {e}")
+
+    def get_resource_status(self) -> dict:
+        """Get resource usage status"""
+        return {
+            "component": "ClaudeAPI",
+            "calls_today": self.calls_today,
+            "last_call_time": self.last_call_time,
+            "min_call_interval": self.min_call_interval,
+            "model": self.model,
+            "resource_managed": True
+        }
 
 class ClaudeAPIError(Exception):
     """Custom exception for Claude API errors"""

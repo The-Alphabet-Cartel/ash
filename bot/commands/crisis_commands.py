@@ -24,9 +24,14 @@ class CrisisKeywordCommands(commands.Cog):
         # Ensure custom keywords file exists
         self._ensure_custom_keywords_file()
         
+        # Get security manager from bot
+        self.security_manager = getattr(bot, 'security_manager', None)
+        if not self.security_manager:
+            logger.warning("Security manager not available in crisis commands")
+
         # Log that commands are being registered
         logger.info(f"🔧 Registering crisis keyword commands with role ID: {self.crisis_response_role_id}")
-    
+
     def _ensure_custom_keywords_file(self):
         """Create custom keywords file if it doesn't exist"""
         if not os.path.exists(self.custom_keywords_file):
@@ -117,18 +122,77 @@ class CrisisKeywordCommands(commands.Cog):
             return False
         
         return any(role.id == self.crisis_response_role_id for role in interaction.user.roles)
-    
+
     async def _crisis_role_check(self, interaction: discord.Interaction) -> bool:
-        """Check crisis role and respond if unauthorized"""
-        if not self._has_crisis_response_role(interaction):
-            embed = discord.Embed(
-                title="❌ Access Denied",
-                description="This command is restricted to Crisis Response team members.",
-                color=discord.Color.red()
+        """Enhanced crisis role check with security logging"""
+        try:
+            crisis_role_id = int(os.getenv('CRISIS_RESPONSE_ROLE_ID'))
+            
+            # Validate user has required role using security manager
+            if self.security_manager:
+                has_permission = self.security_manager.validate_discord_permissions(
+                    interaction.user.roles, 
+                    crisis_role_id
+                )
+            else:
+                # Fallback to basic check
+                user_role_ids = [role.id for role in interaction.user.roles]
+                has_permission = crisis_role_id in user_role_ids
+            
+            if not has_permission:
+                # Log unauthorized access attempt
+                if self.security_manager:
+                    self.security_manager.log_security_event(
+                        "unauthorized_command_access",
+                        interaction.user.id,
+                        interaction.guild.id,
+                        interaction.channel.id,
+                        {
+                            "command": interaction.command.name if interaction.command else "unknown",
+                            "required_role": crisis_role_id,
+                            "user_roles": [role.id for role in interaction.user.roles]
+                        },
+                        "warning"
+                    )
+                
+                await interaction.response.send_message(
+                    "❌ You need the Crisis Response role to use this command", 
+                    ephemeral=True
+                )
+                return False
+            
+            # Log successful authorization
+            if self.security_manager:
+                self.security_manager.log_security_event(
+                    "authorized_command_access",
+                    interaction.user.id,
+                    interaction.guild.id,
+                    interaction.channel.id,
+                    {"command": interaction.command.name if interaction.command else "unknown"},
+                    "info"
+                )
+            
+            return True
+            
+        except (ValueError, TypeError) as e:
+            logger.error(f"Role check error: {e}")
+            
+            # Log configuration error
+            if self.security_manager:
+                self.security_manager.log_security_event(
+                    "role_check_config_error",
+                    interaction.user.id,
+                    interaction.guild.id,
+                    interaction.channel.id,
+                    {"error": str(e)},
+                    "error"
+                )
+            
+            await interaction.response.send_message(
+                "❌ Crisis Response role not properly configured", 
+                ephemeral=True
             )
-            await interaction.response.send_message(embed=embed, ephemeral=True)
             return False
-        return True
 
     # Crisis Level choices for commands
     CRISIS_LEVELS = [
@@ -148,7 +212,30 @@ class CrisisKeywordCommands(commands.Cog):
         
         if not await self._crisis_role_check(interaction):
             return
-        
+
+        # Security validation of keyword input
+        if self.security_manager:
+            is_valid, validation_message = self.security_manager.validate_keyword_input(keyword)
+            if not is_valid:
+                await interaction.response.send_message(
+                    f"❌ Invalid keyword: {validation_message}", 
+                    ephemeral=True
+                )
+                
+                # Log invalid input attempt
+                self.security_manager.log_security_event(
+                    "invalid_keyword_input",
+                    interaction.user.id,
+                    interaction.guild.id,
+                    interaction.channel.id,
+                    {"keyword": keyword[:20] + "..." if len(keyword) > 20 else keyword, "reason": validation_message},
+                    "warning"
+                )
+                return
+            
+            # Sanitize the keyword
+            keyword = self.security_manager.sanitize_user_input(keyword, max_length=100)
+
         # Clean and validate keyword
         keyword = keyword.strip().lower()
         if not keyword:
@@ -214,6 +301,17 @@ class CrisisKeywordCommands(commands.Cog):
                 color=discord.Color.red()
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        # Log successful keyword addition
+        if self.security_manager:
+            self.security_manager.log_security_event(
+                "keyword_added",
+                interaction.user.id,
+                interaction.guild.id,
+                interaction.channel.id,
+                {"keyword": keyword, "crisis_level": crisis_level},
+                "info"
+            )
 
     @app_commands.command(name="remove_keyword", description="Remove a custom keyword from crisis detection")
     @app_commands.describe(
@@ -375,6 +473,83 @@ class CrisisKeywordCommands(commands.Cog):
                 logger.error(f"Error getting detector stats: {e}")
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="security_status", description="View security manager status (Crisis Response only)")
+    async def security_status(self, interaction: discord.Interaction):
+        """View security status - Crisis Response role only"""
+        
+        if not await self._crisis_role_check(interaction):
+            return
+        
+        if not self.security_manager:
+            await interaction.response.send_message(
+                "❌ Security manager not available", 
+                ephemeral=True
+            )
+            return
+        
+        try:
+            # Get security summary
+            summary = self.security_manager.get_security_summary()
+            
+            embed = discord.Embed(
+                title="🔐 Security Manager Status",
+                color=discord.Color.blue()
+            )
+            
+            embed.add_field(
+                name="📊 24-Hour Activity",
+                value=f"**Recent Events:** {summary['recent_events_24h']}\n"
+                      f"**Total Log Entries:** {summary['audit_log_entries']}",
+                inline=True
+            )
+            
+            embed.add_field(
+                name="🚨 Security Alerts",
+                value=f"**Critical:** {summary['events_by_severity'].get('critical', 0)}\n"
+                      f"**Error:** {summary['events_by_severity'].get('error', 0)}\n"
+                      f"**Warning:** {summary['events_by_severity'].get('warning', 0)}",
+                inline=True
+            )
+            
+            embed.add_field(
+                name="🔒 Access Control",
+                value=f"**Locked Out Users:** {summary['locked_out_users']}\n"
+                      f"**Suspicious Users:** {summary['suspicious_users']}\n"
+                      f"**Failed Attempts:** {summary['total_failed_attempts']}",
+                inline=True
+            )
+            
+            # Show most common event types
+            if summary['events_by_type']:
+                top_events = sorted(summary['events_by_type'].items(), key=lambda x: x[1], reverse=True)[:5]
+                event_list = '\n'.join([f"• {event}: {count}" for event, count in top_events])
+                embed.add_field(
+                    name="🎯 Top Event Types",
+                    value=event_list,
+                    inline=False
+                )
+            
+            embed.set_footer(text="Security events are automatically logged and monitored")
+            
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            
+            # Log security status check
+            self.security_manager.log_security_event(
+                "security_status_checked",
+                interaction.user.id,
+                interaction.guild.id,
+                interaction.channel.id,
+                {},
+                "info"
+            )
+            
+        except Exception as e:
+            logger.error(f"Error in security_status command: {e}")
+            await interaction.response.send_message(
+                f"❌ Error retrieving security status: {str(e)}", 
+                ephemeral=True
+            )
 
 async def setup(bot):
     """Setup function for the cog"""
