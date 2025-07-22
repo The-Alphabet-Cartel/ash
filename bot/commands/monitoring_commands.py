@@ -1,0 +1,341 @@
+"""
+Enhanced Monitoring Commands - New slash commands for monitoring the enhanced system
+Copy this to: ash/bot/commands/monitoring_commands.py
+"""
+
+import discord
+from discord.ext import commands
+from discord import app_commands
+import logging
+import os
+from datetime import datetime
+
+logger = logging.getLogger(__name__)
+
+class MonitoringCommands(commands.Cog):
+    """Enhanced monitoring commands for the modular bot"""
+    
+    def __init__(self, bot):
+        self.bot = bot
+        self.crisis_response_role_id = int(os.getenv('CRISIS_RESPONSE_ROLE_ID', '0'))
+        
+        logger.info("📊 Enhanced monitoring commands loaded")
+    
+    async def _check_crisis_role(self, interaction: discord.Interaction) -> bool:
+        """Check if user has crisis response role"""
+        try:
+            user_role_ids = [role.id for role in interaction.user.roles]
+            
+            if self.crisis_response_role_id not in user_role_ids:
+                await interaction.response.send_message(
+                    "❌ You need the Crisis Response role to use monitoring commands", 
+                    ephemeral=True
+                )
+                return False
+            return True
+            
+        except (ValueError, TypeError):
+            await interaction.response.send_message(
+                "❌ Crisis Response role not properly configured", 
+                ephemeral=True
+            )
+            return False
+    
+    @app_commands.command(name="system_status", description="View comprehensive system status")
+    async def system_status(self, interaction: discord.Interaction):
+        """Get comprehensive system status"""
+        
+        if not await self._check_crisis_role(interaction):
+            return
+        
+        try:
+            embed = discord.Embed(
+                title="🖥️ Ash Bot v2.0 - Enhanced System Status",
+                description="Comprehensive modular architecture status",
+                color=discord.Color.blue(),
+                timestamp=datetime.utcnow()
+            )
+            
+            # Bot basic info
+            uptime = datetime.utcnow() - self.bot.user.created_at
+            embed.add_field(
+                name="🤖 Bot Information",
+                value=f"**Status:** ✅ Online\n"
+                     f"**Architecture:** v2.0 Modular\n"
+                     f"**User:** {self.bot.user}\n"
+                     f"**Guild:** {interaction.guild.name}",
+                inline=True
+            )
+            
+            # Component status
+            components_status = []
+            if hasattr(self.bot, 'claude_api') and self.bot.claude_api:
+                components_status.append("✅ Claude API")
+            else:
+                components_status.append("❌ Claude API")
+                
+            if hasattr(self.bot, 'nlp_client') and self.bot.nlp_client:
+                components_status.append("✅ NLP Service")
+            else:
+                components_status.append("❌ NLP Service")
+                
+            if hasattr(self.bot, 'keyword_detector') and self.bot.keyword_detector:
+                components_status.append("✅ Keyword Detector")
+            else:
+                components_status.append("❌ Keyword Detector")
+                
+            if hasattr(self.bot, 'crisis_handler') and self.bot.crisis_handler:
+                components_status.append("✅ Crisis Handler")
+            else:
+                components_status.append("❌ Crisis Handler")
+                
+            if hasattr(self.bot, 'message_handler') and self.bot.message_handler:
+                components_status.append("✅ Message Handler")
+            else:
+                components_status.append("❌ Message Handler")
+            
+            embed.add_field(
+                name="🔧 Component Status",
+                value="\n".join(components_status),
+                inline=True
+            )
+            
+            # Command status
+            commands_count = len([cmd for cmd in self.bot.tree.walk_commands()])
+            embed.add_field(
+                name="⚡ Commands",
+                value=f"**Slash Commands:** {commands_count}\n"
+                     f"**Status:** ✅ Active\n"
+                     f"**Sync Status:** Global",
+                inline=True
+            )
+            
+            # Get message handler stats if available
+            if hasattr(self.bot, 'message_handler') and self.bot.message_handler:
+                try:
+                    stats = self.bot.message_handler.get_message_handler_stats()
+                    embed.add_field(
+                        name="📨 Message Processing",
+                        value=f"**Processed Today:** {stats['message_processing']['total_messages_processed']}\n"
+                             f"**Crisis Responses:** {stats['message_processing']['crisis_responses_given']}\n"
+                             f"**Active Conversations:** {stats['conversation_tracking']['active_conversations']}\n"
+                             f"**Rate Limit Success:** {stats['rate_limiting']['success_rate_percent']}%",
+                        inline=True
+                    )
+                except Exception as e:
+                    embed.add_field(
+                        name="📨 Message Processing",
+                        value="Statistics unavailable",
+                        inline=True
+                    )
+            
+            # Get crisis handler stats if available
+            if hasattr(self.bot, 'crisis_handler') and self.bot.crisis_handler:
+                try:
+                    crisis_stats = self.bot.crisis_handler.get_crisis_stats()
+                    embed.add_field(
+                        name="🚨 Crisis Management",
+                        value=f"**High Crises:** {crisis_stats['high_crisis_count']}\n"
+                             f"**Medium Crises:** {crisis_stats['medium_crisis_count']}\n"
+                             f"**Low Crises:** {crisis_stats['low_crisis_count']}\n"
+                             f"**Success Rate:** {crisis_stats['success_rate']}%",
+                        inline=True
+                    )
+                except Exception as e:
+                    embed.add_field(
+                        name="🚨 Crisis Management",
+                        value="Statistics unavailable",
+                        inline=True
+                    )
+            
+            # Configuration status
+            config_status = []
+            if self.bot.config.get('DISCORD_TOKEN'):
+                config_status.append("✅ Discord Token")
+            if self.bot.config.get('CLAUDE_API_KEY'):
+                config_status.append("✅ Claude API Key")
+            if self.bot.config.get_int('GUILD_ID'):
+                config_status.append("✅ Guild Configuration")
+            if self.bot.config.get_int('CRISIS_RESPONSE_CHANNEL_ID'):
+                config_status.append("✅ Crisis Channel")
+            
+            embed.add_field(
+                name="⚙️ Configuration",
+                value="\n".join(config_status) if config_status else "❌ No configuration",
+                inline=False
+            )
+            
+            embed.set_footer(text="Enhanced Monitoring System | Ash v2.0 Modular")
+            
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"Error in system_status command: {e}")
+            await interaction.response.send_message(
+                f"❌ Error retrieving system status: {str(e)}", 
+                ephemeral=True
+            )
+    
+    @app_commands.command(name="active_conversations", description="View active crisis conversations")
+    async def active_conversations(self, interaction: discord.Interaction):
+        """View all active crisis conversations"""
+        
+        if not await self._check_crisis_role(interaction):
+            return
+        
+        try:
+            if not hasattr(self.bot, 'message_handler') or not self.bot.message_handler:
+                await interaction.response.send_message(
+                    "❌ Message handler not available", 
+                    ephemeral=True
+                )
+                return
+            
+            active_convs = self.bot.message_handler.active_conversations
+            
+            if not active_convs:
+                embed = discord.Embed(
+                    title="💬 Active Conversations",
+                    description="No active crisis conversations at this time",
+                    color=discord.Color.green()
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
+            
+            embed = discord.Embed(
+                title="💬 Active Crisis Conversations",
+                description=f"Currently tracking {len(active_convs)} active conversations",
+                color=discord.Color.orange()
+            )
+            
+            for user_id, conv_data in list(active_convs.items())[:10]:  # Show max 10
+                try:
+                    user = await self.bot.fetch_user(user_id)
+                    channel = self.bot.get_channel(conv_data['channel_id'])
+                    
+                    import time
+                    current_time = time.time()
+                    duration = current_time - conv_data['start_time']
+                    time_remaining = max(0, 300 - duration)  # 5 minutes timeout
+                    
+                    embed.add_field(
+                        name=f"👤 {user.display_name}",
+                        value=f"**Crisis Level:** {conv_data['crisis_level'].title()}\n"
+                             f"**Channel:** {channel.mention if channel else 'Unknown'}\n"
+                             f"**Duration:** {duration:.0f}s\n"
+                             f"**Time Left:** {time_remaining:.0f}s\n"
+                             f"**Follow-ups:** {conv_data.get('follow_up_count', 0)}\n"
+                             f"**Escalations:** {conv_data.get('escalations', 0)}",
+                        inline=True
+                    )
+                except Exception as e:
+                    embed.add_field(
+                        name=f"👤 User {user_id}",
+                        value=f"**Crisis Level:** {conv_data['crisis_level'].title()}\n"
+                             f"**Error loading details:** {str(e)[:50]}",
+                        inline=True
+                    )
+            
+            if len(active_convs) > 10:
+                embed.add_field(
+                    name="Additional Conversations",
+                    value=f"...and {len(active_convs) - 10} more active conversations",
+                    inline=False
+                )
+            
+            embed.set_footer(text="Conversations expire after 5 minutes of inactivity")
+            
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"Error in active_conversations command: {e}")
+            await interaction.response.send_message(
+                f"❌ Error retrieving conversations: {str(e)}", 
+                ephemeral=True
+            )
+    
+    @app_commands.command(name="detection_breakdown", description="View crisis detection method breakdown")
+    async def detection_breakdown(self, interaction: discord.Interaction):
+        """View detailed breakdown of detection methods"""
+        
+        if not await self._check_crisis_role(interaction):
+            return
+        
+        try:
+            embed = discord.Embed(
+                title="🔍 Crisis Detection Method Breakdown",
+                description="Analysis of how crises are being detected",
+                color=discord.Color.purple()
+            )
+            
+            # Get message handler stats
+            if hasattr(self.bot, 'message_handler') and self.bot.message_handler:
+                stats = self.bot.message_handler.get_message_handler_stats()
+                
+                detection_methods = stats['detection_breakdown']
+                total_detections = sum(detection_methods.values())
+                
+                if total_detections > 0:
+                    for method, count in detection_methods.items():
+                        percentage = (count / total_detections) * 100
+                        embed.add_field(
+                            name=f"🔍 {method.replace('_', ' ').title()}",
+                            value=f"**Count:** {count}\n**Percentage:** {percentage:.1f}%",
+                            inline=True
+                        )
+                    
+                    embed.add_field(
+                        name="📊 Total Detections",
+                        value=f"{total_detections} crisis detections processed",
+                        inline=False
+                    )
+                else:
+                    embed.add_field(
+                        name="📊 Detection Status",
+                        value="No crisis detections recorded yet",
+                        inline=False
+                    )
+                
+                # Rate limiting info
+                rate_info = stats['rate_limiting']
+                embed.add_field(
+                    name="⏱️ Rate Limiting",
+                    value=f"**Success Rate:** {rate_info['success_rate_percent']}%\n"
+                         f"**Daily Calls:** {rate_info['current_daily_calls']}/{rate_info['max_daily_calls']}\n"
+                         f"**Per User Limit:** {rate_info['rate_limit_per_user']}/hour",
+                    inline=True
+                )
+            else:
+                embed.add_field(
+                    name="❌ Detection Analysis",
+                    value="Message handler not available for detailed breakdown",
+                    inline=False
+                )
+            
+            # Keyword detector stats
+            if hasattr(self.bot, 'keyword_detector') and self.bot.keyword_detector:
+                keyword_stats = self.bot.keyword_detector.get_keyword_stats()
+                embed.add_field(
+                    name="🔤 Keyword Statistics",
+                    value=f"**High Crisis:** {keyword_stats['high_crisis']} keywords\n"
+                         f"**Medium Crisis:** {keyword_stats['medium_crisis']} keywords\n"
+                         f"**Low Crisis:** {keyword_stats['low_crisis']} keywords\n"
+                         f"**Total:** {keyword_stats['total']} keywords",
+                    inline=True
+                )
+            
+            embed.set_footer(text="Detection methods: Keyword Only | NLP Primary | Hybrid Detection")
+            
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"Error in detection_breakdown command: {e}")
+            await interaction.response.send_message(
+                f"❌ Error retrieving detection breakdown: {str(e)}", 
+                ephemeral=True
+            )
+
+async def setup(bot):
+    """Setup function for the monitoring commands cog"""
+    await bot.add_cog(MonitoringCommands(bot))
+    logger.info("✅ Enhanced monitoring commands cog loaded")

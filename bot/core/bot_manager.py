@@ -26,17 +26,16 @@ class AshBot(commands.Bot):
             help_command=None
         )
         
-        # Component references (your existing classes)
+        # Enhanced component references
         self.claude_api = None
         self.nlp_client = None
         self.keyword_detector = None
-        
-        # Future modular components
-        self.claude_integration = None
-        self.nlp_integration = None
-        self.detection_service = None
-        self.message_handler = None
         self.crisis_handler = None
+        self.message_handler = None
+        
+        # Future additional components
+        self.rate_limit_service = None
+        self.discovery_integration = None
         
         logger.info("🤖 AshBot initialized with modular architecture")
     
@@ -67,17 +66,15 @@ class AshBot(commands.Bot):
             return False
     
     async def _initialize_components(self):
-        """Initialize all bot components in async context"""
-        logger.info("🔧 Initializing modular components...")
+        """Initialize all bot components with enhanced modular architecture"""
+        logger.info("🔧 Initializing enhanced modular components...")
         
-        # Step 1: Initialize integrations
+        # Step 1: Initialize your existing integrations
         logger.info("🔌 Initializing integrations...")
-        # Import your existing files directly
         from claude_api import ClaudeAPI
         from nlp_integration import RemoteNLPClient
         from keyword_detector import KeywordDetector
         
-        # Create simple wrappers
         self.claude_api = ClaudeAPI()
         self.nlp_client = RemoteNLPClient()
         self.keyword_detector = KeywordDetector()
@@ -93,10 +90,23 @@ class AshBot(commands.Bot):
         except Exception as e:
             logger.warning(f"Integration test error: {e}")
         
-        # For now, we'll use your existing main.py logic directly
-        # This is the safest approach to get modular structure working
-        logger.info("✅ Using your existing integration logic")
-        logger.info("✅ All modular components initialized")
+        # Step 2: Initialize enhanced handlers
+        logger.info("🚨 Initializing enhanced crisis handler...")
+        from handlers.crisis_handler import CrisisHandler
+        self.crisis_handler = CrisisHandler(self, self.config)
+        
+        logger.info("📨 Initializing enhanced message handler...")
+        from handlers.message_handler import MessageHandler
+        self.message_handler = MessageHandler(
+            self,
+            self.claude_api,
+            self.nlp_client, 
+            self.keyword_detector,
+            self.crisis_handler,
+            self.config
+        )
+        
+        logger.info("✅ All enhanced modular components initialized")
     
     async def on_ready(self):
         """Bot ready event"""
@@ -116,41 +126,12 @@ class AshBot(commands.Bot):
         logger.info("🎉 Ash Bot fully operational with modular architecture")
     
     async def on_message(self, message):
-        """Handle messages using your existing logic"""
-        
-        # For now, implement your existing on_message logic directly here
-        # This ensures we have working functionality first
-        
-        # Your existing filters
-        if message.author.bot:
-            return
-            
-        if not message.guild or message.guild.id != self.config.get_int('GUILD_ID'):
-            return
-        
-        if not self.config.is_channel_allowed(message.channel.id):
-            return
-        
-        # Basic crisis detection using your existing components
-        try:
-            if hasattr(self, 'keyword_detector'):
-                keyword_result = self.keyword_detector.check_message(message.content)
-                
-                if keyword_result['needs_response']:
-                    # Get response from Claude
-                    response = await self.claude_api.get_ash_response(
-                        message.content,
-                        keyword_result['crisis_level'],
-                        message.author.display_name
-                    )
-                    
-                    # Simple response for now
-                    await message.reply(response)
-                    
-                    logger.info(f"✅ Responded to {message.author} - Crisis level: {keyword_result['crisis_level']}")
-        
-        except Exception as e:
-            logger.error(f"Error in message handling: {e}")
+        """Route messages to enhanced message handler"""
+        if self.message_handler:
+            await self.message_handler.handle_message(message)
+        else:
+            # Fallback to basic handling if message handler not ready
+            logger.debug("Message handler not ready, using basic handling")
         
         # Process commands
         await self.process_commands(message)
