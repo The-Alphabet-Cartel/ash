@@ -247,13 +247,18 @@ class MessageHandler:
             new_level = detection_result.get('crisis_level', 'none')
             current_level = conversation['crisis_level']
             
+            # FIXED: Only escalate if the new level is actually HIGHER
             if self._is_escalation(current_level, new_level):
                 conversation['crisis_level'] = new_level
                 conversation['escalations'] = conversation.get('escalations', 0) + 1
                 logger.warning(f"🚨 Crisis ESCALATED: {current_level} → {new_level} for user {user_id}")
                 effective_level = new_level
+                is_escalation = True
             else:
+                # FIXED: Continue with original crisis level for follow-ups
                 effective_level = current_level
+                is_escalation = False
+                logger.debug(f"💬 Follow-up conversation: maintaining {current_level} level for user {user_id}")
             
             # Rate limiting for follow-ups
             if not await self.check_rate_limits(user_id):
@@ -272,8 +277,15 @@ class MessageHandler:
                     message.author.display_name
                 )
                 
-                # Handle escalated responses using crisis handler
-                await self.crisis_handler.handle_crisis_response(message, effective_level, response)
+                # FIXED: Only use crisis handler for escalations, simple reply for follow-ups
+                if is_escalation:
+                    # This is a real escalation - use full crisis handler
+                    await self.crisis_handler.handle_crisis_response(message, effective_level, response)
+                    logger.warning(f"🚨 Escalation handled with full crisis response")
+                else:
+                    # This is just a follow-up - simple reply, no alerts
+                    await message.reply(response)
+                    logger.info(f"💬 Follow-up response sent (no escalation)")
                 
                 self.daily_call_count += 1
                 await self.record_api_call(user_id)
@@ -281,7 +293,7 @@ class MessageHandler:
                 # Update conversation stats
                 conversation['follow_up_count'] = conversation.get('follow_up_count', 0) + 1
                 
-                logger.info(f"✅ Follow-up response: {message.author} (crisis: {effective_level}, follow-up #{conversation['follow_up_count']})")
+                logger.info(f"✅ Follow-up handled: {message.author} (level: {effective_level}, follow-up #{conversation['follow_up_count']}, escalation: {is_escalation})")
         
         except Exception as e:
             logger.error(f"❌ Error handling conversation follow-up: {e}")
