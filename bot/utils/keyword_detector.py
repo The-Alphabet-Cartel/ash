@@ -56,7 +56,7 @@ class KeywordDetector:
                 pattern = r'\b' + re.escape(keyword.lower()) + r'\b'
                 self.low_crisis_patterns.append((pattern, category))
     
-    def check_message(self, message_content):
+    def check_message(self, message_content: str) -> Dict[str, Any]:
         """
         Analyze message for keywords indicating need for support
         

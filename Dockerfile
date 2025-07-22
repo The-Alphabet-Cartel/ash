@@ -26,7 +26,7 @@ USER botuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python -c "import discord; print('Bot modules OK')" || exit 1
+    CMD python -c "import asyncio; asyncio.run(__import__('discord').utils.oauth_url(1234567890))" || exit 1
 
 # Start the bot
 CMD ["python", "main.py"]

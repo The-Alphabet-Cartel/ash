@@ -8,6 +8,8 @@ import asyncio
 import time
 from discord import Message
 from typing import Dict, Optional
+from handlers.crisis_handler import CrisisHandler
+from integrations.claude_api import ClaudeAPI
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +26,7 @@ class MessageHandler:
         
         # Your existing conversation tracking (enhanced)
         self.active_conversations = {}
-        self.conversation_timeout = 300  # 5 minutes
+        self.conversation_timeout = config.get_int('CONVERSATION_TIMEOUT', 300)
         
         # Your existing rate limiting (enhanced)
         self.user_cooldowns = {}
