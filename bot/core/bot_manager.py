@@ -48,8 +48,8 @@ class AshBot(commands.Bot):
             await self._initialize_components()
             
             # Add command cogs
-            from crisis_commands import CrisisKeywordCommands
-            from discovery_commands import DiscoveryCommands
+            from commands.crisis_commands import CrisisKeywordCommands
+            from commands.discovery_commands import DiscoveryCommands
             
             await self.add_cog(CrisisKeywordCommands(self))
             await self.add_cog(DiscoveryCommands(self))
@@ -71,9 +71,9 @@ class AshBot(commands.Bot):
         
         # Step 1: Initialize your existing integrations
         logger.info("🔌 Initializing integrations...")
-        from claude_api import ClaudeAPI
-        from nlp_integration import RemoteNLPClient
-        from keyword_detector import KeywordDetector
+        from integrations.claude_api import ClaudeAPI
+        from integrations.nlp_integration import RemoteNLPClient
+        from utils.keyword_detector import KeywordDetector
         
         self.claude_api = ClaudeAPI()
         self.nlp_client = RemoteNLPClient()

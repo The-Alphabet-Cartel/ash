@@ -1,4 +1,3 @@
-# ash/bot/discovery_commands.py
 """
 Slash Commands for Keyword Discovery Management
 Extends the existing crisis_commands.py with discovery features

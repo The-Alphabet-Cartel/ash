@@ -9,7 +9,7 @@ import os
 from typing import Optional
 import aiohttp
 import json
-from ash_character import format_ash_prompt, get_crisis_addition, get_response_templates
+from core.ash_character import format_ash_prompt, get_crisis_addition, get_response_templates
 
 logger = logging.getLogger(__name__)
 

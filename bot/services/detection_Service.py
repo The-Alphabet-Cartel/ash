@@ -7,7 +7,7 @@ import logging
 from typing import Dict, Optional
 from discord import Message
 
-from keyword_detector import KeywordDetector
+from utils.keyword_detector import KeywordDetector
 
 logger = logging.getLogger(__name__)
 
