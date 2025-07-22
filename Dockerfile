@@ -14,7 +14,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy bot application code
-COPY bot/ .
+COPY ./bot .
 
 # Create non-root user for security
 RUN useradd -m -u 1001 botuser
