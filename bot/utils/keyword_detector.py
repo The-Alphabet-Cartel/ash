@@ -8,6 +8,7 @@ import os
 import re
 import json
 import logging
+from typing import Dict, Any
 from keywords import get_high_crisis_keywords, get_medium_crisis_keywords, get_low_crisis_keywords
 
 logger = logging.getLogger(__name__)
