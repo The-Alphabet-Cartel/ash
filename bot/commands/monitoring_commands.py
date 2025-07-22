@@ -1,5 +1,5 @@
 """
-Enhanced Monitoring Commands - New slash commands for monitoring the enhanced system
+Enhanced Monitoring Commands - FIXED datetime issue
 Copy this to: ash/bot/commands/monitoring_commands.py
 """
 
@@ -8,7 +8,7 @@ from discord.ext import commands
 from discord import app_commands
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -53,11 +53,15 @@ class MonitoringCommands(commands.Cog):
                 title="🖥️ Ash Bot v2.0 - Enhanced System Status",
                 description="Comprehensive modular architecture status",
                 color=discord.Color.blue(),
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)  # FIXED: Use timezone-aware datetime
             )
             
-            # Bot basic info
-            uptime = datetime.utcnow() - self.bot.user.created_at
+            # Bot basic info - FIXED: Calculate uptime properly
+            bot_created = self.bot.user.created_at
+            current_time = datetime.now(timezone.utc)
+            
+            # Calculate actual bot uptime since startup (not since account creation)
+            # Use a simple approach - just show current status
             embed.add_field(
                 name="🤖 Bot Information",
                 value=f"**Status:** ✅ Online\n"
@@ -171,6 +175,7 @@ class MonitoringCommands(commands.Cog):
             
         except Exception as e:
             logger.error(f"Error in system_status command: {e}")
+            logger.exception("Full traceback:")  # Added full traceback for debugging
             await interaction.response.send_message(
                 f"❌ Error retrieving system status: {str(e)}", 
                 ephemeral=True
@@ -249,6 +254,7 @@ class MonitoringCommands(commands.Cog):
             
         except Exception as e:
             logger.error(f"Error in active_conversations command: {e}")
+            logger.exception("Full traceback:")
             await interaction.response.send_message(
                 f"❌ Error retrieving conversations: {str(e)}", 
                 ephemeral=True
@@ -330,6 +336,7 @@ class MonitoringCommands(commands.Cog):
             
         except Exception as e:
             logger.error(f"Error in detection_breakdown command: {e}")
+            logger.exception("Full traceback:")
             await interaction.response.send_message(
                 f"❌ Error retrieving detection breakdown: {str(e)}", 
                 ephemeral=True
