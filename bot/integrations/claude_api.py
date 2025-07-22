@@ -15,9 +15,9 @@ logger = logging.getLogger(__name__)
 
 class ClaudeAPI:
     def __init__(self):
+        self.model = os.getenv('CLAUDE_MODEL', 'claude-sonnet-4-20250514')
         self.api_key = os.getenv('CLAUDE_API_KEY')
         self.base_url = "https://api.anthropic.com/v1/messages"
-        self.model = "claude-sonnet-4-20250514"  # ✅ FIXED: Updated to correct Claude 4 Sonnet model
         self.max_tokens = 300  # Keep responses concise
         self.session = None
         
@@ -29,7 +29,9 @@ class ClaudeAPI:
         if not self.api_key:
             logger.error("CLAUDE_API_KEY not found in environment variables")
             raise ValueError("Claude API key is required")
-    
+
+        logger.info(f"🤖 Claude API initialized with model: {self.model}")
+
     async def _get_session(self):
         """Get or create aiohttp session with explicit connector management"""
         if self.session is None or self.session.closed:

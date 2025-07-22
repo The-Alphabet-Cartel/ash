@@ -57,7 +57,8 @@ class ConfigManager:
             'ENABLE_KEYWORD_DISCOVERY': 'true',
             'DISCOVERY_MIN_CONFIDENCE': '0.6',
             'MAX_DAILY_DISCOVERIES': '10',
-            'DISCOVERY_INTERVAL_HOURS': '24'
+            'DISCOVERY_INTERVAL_HOURS': '24',
+            'CLAUDE_MODEL': 'claude-sonnet-4-20250514'
         }
         
         for key, default in optional_configs.items():
@@ -120,6 +121,7 @@ class ConfigManager:
         logger.info(f"   Allowed channels: {len(self._config['ALLOWED_CHANNELS_LIST'])}")
         logger.info(f"   NLP service: {self._config['NLP_SERVICE_HOST']}:{self._config['NLP_SERVICE_PORT']}")
         logger.info(f"   Discovery enabled: {self._config['ENABLE_KEYWORD_DISCOVERY']}")
+        logger.info(f"   Claude model: {self._config['CLAUDE_MODEL']}")
     
     def get(self, key: str, default=None):
         """Get configuration value"""
