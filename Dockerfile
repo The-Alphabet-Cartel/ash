@@ -29,4 +29,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD python -c "import discord; print('Bot modules OK')" || exit 1
 
 # Start the bot
-CMD ["python", "startup.py"]
+CMD ["python", "main.py"]
