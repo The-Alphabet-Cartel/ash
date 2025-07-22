@@ -57,7 +57,15 @@ async def main():
         bot = AshBot(config)
         
         logger.info("🚀 Starting modular bot...")
-        await bot.start_bot()
+        
+        # Get Discord token
+        token = config.get('DISCORD_TOKEN')
+        if not token:
+            logger.error("❌ Discord token missing!")
+            return
+        
+        # Start the bot directly (this is already async)
+        await bot.start(token)
         
     except Exception as e:
         logger.error(f"💥 Configuration test failed: {e}")

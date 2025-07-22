@@ -34,45 +34,19 @@ class AshBot(commands.Bot):
             help_command=None
         )
         
-        # Component references
-        self.claude_integration = None
-        self.nlp_integration = None
-        self.detection_service = None
-        self.message_handler = None
-        self.crisis_handler = None
+        # Initialize all components during __init__ (sync)
+        self._initialize_components_sync()
         
         logger.info("🤖 AshBot initialized with modular architecture")
     
-    async def start_bot(self):
-        """Start the bot with full initialization"""
-        try:
-            # Initialize all components in order
-            await self._initialize_components()
-            
-            # Start the Discord bot
-            token = self.config.get('DISCORD_TOKEN')
-            if not token:
-                raise ValueError("DISCORD_TOKEN not found in environment")
-            
-            await self.start(token)
-            
-        except Exception as e:
-            logger.error(f"Failed to start bot: {e}")
-            await self.close()
-            raise
-    
-    async def _initialize_components(self):
-        """Initialize all bot components in correct order"""
+    def _initialize_components_sync(self):
+        """Initialize all bot components synchronously"""
         logger.info("🔧 Initializing modular components...")
         
         # Step 1: Initialize integrations (external dependencies)
         logger.info("🔌 Initializing integrations...")
         self.claude_integration = ClaudeIntegration(self.config)
         self.nlp_integration = NLPIntegration(self.config)
-        
-        # Test connections (don't await here - just initialize)
-        logger.info("🔌 Integrations initialized (connection tests will run on bot start)")
-        # Note: Connection tests will happen in on_ready() event
         
         # Step 2: Initialize services (business logic)
         logger.info("⚙️ Initializing services...")
