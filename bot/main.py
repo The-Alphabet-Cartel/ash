@@ -11,6 +11,8 @@ from claude_api import ClaudeAPI
 from ash_character import ASH_CHARACTER_PROMPT
 from nlp_integration import RemoteNLPClient, hybrid_crisis_detection
 from crisis_commands import CrisisKeywordCommands
+from keyword_discovery import KeywordDiscoveryManager
+from discovery_commands import DiscoveryCommands
 
 # Suppress specific aiohttp cleanup warnings
 warnings.filterwarnings("ignore", category=ResourceWarning, message="unclosed.*client_session.*")
@@ -81,7 +83,12 @@ class AshBot(commands.Bot):
         # Conversation tracking for follow-ups
         self.active_conversations = {}  # user_id: {'start_time': time, 'crisis_level': str, 'channel_id': int}
         self.conversation_timeout = 300  # 5 minutes in seconds
-        
+
+        # Add keyword discovery after existing initialization
+        self.keyword_discovery = None
+        self.discovery_last_run = None
+        self.discovery_interval_hours = int(os.getenv('DISCOVERY_INTERVAL_HOURS', '24'))
+
     async def on_ready(self):
         logger.info(f'{self.user} has awakened in The Alphabet Cartel')
         await self.nlp_client.test_connection()
@@ -121,6 +128,42 @@ class AshBot(commands.Bot):
             
         else:
             logger.error(f'Could not find guild with ID: {self.guild_id}')
+
+        # Initialize keyword discovery system
+        await self.initialize_keyword_discovery()
+
+        # Load discovery commands
+        await self.setup_discovery_commands()
+
+        logger.info(f'✅ {self.user} has awakened with keyword discovery capabilities')
+
+    async def initialize_keyword_discovery(self):
+        """Initialize the keyword discovery system"""
+        try:
+            # Initialize discovery manager
+            self.keyword_discovery = KeywordDiscoveryManager(self)
+            
+            # Test NLP server connection
+            if hasattr(self, 'nlp_client'):
+                nlp_healthy = await self.nlp_client.test_connection()
+                if nlp_healthy:
+                    logger.info("✅ Keyword discovery system initialized with NLP server")
+                else:
+                    logger.warning("⚠️ Keyword discovery initialized but NLP server unavailable")
+            else:
+                logger.warning("⚠️ No NLP client - keyword discovery will have limited functionality")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize keyword discovery: {e}")
+            self.keyword_discovery = None
+    
+    async def setup_discovery_commands(self):
+        """Load discovery slash commands"""
+        try:
+            await self.add_cog(DiscoveryCommands(self))
+            logger.info("✅ Discovery slash commands loaded")
+        except Exception as e:
+            logger.error(f"❌ Failed to load discovery commands: {e}")
 
     async def setup_hook(self):
         """Setup hook to add cogs and sync commands globally"""
@@ -199,7 +242,7 @@ class AshBot(commands.Bot):
         await self.process_commands(message)
     
     async def handle_support_message(self, message, keyword_result):
-        """Handle messages that need Ash's support"""
+        """Enhanced support message handler with discovery tracking"""
         
         # Rate limiting check
         if not await self.check_rate_limits(message.author.id):
@@ -228,6 +271,14 @@ class AshBot(commands.Bot):
                 else:
                     await message.reply(response)
                 
+                # NEW: Track for keyword discovery
+                if self.keyword_discovery:
+                    await self.keyword_discovery.on_crisis_response_given(
+                        message, 
+                        keyword_result['crisis_level'],
+                        human_responded=False
+                    )
+                
                 # Start conversation tracking for all support responses
                 self.start_conversation_tracking(message.author.id, keyword_result['crisis_level'], message.channel.id)
                     
@@ -238,6 +289,35 @@ class AshBot(commands.Bot):
             logger.error(f"Error handling support message: {e}")
             await message.add_reaction('❌')
     
+    async def on_manual_crisis_intervention(self, message, detected_crisis_level: str, staff_member):
+        """
+        Call this when staff manually intervenes on a message Ash missed
+        This helps improve keyword discovery
+        """
+        try:
+            if self.keyword_discovery:
+                await self.keyword_discovery.on_manual_crisis_intervention(message, detected_crisis_level)
+                
+                # Log for analysis
+                logger.warning(f"📝 Manual intervention logged: {staff_member} identified {detected_crisis_level} crisis in message Ash missed")
+                
+                # Optionally notify in crisis channel
+                crisis_channel = self.get_channel(self.crisis_response_channel_id)
+                if crisis_channel:
+                    embed = discord.Embed(
+                        title="📝 Manual Intervention Logged",
+                        description="This helps improve Ash's detection capabilities",
+                        color=discord.Color.blue()
+                    )
+                    embed.add_field(name="Staff Member", value=staff_member.mention, inline=True)
+                    embed.add_field(name="Crisis Level", value=detected_crisis_level.title(), inline=True)
+                    embed.add_field(name="Analysis", value="Keyword discovery system will analyze this message", inline=False)
+                    
+                    await crisis_channel.send(embed=embed)
+                    
+        except Exception as e:
+            logger.error(f"Error logging manual intervention: {e}")
+
     async def handle_crisis_escalation(self, message, ash_response):
         """Handle high-crisis situations with staff DM and role ping"""
         
