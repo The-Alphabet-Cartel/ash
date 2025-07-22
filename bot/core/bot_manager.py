@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Core Bot Manager - Fixed version with proper command loading
+Core Bot Manager - Fixed version with discovery commands removed
 Copy this to: ash/bot/core/bot_manager.py (REPLACE the current one)
 """
 
@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class AshBot(commands.Bot):
-    """Modular Ash Bot - Fixed command loading"""
+    """Modular Ash Bot - Discovery commands removed"""
     
     def __init__(self, config):
         self.config = config
@@ -36,7 +36,7 @@ class AshBot(commands.Bot):
         
         # Future additional components
         self.rate_limit_service = None
-        self.discovery_integration = None
+        # Removed: self.discovery_integration = None
         
         logger.info("🤖 AshBot initialized with modular architecture")
     
@@ -48,7 +48,7 @@ class AshBot(commands.Bot):
             # Initialize components (now in async context)
             await self._initialize_components()
             
-            # Add command cogs - FIXED: Load all 3 cogs
+            # Add command cogs - UPDATED: Only load Crisis and Monitoring commands
             cog_errors = []
             
             # Load Crisis Commands
@@ -60,16 +60,11 @@ class AshBot(commands.Bot):
                 logger.error(f"❌ Failed to load Crisis Commands: {e}")
                 cog_errors.append(f"CrisisCommands: {e}")
             
-            # Load Discovery Commands
-            try:
-                from commands.discovery_commands import DiscoveryCommands
-                await self.add_cog(DiscoveryCommands(self))
-                logger.info("✅ Loaded Discovery Commands cog")
-            except Exception as e:
-                logger.error(f"❌ Failed to load Discovery Commands: {e}")
-                cog_errors.append(f"DiscoveryCommands: {e}")
+            # REMOVED: Discovery Commands loading
+            # Discovery commands commented out until feature is ready
+            logger.info("⚠️ Discovery Commands disabled (feature in development)")
             
-            # Load Monitoring Commands - THIS WAS MISSING
+            # Load Monitoring Commands
             try:
                 from commands.monitoring_commands import MonitoringCommands
                 await self.add_cog(MonitoringCommands(self))
@@ -152,6 +147,7 @@ class AshBot(commands.Bot):
         )
         
         logger.info("✅ All enhanced modular components initialized")
+        logger.info("⚠️ Discovery features disabled (in development)")
     
     async def on_ready(self):
         """Bot ready event with command verification"""
@@ -174,10 +170,14 @@ class AshBot(commands.Bot):
             logger.info(f"🔍 Verified {len(app_commands)} commands registered with Discord:")
             for cmd in app_commands:
                 logger.info(f"   ✅ /{cmd.name}")
+            
+            # Log that discovery commands are intentionally disabled
+            logger.info("⚠️ Discovery commands (/discovery_status, /discovery_suggestions, etc.) are disabled")
+            
         except Exception as e:
             logger.error(f"❌ Failed to fetch registered commands: {e}")
         
-        logger.info("🎉 Ash Bot fully operational with modular architecture")
+        logger.info("🎉 Ash Bot fully operational with modular architecture (Discovery disabled)")
     
     async def on_message(self, message):
         """Route messages to enhanced message handler"""
