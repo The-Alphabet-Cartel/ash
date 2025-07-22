@@ -111,13 +111,11 @@ class DiscoveryCommands(commands.Cog):
     
     @discord.app_commands.command(name="discovery_suggestions", description="View pending keyword suggestions from NLP analysis")
     @discord.app_commands.describe(
-        action=discord.app_commands.Choice(value="view", name="View pending suggestions"),
-        crisis_level=discord.app_commands.Choice(value="all", name="All levels")
+        crisis_level="Filter by crisis level (default: all)"
     )
     async def discovery_suggestions(
         self, 
         interaction: discord.Interaction,
-        action: discord.app_commands.Choice[str] = None,
         crisis_level: str = "all"
     ):
         """View and manage pending keyword suggestions"""
@@ -290,13 +288,13 @@ class DiscoveryCommands(commands.Cog):
     
     @discord.app_commands.command(name="clear_suggestions", description="Clear reviewed keyword suggestions")
     @discord.app_commands.describe(
-        action=discord.app_commands.Choice(value="all", name="Clear all suggestions"),
+        clear_all="Clear all suggestions (true/false)",
         crisis_level="Clear suggestions for specific crisis level only"
     )
     async def clear_suggestions(
         self, 
         interaction: discord.Interaction,
-        action: discord.app_commands.Choice[str],
+        clear_all: bool = True,
         crisis_level: str = None
     ):
         """Clear reviewed keyword suggestions"""
@@ -322,14 +320,16 @@ class DiscoveryCommands(commands.Cog):
                 ]
                 cleared = initial_count - len(self.bot.keyword_discovery.pending_suggestions)
                 message = f"✅ Cleared {cleared} {crisis_level} crisis suggestions"
-            else:
+            elif clear_all:
                 # Clear all
                 self.bot.keyword_discovery.pending_suggestions = []
                 cleared = initial_count
                 message = f"✅ Cleared all {cleared} pending suggestions"
+            else:
+                message = "❌ Must specify either clear_all=True or a specific crisis_level"
             
             await interaction.response.send_message(message, ephemeral=True)
-            logger.info(f"Cleared {cleared} keyword suggestions by {interaction.user}")
+            logger.info(f"Cleared {cleared if 'cleared' in locals() else 0} keyword suggestions by {interaction.user}")
             
         except Exception as e:
             logger.error(f"Error in clear_suggestions command: {e}")
@@ -347,7 +347,7 @@ class DiscoveryCommands(commands.Cog):
         self, 
         interaction: discord.Interaction, 
         message: str,
-        crisis_level: discord.app_commands.Choice[str]
+        crisis_level: str
     ):
         """Manually trigger keyword discovery on a specific message"""
         
@@ -433,7 +433,7 @@ class DiscoveryCommands(commands.Cog):
     async def discovery_config(
         self, 
         interaction: discord.Interaction,
-        setting: discord.app_commands.Choice[str],
+        setting: str,
         value: str
     ):
         """Configure keyword discovery system settings"""
@@ -451,7 +451,7 @@ class DiscoveryCommands(commands.Cog):
             
             service = self.bot.keyword_discovery.discovery_service
             
-            if setting.value == "min_confidence":
+            if setting == "min_confidence":
                 try:
                     new_confidence = float(value)
                     if 0.0 <= new_confidence <= 1.0:
@@ -462,7 +462,7 @@ class DiscoveryCommands(commands.Cog):
                 except ValueError:
                     message = "❌ Invalid confidence value. Must be a number."
                     
-            elif setting.value == "max_daily":
+            elif setting == "max_daily":
                 try:
                     new_max = int(value)
                     if new_max > 0:
@@ -473,7 +473,7 @@ class DiscoveryCommands(commands.Cog):
                 except ValueError:
                     message = "❌ Invalid number. Must be an integer."
                     
-            elif setting.value == "enabled":
+            elif setting == "enabled":
                 if value.lower() in ['true', '1', 'yes', 'on']:
                     service.discovery_enabled = True
                     message = "✅ Keyword discovery enabled"
@@ -483,10 +483,10 @@ class DiscoveryCommands(commands.Cog):
                 else:
                     message = "❌ Value must be true/false, yes/no, or 1/0"
             else:
-                message = f"❌ Unknown setting: {setting.value}"
+                message = f"❌ Unknown setting: {setting}. Valid options: min_confidence, max_daily, enabled"
             
             await interaction.response.send_message(message, ephemeral=True)
-            logger.info(f"Discovery config changed by {interaction.user}: {setting.value} = {value}")
+            logger.info(f"Discovery config changed by {interaction.user}: {setting} = {value}")
             
         except Exception as e:
             logger.error(f"Error in discovery_config command: {e}")
@@ -516,32 +516,7 @@ class DiscoveryCommands(commands.Cog):
             )
             return False
 
-# Add choices for the commands
-@discovery_config.autocomplete('setting')
-async def discovery_config_autocomplete(
-    interaction: discord.Interaction,
-    current: str,
-) -> List[discord.app_commands.Choice[str]]:
-    settings = [
-        discord.app_commands.Choice(name="Minimum Confidence Threshold", value="min_confidence"),
-        discord.app_commands.Choice(name="Maximum Daily Discoveries", value="max_daily"),
-        discord.app_commands.Choice(name="Discovery System Enabled", value="enabled"),
-    ]
-    return [setting for setting in settings if current.lower() in setting.name.lower()]
-
-@trigger_discovery.autocomplete('crisis_level')
-async def crisis_level_autocomplete(
-    interaction: discord.Interaction,
-    current: str,
-) -> List[discord.app_commands.Choice[str]]:
-    levels = [
-        discord.app_commands.Choice(name="High Crisis", value="high"),
-        discord.app_commands.Choice(name="Medium Crisis", value="medium"),
-        discord.app_commands.Choice(name="Low Crisis", value="low"),
-    ]
-    return [level for level in levels if current.lower() in level.name.lower()]
-
-
+# Remove the autocomplete functions and choices - simplified approach
 async def setup(bot):
     """Setup function for the discovery commands cog"""
     await bot.add_cog(DiscoveryCommands(bot))
