@@ -50,33 +50,14 @@ async def main():
         config = ConfigManager()
         logger.info("✅ Configuration loaded successfully")
         
-        # TODO: Initialize the full bot
-        logger.info("🤖 Bot initialization logic will go here...")
-        logger.info("📝 For now, testing configuration and logging...")
+        # Initialize and start the bot
+        from core.bot_manager import AshBot
         
-        # Test Discord token exists
-        token = config.get('DISCORD_TOKEN')
-        if token:
-            logger.info(f"✅ Discord token configured ({len(token)} chars)")
-        else:
-            logger.error("❌ Discord token missing!")
-            return
+        logger.info("🤖 Creating modular bot instance...")
+        bot = AshBot(config)
         
-        # Test other critical configs
-        guild_id = config.get_int('GUILD_ID')
-        logger.info(f"✅ Guild ID: {guild_id}")
-        
-        allowed_channels = config.get_allowed_channels()
-        if allowed_channels:
-            logger.info(f"✅ Allowed channels: {len(allowed_channels)} configured")
-        else:
-            logger.info("✅ Allowed channels: All channels (no restrictions)")
-        
-        nlp_url = config.get_nlp_url()
-        logger.info(f"✅ NLP service: {nlp_url}")
-        
-        logger.info("🎉 Modular configuration test complete!")
-        logger.info("💡 Next: Run the bot with full modular components...")
+        logger.info("🚀 Starting modular bot...")
+        await bot.start_bot()
         
     except Exception as e:
         logger.error(f"💥 Configuration test failed: {e}")
