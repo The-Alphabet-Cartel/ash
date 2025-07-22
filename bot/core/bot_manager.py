@@ -166,7 +166,7 @@ class AshBot(commands.Bot):
             bot_member = guild.get_member(self.user.id)
             if bot_member:
                 perms = bot_member.guild_permissions
-                logger.info(f'Bot permissions: send_messages={perms.send_messages}, use_slash_commands={perms.use_slash_commands}')
+                logger.info(f'Bot permissions: send_messages={perms.send_messages}, use_application_commands={perms.use_application_commands}')
         
         # Verify slash commands are registered
         try:
