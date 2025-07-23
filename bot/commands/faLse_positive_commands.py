@@ -1,6 +1,6 @@
 """
 False Positive Learning System - Discord Slash Commands
-Add to: ash/bot/commands/false_positive_commands.py
+Create as: ash/bot/commands/false_positive_commands.py
 """
 
 import discord
