@@ -152,7 +152,7 @@ class AshBot(commands.Bot, ResourceCleanupMixin):
         logger.info("✅ All enhanced components initialized")
     
     async def _load_command_cogs(self):
-        """Load command cogs with error handling"""
+        """Load command cogs with enhanced learning system"""
         cog_errors = []
         
         # Load Crisis Commands
@@ -173,14 +173,14 @@ class AshBot(commands.Bot, ResourceCleanupMixin):
             logger.error(f"❌ Failed to load Monitoring Commands: {e}")
             cog_errors.append(f"MonitoringCommands: {e}")
 
-        # Load False Positive Learning Commands
+        # Load Enhanced Learning Commands (replaces false_positive_commands)
         try:
-            from commands.false_positive_commands import FalsePositiveLearningCommands
-            await self.add_cog(FalsePositiveLearningCommands(self))
-            logger.info("✅ Loaded False Positive Learning Commands cog")
+            from commands.enhanced_learning_commands import EnhancedLearningCommands
+            await self.add_cog(EnhancedLearningCommands(self))
+            logger.info("✅ Loaded Enhanced Learning Commands cog (false positives + negatives)")
         except Exception as e:
-            logger.error(f"❌ Failed to load False Positive Learning Commands: {e}")
-            cog_errors.append(f"FalsePositiveLearningCommands: {e}")
+            logger.error(f"❌ Failed to load Enhanced Learning Commands: {e}")
+            cog_errors.append(f"EnhancedLearningCommands: {e}")
 
         # Log cog loading errors as security events
         if cog_errors:
@@ -189,7 +189,7 @@ class AshBot(commands.Bot, ResourceCleanupMixin):
                 "cog_loading_errors", 0, 0, 0,
                 {"errors": cog_errors}, "warning"
             )
-    
+
     async def _sync_slash_commands(self):
         """Sync slash commands with enhanced logging"""
         total_commands = len([cmd for cmd in self.tree.walk_commands()])
