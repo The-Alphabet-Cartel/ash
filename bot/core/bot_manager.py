@@ -172,7 +172,16 @@ class AshBot(commands.Bot, ResourceCleanupMixin):
         except Exception as e:
             logger.error(f"❌ Failed to load Monitoring Commands: {e}")
             cog_errors.append(f"MonitoringCommands: {e}")
-        
+
+        # Load False Positive Learning Commands
+        try:
+            from commands.false_positive_commands import FalsePositiveLearningCommands
+            await self.add_cog(FalsePositiveLearningCommands(self))
+            logger.info("✅ Loaded False Positive Learning Commands cog")
+        except Exception as e:
+            logger.error(f"❌ Failed to load False Positive Learning Commands: {e}")
+            cog_errors.append(f"FalsePositiveLearningCommands: {e}")
+
         # Log cog loading errors as security events
         if cog_errors:
             logger.warning(f"⚠️ Cog loading errors: {cog_errors}")
