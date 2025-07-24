@@ -514,6 +514,7 @@ class MessageHandler:
         
         # Method 1: Keyword detection (always runs)
         keyword_result = self.keyword_detector.check_message(message.content)
+        logger.info(f"🔤 Keyword detection result: {keyword_result['crisis_level']} (needs_response: {keyword_result['needs_response']})")
         
         # Method 2: NLP analysis (if available)
         nlp_result = None
@@ -523,11 +524,18 @@ class MessageHandler:
                 str(message.author.id),
                 str(message.channel.id)
             )
+            if nlp_result:
+                logger.info(f"🧠 NLP analysis result: {nlp_result.get('crisis_level', 'none')} (confidence: {nlp_result.get('confidence_score', 0):.2f})")
+            else:
+                logger.info("🧠 NLP analysis returned None")
         except Exception as e:
-            logger.debug(f"NLP analysis failed (non-critical): {e}")
+            logger.warning(f"🧠 NLP analysis failed: {e}")
         
         # Hybrid decision logic
         final_result = self._combine_detection_results(keyword_result, nlp_result)
+        
+        # Log the final decision
+        logger.info(f"⚡ Final hybrid decision: {final_result.get('crisis_level', 'unknown')} via {final_result.get('method', 'unknown')} (confidence: {final_result.get('confidence', 0):.2f})")
         
         # Update statistics
         method = final_result.get('method', 'unknown')
