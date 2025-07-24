@@ -1,6 +1,7 @@
 """
 Enhanced False Positive & Negative Learning System - Discord Slash Commands
-Replace: ash/bot/commands/false_positive_commands.py with this enhanced version
+Fixed version with proper context dictionary handling
+Replace: ash/bot/commands/enhanced_learning_commands.py with this fixed version
 """
 
 import discord
@@ -45,12 +46,14 @@ class EnhancedLearningCommands(commands.Cog):
                 },
                 'statistics': {
                     'total_false_positives': 0,
-                    'total_false_negatives': 0,  # NEW: Track missed crises
+                    'total_false_negatives': 0,  # NEW
                     'false_positives_by_level': {'high': 0, 'medium': 0, 'low': 0},
                     'false_negatives_by_level': {'high': 0, 'medium': 0, 'low': 0},  # NEW
-                    'patterns_learned': 0,
-                    'last_analysis': None,
-                    'detection_improvements': 0  # NEW: Track how many improvements made
+                    'learning_effectiveness': {
+                        'patterns_learned': 0,
+                        'adjustments_applied': 0,
+                        'last_update': None
+                    }
                 }
             }
             
@@ -61,29 +64,22 @@ class EnhancedLearningCommands(commands.Cog):
     
     async def _check_crisis_role(self, interaction: discord.Interaction) -> bool:
         """Check if user has crisis response role"""
-        try:
-            user_role_ids = [role.id for role in interaction.user.roles]
-            
-            if self.crisis_response_role_id not in user_role_ids:
-                await interaction.response.send_message(
-                    "❌ You need the Crisis Response role to use learning commands", 
-                    ephemeral=True
-                )
-                return False
-            return True
-            
-        except Exception as e:
-            logger.error(f"Role check error: {e}")
+        if self.crisis_response_role_id == 0:
+            return True  # No role restriction configured
+        
+        user_roles = [role.id for role in interaction.user.roles]
+        if self.crisis_response_role_id not in user_roles:
             await interaction.response.send_message(
-                "❌ Error checking permissions", 
+                "❌ You need the Crisis Response role to use this command",
                 ephemeral=True
             )
             return False
+        return True
     
-    @app_commands.command(name="report_false_positive", description="Report a false positive crisis detection")
+    @app_commands.command(name="report_false_positive", description="Report a false positive detection for learning")
     @app_commands.describe(
-        message_link="Link to the Discord message that was incorrectly flagged",
-        detected_level="What crisis level was incorrectly detected",
+        message_link="Discord message link that was incorrectly flagged",
+        detected_level="Crisis level that was incorrectly detected",
         correct_level="What the correct crisis level should have been",
         context="Additional context about why this was a false positive"
     )
@@ -164,7 +160,8 @@ class EnhancedLearningCommands(commands.Cog):
                 'severity_score': self._calculate_false_positive_severity(detected_level, correct_level),
                 'error_type': 'over_detection'
             },
-            'context': context or "No additional context provided",
+            # FIXED: Store context as dictionary instead of string
+            'context': {'description': context or "No additional context provided"},
             'learning_status': 'pending'
         }
         
@@ -178,37 +175,29 @@ class EnhancedLearningCommands(commands.Cog):
         embed = discord.Embed(
             title="✅ False Positive Reported",
             description="Thank you for reporting this over-detection. The system will learn to be less sensitive.",
-            color=discord.Color.orange()
+            color=discord.Color.green()
         )
         
         embed.add_field(
-            name="📊 Over-Detection Error",
-            value=f"**Detected:** {detected_level.title()} Crisis\n"
-                  f"**Should be:** {correct_level.title() if correct_level != 'none' else 'None'}\n"
-                  f"**Severity:** {false_positive_record['detection_error']['severity_score']}/10",
+            name="📊 Detection Error",
+            value=f"**Detected:** {detected_level.title()}\n**Should Be:** {correct_level.title()}",
             inline=True
         )
         
         embed.add_field(
-            name="📝 Message Preview",
-            value=f"```{message_details['content'][:100]}{'...' if len(message_details['content']) > 100 else ''}```",
-            inline=False
+            name="🧠 Learning Analysis",
+            value=f"**Status:** {learning_result['status'].title()}\n"
+                  f"**Patterns Found:** {learning_result['patterns_discovered']}\n"
+                  f"**Adjustments:** {learning_result['confidence_adjustments']}",
+            inline=True
         )
         
-        if learning_result['patterns_discovered'] > 0:
+        if context:
             embed.add_field(
-                name="🧠 Learning Results",
-                value=f"**Patterns Learned:** {learning_result['patterns_discovered']}\n"
-                      f"**Sensitivity Reduced:** {learning_result['confidence_adjustments']}\n"
-                      f"**Status:** {learning_result['status']}",
-                inline=True
+                name="💬 Context",
+                value=f"```{context[:200]}{'...' if len(context) > 200 else ''}```",
+                inline=False
             )
-        
-        embed.add_field(
-            name="📈 Impact",
-            value="This helps prevent similar over-reactions to non-crisis messages.",
-            inline=False
-        )
         
         embed.set_footer(text=f"Report ID: {false_positive_record['id']}")
         
@@ -217,50 +206,50 @@ class EnhancedLearningCommands(commands.Cog):
         # Log the false positive report
         logger.warning(f"False positive reported by {interaction.user}: {detected_level} → {correct_level}")
         
-        # Send learning update to NLP server if available
+        # Send learning notification to NLP server if available
         if self.nlp_client:
             try:
                 await self._send_learning_update_to_nlp(false_positive_record)
             except Exception as e:
                 logger.error(f"Failed to send learning update to NLP server: {e}")
     
-    @app_commands.command(name="report_missed_crisis", description="Report a crisis that was missed by detection")
+    @app_commands.command(name="report_missed_crisis", description="Report a missed crisis detection for learning (False Negative)")
     @app_commands.describe(
-        message_link="Link to the Discord message that should have been flagged as a crisis",
-        missed_level="What crisis level should have been detected",
-        actual_detected="What level was actually detected (if any)",
-        context="Additional context about why this was a crisis and why it was missed"
+        message_link="Discord message link that should have been flagged",
+        should_detect_level="Crisis level that should have been detected",
+        actually_detected="What was actually detected (if anything)",
+        context="Additional context about why this should have been detected"
     )
     @app_commands.choices(
-        missed_level=[
+        should_detect_level=[
             app_commands.Choice(name="High Crisis", value="high"),
             app_commands.Choice(name="Medium Crisis", value="medium"),
             app_commands.Choice(name="Low Crisis", value="low")
         ],
-        actual_detected=[
-            app_commands.Choice(name="None (Not Flagged)", value="none"),
+        actually_detected=[
+            app_commands.Choice(name="None (Not Detected)", value="none"),
             app_commands.Choice(name="Low Crisis", value="low"),
             app_commands.Choice(name="Medium Crisis", value="medium")
         ]
     )
     async def report_missed_crisis(
-        self, 
+        self,
         interaction: discord.Interaction,
         message_link: str,
-        missed_level: str,
-        actual_detected: str = "none",
+        should_detect_level: str,
+        actually_detected: str = "none",
         context: str = None
     ):
-        """NEW: Report a missed crisis (false negative) for learning"""
+        """Report a missed crisis detection for learning (False Negative) - NEW FEATURE"""
         
         if not await self._check_crisis_role(interaction):
             return
         
         # Validate that this is actually a false negative
         level_hierarchy = {'none': 0, 'low': 1, 'medium': 2, 'high': 3}
-        if level_hierarchy[missed_level] <= level_hierarchy[actual_detected]:
+        if level_hierarchy[should_detect_level] <= level_hierarchy[actually_detected]:
             await interaction.response.send_message(
-                "❌ This doesn't appear to be a missed crisis. The detected level is equal or higher than expected.",
+                "❌ This appears to be a false positive (over-detection). Use `/report_false_positive` instead.",
                 ephemeral=True
             )
             return
@@ -295,12 +284,13 @@ class EnhancedLearningCommands(commands.Cog):
             },
             'message_details': message_details,
             'detection_error': {
-                'should_detect_level': missed_level,
-                'actually_detected': actual_detected,
-                'severity_score': self._calculate_false_negative_severity(missed_level, actual_detected),
+                'should_detect_level': should_detect_level,
+                'actually_detected': actually_detected,
+                'severity_score': self._calculate_false_negative_severity(should_detect_level, actually_detected),
                 'error_type': 'under_detection'
             },
-            'context': context or "No additional context provided",
+            # FIXED: Store context as dictionary instead of string
+            'context': {'description': context or "No additional context provided"},
             'learning_status': 'pending'
         }
         
@@ -312,161 +302,45 @@ class EnhancedLearningCommands(commands.Cog):
         
         # Create response embed
         embed = discord.Embed(
-            title="🚨 Missed Crisis Reported",
-            description="Thank you for reporting this missed detection. The system will learn to be more sensitive.",
-            color=discord.Color.red()
+            title="✅ Missed Crisis Reported",
+            description="Thank you for reporting this under-detection. The system will learn to be more sensitive.",
+            color=discord.Color.orange()
         )
         
         embed.add_field(
-            name="📊 Under-Detection Error",
-            value=f"**Should Detect:** {missed_level.title()} Crisis\n"
-                  f"**Actually Detected:** {actual_detected.title() if actual_detected != 'none' else 'None'}\n"
-                  f"**Severity:** {false_negative_record['detection_error']['severity_score']}/10",
+            name="📊 Detection Error",
+            value=f"**Should Detect:** {should_detect_level.title()}\n**Actually Got:** {actually_detected.title()}",
             inline=True
         )
         
         embed.add_field(
-            name="📝 Message Preview",
-            value=f"```{message_details['content'][:100]}{'...' if len(message_details['content']) > 100 else ''}```",
-            inline=False
+            name="🧠 Learning Analysis",
+            value=f"**Status:** {learning_result['status'].title()}\n"
+                  f"**Patterns Found:** {learning_result['patterns_discovered']}\n"
+                  f"**Adjustments:** {learning_result['confidence_adjustments']}",
+            inline=True
         )
         
-        if learning_result['patterns_discovered'] > 0:
+        if context:
             embed.add_field(
-                name="🧠 Learning Results",
-                value=f"**New Crisis Patterns:** {learning_result['patterns_discovered']}\n"
-                      f"**Sensitivity Increased:** {learning_result['confidence_adjustments']}\n"
-                      f"**Status:** {learning_result['status']}",
-                inline=True
+                name="💬 Context",
+                value=f"```{context[:200]}{'...' if len(context) > 200 else ''}```",
+                inline=False
             )
-        
-        embed.add_field(
-            name="📈 Impact",
-            value="This helps detect similar crisis patterns in the future.",
-            inline=False
-        )
         
         embed.set_footer(text=f"Report ID: {false_negative_record['id']}")
         
         await interaction.followup.send(embed=embed, ephemeral=True)
         
         # Log the false negative report
-        logger.error(f"False negative (missed crisis) reported by {interaction.user}: {actual_detected} → {missed_level}")
+        logger.warning(f"False negative reported by {interaction.user}: {actually_detected} → {should_detect_level}")
         
-        # Send learning update to NLP server if available
+        # Send learning notification to NLP server if available
         if self.nlp_client:
             try:
                 await self._send_learning_update_to_nlp(false_negative_record)
             except Exception as e:
                 logger.error(f"Failed to send learning update to NLP server: {e}")
-    
-    @app_commands.command(name="learning_stats", description="View comprehensive learning statistics")
-    async def learning_stats(self, interaction: discord.Interaction):
-        """Enhanced statistics showing both false positives and false negatives"""
-        
-        if not await self._check_crisis_role(interaction):
-            return
-        
-        try:
-            with open(self.learning_data_file, 'r') as f:
-                data = json.load(f)
-            
-            stats = data['statistics']
-            false_positives = data['false_positives']
-            false_negatives = data['false_negatives']
-            
-            # Calculate recent stats (last 30 days)
-            from datetime import timedelta
-            thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
-            
-            recent_fps = [
-                fp for fp in false_positives
-                if datetime.fromisoformat(fp['timestamp'].replace('Z', '+00:00')) > thirty_days_ago
-            ]
-            
-            recent_fns = [
-                fn for fn in false_negatives
-                if datetime.fromisoformat(fn['timestamp'].replace('Z', '+00:00')) > thirty_days_ago
-            ]
-            
-            embed = discord.Embed(
-                title="🧠 Comprehensive Learning Statistics",
-                description="System learning from both over-detection and under-detection errors",
-                color=discord.Color.purple()
-            )
-            
-            embed.add_field(
-                name="📈 Overall Learning Progress",
-                value=f"**False Positives:** {stats['total_false_positives']}\n"
-                      f"**Missed Crises:** {stats['total_false_negatives']}\n"
-                      f"**Total Reports:** {stats['total_false_positives'] + stats['total_false_negatives']}\n"
-                      f"**Improvements Made:** {stats.get('detection_improvements', 0)}",
-                inline=True
-            )
-            
-            embed.add_field(
-                name="🚨 False Positives (Over-Detection)",
-                value=f"**High:** {stats['false_positives_by_level']['high']}\n"
-                      f"**Medium:** {stats['false_positives_by_level']['medium']}\n"
-                      f"**Low:** {stats['false_positives_by_level']['low']}\n"
-                      f"**Recent (30d):** {len(recent_fps)}",
-                inline=True
-            )
-            
-            embed.add_field(
-                name="🎯 False Negatives (Missed Crises)",
-                value=f"**High:** {stats['false_negatives_by_level']['high']}\n"
-                      f"**Medium:** {stats['false_negatives_by_level']['medium']}\n"
-                      f"**Low:** {stats['false_negatives_by_level']['low']}\n"
-                      f"**Recent (30d):** {len(recent_fns)}",
-                inline=True
-            )
-            
-            # Calculate learning effectiveness
-            total_reports = len(recent_fps) + len(recent_fns)
-            if total_reports > 0:
-                fp_rate = len(recent_fps) / total_reports * 100
-                fn_rate = len(recent_fns) / total_reports * 100
-                
-                embed.add_field(
-                    name="📉 Recent Trends (30 Days)",
-                    value=f"**Over-Detection Rate:** {fp_rate:.1f}%\n"
-                          f"**Under-Detection Rate:** {fn_rate:.1f}%\n"
-                          f"**Learning Rate:** {total_reports / 30:.1f} reports/day\n"
-                          f"**Balance:** {'Over-sensitive' if fp_rate > fn_rate else 'Under-sensitive' if fn_rate > fp_rate else 'Balanced'}",
-                    inline=True
-                )
-            
-            # NLP server status
-            nlp_status = "✅ Connected" if self.nlp_client else "❌ Disconnected"
-            embed.add_field(
-                name="🤖 Learning System Status",
-                value=f"**NLP Server:** {nlp_status}\n"
-                      f"**Real-time Learning:** {'Enabled' if self.nlp_client else 'Disabled'}\n"
-                      f"**Last Analysis:** {stats.get('last_analysis', 'Never')[:10] if stats.get('last_analysis') else 'Never'}\n"
-                      f"**Patterns Learned:** {stats.get('patterns_learned', 0)}",
-                inline=True
-            )
-            
-            embed.add_field(
-                name="💡 Most Common Issues",
-                value=f"**False Positives:** {self._get_most_common_error_type(recent_fps, 'false_positive')}\n"
-                      f"**Missed Crises:** {self._get_most_common_error_type(recent_fns, 'false_negative')}",
-                inline=False
-            )
-            
-            embed.set_footer(text="Use /report_false_positive and /report_missed_crisis to improve detection")
-            
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            
-        except Exception as e:
-            logger.error(f"Error getting learning stats: {e}")
-            await interaction.response.send_message(
-                "❌ Error retrieving learning statistics",
-                ephemeral=True
-            )
-    
-    # Helper methods
     
     async def _extract_message_from_link(self, message_link: str) -> Optional[Dict]:
         """Extract message content and details from Discord message link"""
@@ -583,20 +457,22 @@ class EnhancedLearningCommands(commands.Cog):
             # Choose endpoint based on record type
             if record['type'] == 'false_positive':
                 endpoint = "/analyze_false_positive"
+                # FIXED: Context is already a dictionary now
                 payload = {
                     'message': record['message_details']['content'],
                     'detected_level': record['detection_error']['detected_level'],
                     'correct_level': record['detection_error']['correct_level'],
-                    'context': record['context'],
+                    'context': record['context'],  # Already a dictionary
                     'severity_score': record['detection_error']['severity_score']
                 }
             else:  # false_negative
                 endpoint = "/analyze_false_negative"
+                # FIXED: Context is already a dictionary now
                 payload = {
                     'message': record['message_details']['content'],
                     'should_detect_level': record['detection_error']['should_detect_level'],
                     'actually_detected': record['detection_error']['actually_detected'],
-                    'context': record['context'],
+                    'context': record['context'],  # Already a dictionary
                     'severity_score': record['detection_error']['severity_score']
                 }
             
@@ -627,12 +503,13 @@ class EnhancedLearningCommands(commands.Cog):
             nlp_port = os.getenv('NLP_SERVICE_PORT', '8881')
             nlp_url = f"http://{nlp_host}:{nlp_port}/update_learning_model"
             
+            # FIXED: Context is already a dictionary, and using proper field names
             payload = {
                 'learning_record_id': record['id'],
                 'record_type': record['type'],
                 'message_data': record['message_details'],
                 'correction_data': record['detection_error'],
-                'context_data': record['context'],
+                'context_data': record['context'],  # Already a dictionary
                 'timestamp': record['timestamp']
             }
             
@@ -646,166 +523,102 @@ class EnhancedLearningCommands(commands.Cog):
         except Exception as e:
             logger.error(f"Error sending learning update to NLP: {e}")
     
-    def _get_most_common_error_type(self, records: List[Dict], error_type: str) -> str:
-        """Get the most common type of error"""
-        error_types = {}
-        
-        for record in records:
-            if error_type == 'false_positive':
-                detected = record['detection_error']['detected_level']
-                correct = record['detection_error']['correct_level']
-                error_key = f"{detected} → {correct}"
-            else:  # false_negative
-                should = record['detection_error']['should_detect_level']
-                actual = record['detection_error']['actually_detected']
-                error_key = f"{actual} → {should}"
-            
-            error_types[error_key] = error_types.get(error_key, 0) + 1
-        
-        if not error_types:
-            return "None"
-        
-        most_common = max(error_types.items(), key=lambda x: x[1])
-        return f"{most_common[0]} ({most_common[1]}x)"
-    
-    # Keep existing test_message_analysis command but enhance it
-    @app_commands.command(name="test_message_analysis", description="Test how a message would be analyzed by current system")
-    @app_commands.describe(
-        test_message="Message text to analyze",
-        expected_level="What crisis level you expect this should be"
-    )
-    @app_commands.choices(
-        expected_level=[
-            app_commands.Choice(name="None (No Crisis)", value="none"),
-            app_commands.Choice(name="Low Crisis", value="low"),
-            app_commands.Choice(name="Medium Crisis", value="medium"),
-            app_commands.Choice(name="High Crisis", value="high")
-        ]
-    )
-    async def test_message_analysis(
-        self,
-        interaction: discord.Interaction,
-        test_message: str,
-        expected_level: str = None
-    ):
-        """Test message analysis against current detection system"""
+    @app_commands.command(name="learning_stats", description="View comprehensive learning system statistics")
+    async def learning_stats(self, interaction: discord.Interaction):
+        """View comprehensive learning system statistics - NEW ENHANCED VERSION"""
         
         if not await self._check_crisis_role(interaction):
             return
         
-        await interaction.response.defer(ephemeral=True)
-        
         try:
-            # Test with keyword detector
-            keyword_result = self.bot.keyword_detector.check_message(test_message)
+            with open(self.learning_data_file, 'r') as f:
+                data = json.load(f)
             
-            # Test with NLP if available
-            nlp_result = None
-            if self.nlp_client:
-                try:
-                    nlp_result = await self.nlp_client.analyze_message(
-                        test_message,
-                        str(interaction.user.id),
-                        str(interaction.channel.id)
-                    )
-                except Exception as e:
-                    logger.error(f"NLP analysis error: {e}")
+            stats = data['statistics']
+            recent_fps = data['false_positives'][-10:]  # Last 10 false positives
+            recent_fns = data['false_negatives'][-10:]   # Last 10 false negatives
             
-            # Create analysis embed
             embed = discord.Embed(
-                title="🔍 Message Analysis Test",
-                description="Current system analysis of the test message",
+                title="📊 Enhanced Learning Statistics",
+                description="Comprehensive learning system performance overview",
                 color=discord.Color.purple()
             )
             
+            # Overall statistics
             embed.add_field(
-                name="📝 Test Message",
-                value=f"```{test_message[:200]}{'...' if len(test_message) > 200 else ''}```",
-                inline=False
-            )
-            
-            embed.add_field(
-                name="🔤 Keyword Detection",
-                value=f"**Level:** {keyword_result['crisis_level'].title()}\n"
-                      f"**Triggered:** {'Yes' if keyword_result['needs_response'] else 'No'}\n"
-                      f"**Categories:** {', '.join(keyword_result['detected_categories']) if keyword_result['detected_categories'] else 'None'}",
+                name="📈 Overall Performance",
+                value=f"**False Positives:** {stats['total_false_positives']}\n"
+                      f"**False Negatives:** {stats['total_false_negatives']}\n"
+                      f"**Learning Updates:** {stats['learning_effectiveness']['adjustments_applied']}\n"
+                      f"**Patterns Learned:** {stats['learning_effectiveness']['patterns_learned']}",
                 inline=True
             )
             
-            if nlp_result:
-                embed.add_field(
-                    name="🧠 NLP Analysis",
-                    value=f"**Level:** {nlp_result['crisis_level'].title()}\n"
-                          f"**Confidence:** {nlp_result['confidence_score']:.2f}\n"
-                          f"**Method:** {nlp_result.get('method', 'unknown')}",
-                    inline=True
-                )
-                
-                # Determine final result (using hybrid logic)
-                final_level = self._determine_hybrid_result(keyword_result, nlp_result)
-            else:
-                embed.add_field(
-                    name="🧠 NLP Analysis",
-                    value="❌ NLP Server unavailable",
-                    inline=True
-                )
-                final_level = keyword_result['crisis_level']
-            
+            # False positive breakdown
+            fp_stats = stats['false_positives_by_level']
             embed.add_field(
-                name="⚖️ Final Decision",
-                value=f"**Crisis Level:** {final_level.title()}\n"
-                      f"**Would Trigger Response:** {'Yes' if final_level != 'none' else 'No'}",
-                inline=False
+                name="🔴 False Positives",
+                value=f"**High→Other:** {fp_stats['high']}\n"
+                      f"**Medium→Other:** {fp_stats['medium']}\n"
+                      f"**Low→Other:** {fp_stats['low']}",
+                inline=True
             )
             
-            if expected_level:
-                is_correct = final_level == expected_level
-                level_hierarchy = {'none': 0, 'low': 1, 'medium': 2, 'high': 3}
+            # False negative breakdown  
+            fn_stats = stats['false_negatives_by_level']
+            embed.add_field(
+                name="🟡 False Negatives", 
+                value=f"**Missed High:** {fn_stats['high']}\n"
+                      f"**Missed Medium:** {fn_stats['medium']}\n"
+                      f"**Missed Low:** {fn_stats['low']}",
+                inline=True
+            )
+            
+            # Recent activity
+            if recent_fps or recent_fns:
+                recent_activity = []
+                
+                # Combine and sort recent reports by timestamp
+                all_recent = []
+                for fp in recent_fps[-5:]:
+                    all_recent.append((fp['timestamp'], 'FP', fp['detection_error']))
+                for fn in recent_fns[-5:]:
+                    all_recent.append((fn['timestamp'], 'FN', fn['detection_error']))
+                
+                all_recent.sort(key=lambda x: x[0], reverse=True)
+                
+                for timestamp, report_type, error in all_recent[:5]:
+                    if report_type == 'FP':
+                        desc = f"🔴 {error['detected_level'].title()} → {error['correct_level'].title()}"
+                    else:  # FN
+                        desc = f"🟡 {error['actually_detected'].title()} → {error['should_detect_level'].title()}"
+                    recent_activity.append(desc)
                 
                 embed.add_field(
-                    name="✅ Expected vs Actual",
-                    value=f"**Expected:** {expected_level.title()}\n"
-                          f"**Actual:** {final_level.title()}\n"
-                          f"**Match:** {'✅ Correct' if is_correct else '❌ Mismatch'}",
-                    inline=True
+                    name="🔄 Recent Reports",
+                    value='\n'.join(recent_activity),
+                    inline=False
                 )
-                
-                if not is_correct:
-                    if level_hierarchy[final_level] > level_hierarchy[expected_level]:
-                        suggestion = "Consider using `/report_false_positive` if this over-detection is problematic."
-                    else:
-                        suggestion = "Consider using `/report_missed_crisis` if this under-detection is problematic."
-                    
-                    embed.add_field(
-                        name="💡 Suggestion",
-                        value=suggestion,
-                        inline=False
-                    )
             
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            # Learning effectiveness
+            if stats['learning_effectiveness']['last_update']:
+                embed.add_field(
+                    name="🧠 Learning Status",
+                    value=f"**Last Update:** {stats['learning_effectiveness']['last_update'][:10]}\n"
+                          f"**System Status:** {'Active' if stats['learning_effectiveness']['adjustments_applied'] > 0 else 'Initializing'}",
+                    inline=False
+                )
+            
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             
         except Exception as e:
-            logger.error(f"Error in test analysis: {e}")
-            await interaction.followup.send(
-                "❌ Error performing analysis test",
+            logger.error(f"Error generating learning stats: {e}")
+            await interaction.response.send_message(
+                "❌ Error retrieving statistics",
                 ephemeral=True
             )
-    
-    def _determine_hybrid_result(self, keyword_result: Dict, nlp_result: Dict) -> str:
-        """Determine final result using hybrid logic (matches your existing logic)"""
-        keyword_level = keyword_result['crisis_level']
-        nlp_level = nlp_result.get('crisis_level', 'none')
-        
-        # Crisis level hierarchy
-        hierarchy = {'none': 0, 'low': 1, 'medium': 2, 'high': 3}
-        
-        # Use the higher of the two crisis levels (safety-first)
-        if hierarchy[keyword_level] >= hierarchy[nlp_level]:
-            return keyword_level
-        else:
-            return nlp_level
 
 async def setup(bot):
     """Setup function for the enhanced learning commands cog"""
     await bot.add_cog(EnhancedLearningCommands(bot))
-    logger.info("✅ Enhanced learning commands cog loaded (false positives + false negatives)")
+    logger.info("✅ Enhanced learning commands cog loaded")
