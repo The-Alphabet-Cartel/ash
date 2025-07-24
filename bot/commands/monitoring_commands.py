@@ -650,15 +650,20 @@ class MonitoringCommands(commands.Cog):
                         inline=True
                     )
                 else:
-                    confidence = nlp_result.get('confidence', 0)
+                    # Use the correct field names from NLP response
+                    confidence = nlp_result.get('confidence_score', 0)
                     nlp_level = nlp_result.get('crisis_level', 'unknown')
                     nlp_color = "🔴" if nlp_level == 'high' else "🟡" if nlp_level == 'medium' else "🟢" if nlp_level == 'low' else "⚪"
+                    
+                    processing_time = nlp_result.get('processing_time_ms', 0)
+                    method = nlp_result.get('method', 'unknown')
                     
                     embed.add_field(
                         name="🧠 NLP Analysis",
                         value=f"{nlp_color} **Level:** {nlp_level.title()}\n"
                               f"**Confidence:** {confidence:.2%}\n"
-                              f"**Sentiment:** {nlp_result.get('sentiment', 'Unknown')}",
+                              f"**Method:** {method}\n"
+                              f"**Time:** {processing_time:.1f}ms",
                         inline=True
                     )
                     
@@ -667,6 +672,15 @@ class MonitoringCommands(commands.Cog):
                             name="🔍 AI Reasoning",
                             value=f"```{nlp_result['reasoning'][:100]}{'...' if len(nlp_result['reasoning']) > 100 else ''}```",
                             inline=False
+                        )
+                    
+                    # Show detected categories if available
+                    if nlp_result.get('detected_categories'):
+                        categories = nlp_result['detected_categories']
+                        embed.add_field(
+                            name="🏷️ Categories",
+                            value=f"```{', '.join(categories[:3])}{'...' if len(categories) > 3 else ''}```",
+                            inline=True
                         )
             else:
                 embed.add_field(
