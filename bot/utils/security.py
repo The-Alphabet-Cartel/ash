@@ -317,15 +317,6 @@ class InputValidator:
         
         return content
     
-    @staticmethod
-    def validate_channel_name(name: str) -> bool:
-        """Validate Discord channel name format"""
-        if not name or len(name) > 100:
-            return False
-        
-        # Discord channel names have specific rules
-        return name.replace('-', '').replace('_', '').replace(' ', '').isalnum()
-
 def get_security_manager(config) -> SecurityManager:
     """Get security manager instance"""
     return SecurityManager(config)
