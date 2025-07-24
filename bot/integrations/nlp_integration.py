@@ -20,7 +20,7 @@ class RemoteNLPClient:
         self.nlp_host = os.getenv('NLP_SERVICE_HOST', '10.2030.16')
         self.nlp_port = os.getenv('NLP_SERVICE_PORT', '8881')
         self.nlp_url = f"http://{self.nlp_host}:{self.nlp_port}"
-        self.timout = int(os.getenv('REQUEST_TIMEOUT,'30'))
+        self.timout = int(os.getenv('REQUEST_TIMEOUT', '30'))
         
         # Connection settings
         self.timeout = 5.0  # 5 second timeout
