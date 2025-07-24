@@ -78,11 +78,6 @@ def get_data_file_path(filename: str) -> Path:
     """Get full path for a data file"""
     return DATA_DIR / filename
 
-def list_data_files() -> list:
-    """List all files in the data directory"""
-    ensure_data_directory()
-    return [f.name for f in DATA_DIR.iterdir() if f.is_file()]
-
 # Initialize data directory on import
 ensure_data_directory()
 
@@ -92,5 +87,4 @@ __all__ = [
     "load_json_file",
     "save_json_file", 
     "get_data_file_path",
-    "list_data_files"
 ]
