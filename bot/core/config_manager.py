@@ -1,6 +1,5 @@
 """
 Enhanced Configuration Manager with Better Validation
-Replace bot/core/config_manager.py with this improved version
 """
 
 import os

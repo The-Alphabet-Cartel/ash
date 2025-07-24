@@ -1,6 +1,5 @@
 """
 Testing Infrastructure for Ash Bot
-Create: tests/test_keyword_detector.py
 """
 
 import pytest

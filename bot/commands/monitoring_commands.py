@@ -211,7 +211,9 @@ class MonitoringCommands(commands.Cog):
                 value=f"**Started:** {stats.get('conversations_started', 0)}\n"
                      f"**Follow-ups handled:** {stats.get('follow_ups_handled', 0)}\n"
                      f"**Currently active:** {len(handler.active_conversations)}\n"
-                     f"**Ignored attempts:** {stats.get('ignored_follow_ups', 0)}",
+                     f"**Ignored attempts:** {stats.get('ignored_follow_ups', 0)}\n"
+                     f"**🚫 Intrusions blocked:** {stats.get('intrusion_attempts_blocked', 0)}\n"
+                     f"**🚨 Crisis overrides:** {stats.get('crisis_overrides_triggered', 0)}",
                 inline=True
             )
             
@@ -231,6 +233,10 @@ class MonitoringCommands(commands.Cog):
                 config_status.append("✅ Natural starters: Enabled")
             else:
                 config_status.append("❌ Natural starters: Disabled")
+                
+            # Crisis override levels
+            override_levels = handler.config.get('CRISIS_OVERRIDE_LEVELS', 'medium,high')
+            config_status.append(f"🚨 Crisis overrides: {override_levels}")
             
             embed.add_field(
                 name="⚙️ Configuration",
@@ -273,12 +279,15 @@ class MonitoringCommands(commands.Cog):
             
             # Effectiveness metrics
             total_attempts = stats.get('follow_ups_handled', 0) + stats.get('ignored_follow_ups', 0)
+            intrusion_attempts = stats.get('intrusion_attempts_blocked', 0)
+            
             if total_attempts > 0:
                 success_rate = (stats.get('follow_ups_handled', 0) / total_attempts) * 100
                 embed.add_field(
                     name="📈 Effectiveness",
                     value=f"**Follow-up success rate:** {success_rate:.1f}%\n"
-                         f"**Isolation working:** {'✅ Yes' if stats.get('ignored_follow_ups', 0) > 0 else '⚠️ Untested'}",
+                         f"**Isolation working:** {'✅ Yes' if stats.get('ignored_follow_ups', 0) > 0 else '⚠️ Untested'}\n"
+                         f"**Intrusions blocked:** {'🛡️ ' + str(intrusion_attempts) if intrusion_attempts > 0 else '✅ None'}",
                     inline=True
                 )
             

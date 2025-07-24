@@ -1,6 +1,5 @@
 """
 Detection Service - Coordinates crisis detection
-Copy this to: ash/bot/services/detection_service.py
 """
 
 import logging

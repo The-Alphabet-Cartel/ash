@@ -1,6 +1,5 @@
 """
 Professional Rate Limiting Service - Extract rate limiting into its own service
-Copy this to: ash/bot/services/rate_limit_service.py (OPTIONAL ENHANCEMENT)
 """
 
 import asyncio

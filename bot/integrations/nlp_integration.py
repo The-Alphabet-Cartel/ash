@@ -1,7 +1,6 @@
 """
 NLP Integration Module for Ash Bot
 Connects to remote NLP service running on separate AI rig
-Add this to your existing Ash bot
 """
 
 import aiohttp

@@ -1,6 +1,5 @@
 """
 Resource Management with Proper Context Managers
-Add to bot/utils/resource_managers.py
 """
 
 import asyncio
