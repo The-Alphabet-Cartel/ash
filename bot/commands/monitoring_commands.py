@@ -702,18 +702,31 @@ class MonitoringCommands(commands.Cog):
                     final_level = final_result.get('crisis_level', 'unknown')
                     final_color = "🔴" if final_level == 'high' else "🟡" if final_level == 'medium' else "🟢" if final_level == 'low' else "⚪"
                     would_respond = final_result.get('needs_response', False)
+                    method = final_result.get('method', 'Unknown')  # Fixed field name
+                    confidence = final_result.get('confidence', 0)
                     
                     embed.add_field(
                         name="⚡ Final Decision",
                         value=f"{final_color} **Crisis Level:** {final_level.title()}\n"
                               f"**Would Respond:** {'✅ Yes' if would_respond else '❌ No'}\n"
-                              f"**Method:** {final_result.get('detection_method', 'Unknown')}",
+                              f"**Method:** {method}\n"
+                              f"**Confidence:** {confidence:.2%}",
                         inline=False
                     )
+                    
+                    # Show breakdown if available
+                    if final_result.get('keyword_result') and final_result.get('nlp_result'):
+                        embed.add_field(
+                            name="🔍 Detection Breakdown",
+                            value=f"**Keywords:** {final_result['keyword_result'].title()}\n"
+                                  f"**NLP:** {final_result['nlp_result'].title()}\n"
+                                  f"**Winner:** {method.replace('_', ' ').title()}",
+                            inline=True
+                        )
             else:
                 embed.add_field(
                     name="⚡ Final Decision",
-                    value="❌ Crisis handler not available",
+                    value="❌ Message handler not available",
                     inline=False
                 )
             
