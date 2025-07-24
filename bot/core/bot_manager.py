@@ -278,7 +278,9 @@ class AshBot(commands.Bot, ResourceCleanupMixin):
         """Route messages with security validation"""
         # Basic security validation
         if not self.security_manager.validate_channel_access(message.channel.id):
-            logger.warning(f"Message from unauthorized channel: {message.channel.id}")
+            # Removed the warning log since this is expected behavior
+            # If you need debugging, uncomment the following line:
+            #logger.warning(f"Message from unauthorized channel: {message.channel.id}")
             return
         
         # Pass to message handler (which now has security manager)
