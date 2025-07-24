@@ -65,7 +65,7 @@ class MessageHandler:
         logger.info(f"   📊 Rate limits: {self.rate_limit_per_user}/hour per user, {self.max_daily_calls}/day total")
         logger.info(f"   💬 Conversation timeout: {self.conversation_timeout}s")
         logger.info(f"   🔐 Security manager: {'✅ Enabled' if self.security_manager else '❌ Disabled'}")
-    
+
     async def handle_message(self, message: Message):
         """Enhanced main message handling with comprehensive logging"""
         
@@ -86,7 +86,58 @@ class MessageHandler:
         
         # Check for crisis indicators (your existing logic enhanced)
         await self._handle_potential_crisis(message)
-    
+
+    def _should_respond_in_conversation(self, message: Message, original_user_id: int) -> bool:
+        """Check if Ash should respond to this message during an active conversation"""
+        
+        # Only respond to the original user
+        if message.author.id != original_user_id:
+            logger.debug(f"🚫 Ignoring message from different user: {message.author.id} vs {original_user_id}")
+            return False
+        
+        # Check for bot mention (@Ash)
+        if self.bot.user in message.mentions:
+            logger.debug(f"✅ Bot mentioned by user {message.author.id}")
+            return True
+        
+        # Check for configurable trigger phrases (case-insensitive)
+        trigger_phrases = self.config.get('CONVERSATION_TRIGGER_PHRASES', 'ash,hey ash,ash help,ash please').split(',')
+        message_lower = message.content.lower().strip()
+        
+        for trigger in trigger_phrases:
+            trigger = trigger.strip().lower()
+            if trigger in message_lower:
+                logger.debug(f"✅ Trigger phrase '{trigger}' found in message from user {message.author.id}")
+                return True
+        
+        # Check if message starts with common conversation starters (if enabled in config)
+        if self.config.get_bool('CONVERSATION_ALLOW_STARTERS', True):
+            conversation_starters = [
+                "i'm still", "i still", "but i", "what if", "can you", 
+                "help me", "i need", "it's getting", "i feel", "this is"
+            ]
+            
+            for starter in conversation_starters:
+                if message_lower.startswith(starter):
+                    logger.debug(f"✅ Conversation starter '{starter}' detected from user {message.author.id}")
+                    return True
+        
+        logger.debug(f"🚫 No trigger found in message from user {message.author.id}: '{message.content[:30]}...'")
+        return False
+
+    def _log_conversation_attempt(self, message: Message, conversation_data: dict, reason: str):
+        """Log when users try to continue conversations without proper triggers"""
+        
+        logger.info(f"💬 Conversation attempt from user {message.author.id}:")
+        logger.info(f"   📝 Message: '{message.content[:50]}...'")
+        logger.info(f"   🚫 Reason ignored: {reason}")
+        logger.info(f"   🚨 Conversation level: {conversation_data.get('crisis_level', 'unknown')}")
+        
+        # Optional: Track this in stats
+        if 'ignored_follow_ups' not in self.message_stats:
+            self.message_stats['ignored_follow_ups'] = 0
+        self.message_stats['ignored_follow_ups'] += 1
+
     def _should_process_message(self, message: Message) -> bool:
         """Enhanced message filtering with detailed logging"""
         
@@ -206,13 +257,13 @@ class MessageHandler:
         }
 
     async def _handle_crisis_response(self, message: Message, detection_result: dict):
-        """Enhanced crisis response with security logging"""
+        """Enhanced crisis response with conversation setup"""
         
         try:
             async with message.channel.typing():
                 crisis_level = detection_result['crisis_level']
                 
-                # Log crisis detection as security event (safe version)
+                # Log crisis detection as security event (your existing logic)
                 self._log_security_event(
                     f"crisis_detected_{crisis_level}",
                     message.author.id,
@@ -234,10 +285,10 @@ class MessageHandler:
                     message.author.display_name
                 )
                 
-                # Use enhanced crisis handler
-                await self.crisis_handler.handle_crisis_response(message, crisis_level, response)
+                # Use NEW enhanced crisis handler with conversation instructions
+                await self.crisis_handler.handle_crisis_response_with_instructions(message, crisis_level, response)
                 
-                # Your existing conversation tracking (enhanced)
+                # Start conversation tracking (your existing logic)
                 self.start_conversation_tracking(message.author.id, crisis_level, message.channel.id)
                 
                 # Update counters
@@ -246,17 +297,17 @@ class MessageHandler:
                 self.message_stats['crisis_responses_given'] += 1
                 
                 # Enhanced logging
-                logger.info(f"✅ Crisis response completed:")
+                logger.info(f"✅ Crisis response with conversation setup completed:")
                 logger.info(f"   👤 User: {message.author} ({message.author.id})")
                 logger.info(f"   🚨 Level: {crisis_level}")
                 logger.info(f"   🔍 Method: {detection_result.get('method', 'unknown')}")
                 logger.info(f"   📊 Confidence: {detection_result.get('confidence', 0):.2f}")
-                logger.info(f"   📈 Total responses today: {self.message_stats['crisis_responses_given']}")
+                logger.info(f"   💬 Mention requirement: ✅ Enabled")
                 
         except Exception as e:
             logger.error(f"❌ Error handling crisis response: {e}")
             
-            # Log error as security event (safe version)
+            # Log error as security event (your existing logic)
             self._log_security_event(
                 "crisis_response_error",
                 message.author.id,
@@ -269,13 +320,19 @@ class MessageHandler:
             await message.add_reaction('❌')
 
     async def _handle_conversation_followup(self, message: Message):
-        """Enhanced conversation follow-up with escalation detection"""
+        """Enhanced conversation follow-up with mention/ping requirement"""
         
         user_id = message.author.id
         conversation = self.active_conversations[user_id]
         
         # Only respond in same channel
         if message.channel.id != conversation['channel_id']:
+            return
+        
+        # NEW: Check if user properly triggered conversation continuation
+        should_respond = self._should_respond_in_conversation(message, user_id)
+        if not should_respond:
+            self._log_conversation_attempt(message, conversation, "no mention or trigger phrase")
             return
         
         self.message_stats['follow_ups_handled'] += 1

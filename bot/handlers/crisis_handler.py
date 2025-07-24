@@ -313,7 +313,103 @@ class CrisisHandler:
         except Exception as e:
             logger.error(f"❌ Error sending crisis team alert: {e}")
             return False
-    
+
+    async def handle_crisis_response_with_instructions(self, message: Message, crisis_level: str, ash_response: str):
+        """Enhanced crisis response that includes conversation continuation instructions"""
+        
+        # Get configuration for whether to show instructions
+        show_instructions = self.config.get_bool('CONVERSATION_SETUP_INSTRUCTIONS', True)
+        
+        if show_instructions:
+            # Add continuation instructions to the response
+            bot_mention = f"<@{self.bot.user.id}>"  # This creates @Ash mention
+            continuation_instruction = (
+                f"\n\n*I'll be here for the next 5 minutes if you want to continue talking. "
+                f"Just mention me ({bot_mention}) or say 'Ash' to get my attention.*"
+            )
+            
+            full_response = ash_response + continuation_instruction
+        else:
+            full_response = ash_response
+        
+        # Use your existing crisis handling logic but with enhanced response
+        if crisis_level == 'high':
+            await self._handle_high_crisis_with_instructions(message, full_response)
+        elif crisis_level == 'medium':
+            await self._handle_medium_crisis_with_instructions(message, full_response)
+        else:  # low
+            await self._handle_low_crisis_with_instructions(message, full_response)
+
+    async def _handle_high_crisis_with_instructions(self, message: Message, enhanced_response: str):
+        """High crisis handling with conversation instructions"""
+        
+        logger.warning(f"🚨 HIGH CRISIS detected for {message.author} in {message.channel}")
+        
+        try:
+            # Send enhanced Ash response with instructions
+            response_message = await message.reply(enhanced_response)
+            
+            # Add reaction to indicate active conversation
+            await response_message.add_reaction('💬')
+            
+            # Continue with your existing escalation logic
+            dm_success = await self._send_staff_dm(message, "HIGH")
+            alert_success = await self._send_crisis_team_alert(message, "HIGH")
+            
+            # Enhanced logging
+            logger.warning(f"✅ High crisis with conversation setup completed for {message.author}:")
+            logger.warning(f"   📧 Staff DM: {'✅ Sent' if dm_success else '❌ Failed'}")
+            logger.warning(f"   📢 Team Alert: {'✅ Sent' if alert_success else '❌ Failed'}")
+            logger.warning(f"   💬 Conversation instructions: ✅ Included")
+            
+        except Exception as e:
+            self.crisis_stats['escalation_errors'] += 1
+            logger.error(f"❌ Error in high crisis handling with instructions: {e}")
+
+    async def _handle_medium_crisis_with_instructions(self, message: Message, enhanced_response: str):
+        """Medium crisis handling with conversation instructions"""
+        
+        logger.info(f"⚠️ MEDIUM CRISIS detected for {message.author} in {message.channel}")
+        
+        try:
+            # Send enhanced Ash response with instructions
+            response_message = await message.reply(enhanced_response)
+            
+            # Add reaction to indicate active conversation
+            await response_message.add_reaction('💬')
+            
+            # Continue with your existing team alert logic
+            alert_success = await self._send_crisis_team_alert(message, "MEDIUM")
+            
+            # Enhanced logging
+            logger.info(f"✅ Medium crisis with conversation setup completed for {message.author}:")
+            logger.info(f"   📢 Team Alert: {'✅ Sent' if alert_success else '❌ Failed'}")
+            logger.info(f"   💬 Conversation instructions: ✅ Included")
+            
+        except Exception as e:
+            self.crisis_stats['escalation_errors'] += 1
+            logger.error(f"❌ Error in medium crisis handling with instructions: {e}")
+
+    async def _handle_low_crisis_with_instructions(self, message: Message, enhanced_response: str):
+        """Low crisis handling with conversation instructions"""
+        
+        logger.info(f"ℹ️ LOW CRISIS support for {message.author} in {message.channel}")
+        
+        try:
+            # Send enhanced Ash response with instructions
+            response_message = await message.reply(enhanced_response)
+            
+            # Add reaction to indicate active conversation
+            await response_message.add_reaction('💬')
+            
+            # Enhanced logging for trend analysis
+            logger.info(f"✅ Low crisis with conversation setup completed for {message.author}")
+            logger.info(f"   💬 Conversation instructions: ✅ Included")
+            
+        except Exception as e:
+            self.crisis_stats['escalation_errors'] += 1
+            logger.error(f"❌ Error in low crisis handling with instructions: {e}")
+
     def get_crisis_stats(self) -> dict:
         """Get comprehensive crisis handling statistics"""
         return {
