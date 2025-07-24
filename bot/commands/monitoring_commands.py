@@ -181,6 +181,202 @@ class MonitoringCommands(commands.Cog):
                 ephemeral=True
             )
     
+    @app_commands.command(name="conversation_stats", description="View conversation isolation statistics")
+    async def conversation_stats(self, interaction: discord.Interaction):
+        """View statistics about conversation isolation and mention requirements"""
+        
+        if not await self._check_crisis_role(interaction):
+            return
+        
+        try:
+            if not hasattr(self.bot, 'message_handler') or not self.bot.message_handler:
+                await interaction.response.send_message(
+                    "❌ Message handler not available", 
+                    ephemeral=True
+                )
+                return
+            
+            handler = self.bot.message_handler
+            stats = handler.message_stats
+            
+            embed = discord.Embed(
+                title="💬 Conversation Isolation Statistics",
+                description="Statistics for the mention/ping requirement system",
+                color=discord.Color.blue()
+            )
+            
+            # Basic conversation stats
+            embed.add_field(
+                name="📊 Conversation Activity",
+                value=f"**Started:** {stats.get('conversations_started', 0)}\n"
+                     f"**Follow-ups handled:** {stats.get('follow_ups_handled', 0)}\n"
+                     f"**Currently active:** {len(handler.active_conversations)}\n"
+                     f"**Ignored attempts:** {stats.get('ignored_follow_ups', 0)}",
+                inline=True
+            )
+            
+            # Configuration status
+            config_status = []
+            if handler.config.get_bool('CONVERSATION_REQUIRES_MENTION', True):
+                config_status.append("✅ Mention requirement: Enabled")
+            else:
+                config_status.append("❌ Mention requirement: Disabled")
+                
+            if handler.config.get_bool('CONVERSATION_SETUP_INSTRUCTIONS', True):
+                config_status.append("✅ Setup instructions: Enabled")
+            else:
+                config_status.append("❌ Setup instructions: Disabled")
+                
+            if handler.config.get_bool('CONVERSATION_ALLOW_STARTERS', True):
+                config_status.append("✅ Natural starters: Enabled")
+            else:
+                config_status.append("❌ Natural starters: Disabled")
+            
+            embed.add_field(
+                name="⚙️ Configuration",
+                value="\n".join(config_status),
+                inline=True
+            )
+            
+            # Trigger phrases
+            triggers = handler.config.get('CONVERSATION_TRIGGER_PHRASES', 'ash,hey ash')
+            trigger_list = [f"`{trigger.strip()}`" for trigger in triggers.split(',')[:5]]  # Show first 5
+            
+            embed.add_field(
+                name="🔤 Trigger Phrases",
+                value=" • " + "\n • ".join(trigger_list) + 
+                     (f"\n • ...and {len(triggers.split(',')) - 5} more" if len(triggers.split(',')) > 5 else ""),
+                inline=False
+            )
+            
+            # Active conversations details
+            if handler.active_conversations:
+                active_details = []
+                for user_id, conv_data in list(handler.active_conversations.items())[:5]:  # Show first 5
+                    try:
+                        user = await self.bot.fetch_user(user_id)
+                        duration = time.time() - conv_data['start_time']
+                        time_left = max(0, handler.conversation_timeout - duration)
+                        
+                        active_details.append(
+                            f"**{user.display_name}** ({conv_data['crisis_level']}) - {time_left:.0f}s left"
+                        )
+                    except:
+                        active_details.append(f"**User {user_id}** ({conv_data['crisis_level']})")
+                
+                embed.add_field(
+                    name="👥 Active Conversations",
+                    value="\n".join(active_details) + 
+                         (f"\n...and {len(handler.active_conversations) - 5} more" if len(handler.active_conversations) > 5 else ""),
+                    inline=False
+                )
+            
+            # Effectiveness metrics
+            total_attempts = stats.get('follow_ups_handled', 0) + stats.get('ignored_follow_ups', 0)
+            if total_attempts > 0:
+                success_rate = (stats.get('follow_ups_handled', 0) / total_attempts) * 100
+                embed.add_field(
+                    name="📈 Effectiveness",
+                    value=f"**Follow-up success rate:** {success_rate:.1f}%\n"
+                         f"**Isolation working:** {'✅ Yes' if stats.get('ignored_follow_ups', 0) > 0 else '⚠️ Untested'}",
+                    inline=True
+                )
+            
+            embed.set_footer(text="Conversation Isolation System | Ash v2.0")
+            
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"Error in conversation_stats command: {e}")
+            await interaction.response.send_message(
+                f"❌ Error retrieving conversation statistics: {str(e)}", 
+                ephemeral=True
+            )
+
+    @app_commands.command(name="test_mention", description="Test the mention requirement system")
+    async def test_mention(self, interaction: discord.Interaction, 
+                          test_message: str = "ash help me"):
+        """Test whether a message would trigger the mention system"""
+        
+        if not await self._check_crisis_role(interaction):
+            return
+        
+        try:
+            if not hasattr(self.bot, 'message_handler') or not self.bot.message_handler:
+                await interaction.response.send_message(
+                    "❌ Message handler not available", 
+                    ephemeral=True
+                )
+                return
+            
+            handler = self.bot.message_handler
+            
+            # Create a mock message object for testing
+            class MockMessage:
+                def __init__(self, content, author_id):
+                    self.content = content
+                    self.author = type('author', (), {'id': author_id})()
+                    self.mentions = []  # Would contain bot mentions in real message
+            
+            mock_msg = MockMessage(test_message, interaction.user.id)
+            
+            # Test the trigger detection
+            would_respond = handler._should_respond_in_conversation(mock_msg, interaction.user.id)
+            
+            embed = discord.Embed(
+                title="🧪 Mention System Test",
+                description=f"Testing message: `{test_message}`",
+                color=discord.Color.green() if would_respond else discord.Color.red()
+            )
+            
+            embed.add_field(
+                name="🤖 Would Ash Respond?",
+                value="✅ Yes" if would_respond else "❌ No",
+                inline=True
+            )
+            
+            # Check what triggered (or didn't trigger)
+            triggers = handler.config.get('CONVERSATION_TRIGGER_PHRASES', 'ash,hey ash').split(',')
+            message_lower = test_message.lower()
+            
+            matched_triggers = [trigger.strip() for trigger in triggers if trigger.strip().lower() in message_lower]
+            
+            if matched_triggers:
+                embed.add_field(
+                    name="🔤 Matched Triggers",
+                    value=" • " + "\n • ".join([f"`{trigger}`" for trigger in matched_triggers]),
+                    inline=True
+                )
+            
+            # Check conversation starters
+            if handler.config.get_bool('CONVERSATION_ALLOW_STARTERS', True):
+                starters = ["i'm still", "i still", "but i", "what if", "can you", "help me", "i need"]
+                matched_starters = [starter for starter in starters if message_lower.startswith(starter)]
+                
+                if matched_starters:
+                    embed.add_field(
+                        name="🗣️ Matched Starters",
+                        value=" • " + "\n • ".join([f"`{starter}`" for starter in matched_starters]),
+                        inline=True
+                    )
+            
+            embed.add_field(
+                name="💡 Tips",
+                value="• Use `@Ash` or mention the bot directly\n"
+                     "• Say 'ash', 'hey ash', or 'ash help'\n"
+                     "• Start with natural phrases like 'I need' or 'Can you'",
+                inline=False
+            )
+            
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"Error in test_mention command: {e}")
+            await interaction.response.send_message(
+                f"❌ Error testing mention system: {str(e)}", 
+                ephemeral=True
+            )
+
     @app_commands.command(name="active_conversations", description="View active crisis conversations")
     async def active_conversations(self, interaction: discord.Interaction):
         """View all active crisis conversations"""
