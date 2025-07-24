@@ -1,7 +1,6 @@
 """
 Enhanced False Positive & Negative Learning System - Discord Slash Commands
 Fixed version with proper context dictionary handling
-Replace: ash/bot/commands/enhanced_learning_commands.py with this fixed version
 """
 
 import discord

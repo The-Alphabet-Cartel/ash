@@ -1,6 +1,5 @@
 """
 Security Enhancements for Ash Bot
-Add to bot/utils/security.py
 """
 
 import hashlib

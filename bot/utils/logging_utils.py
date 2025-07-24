@@ -1,6 +1,5 @@
 """
 Enhanced Logging Utilities with Structured Format
-Replace bot/utils/logging_utils.py with this improved version
 """
 
 import logging

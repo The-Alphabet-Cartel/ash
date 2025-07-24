@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
 Ash Discord Bot - Modular Entry Point
-Copy this to: ash/bot/main.py (REPLACE your current main.py)
 """
 
 import asyncio

@@ -1,7 +1,6 @@
 """
 False Positive Learning System - Discord Slash Commands
 Fixed version with proper context dictionary handling
-Create as: ash/bot/commands/false_positive_commands.py
 """
 
 import discord

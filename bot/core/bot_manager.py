@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
 Core Bot Manager - Integrated with Resource Management
-Replace bot/core/bot_manager.py with this version
 """
 
 import discord
