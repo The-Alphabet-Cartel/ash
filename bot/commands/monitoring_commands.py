@@ -584,22 +584,27 @@ class MonitoringCommands(commands.Cog):
                     logger.warning(f"NLP analysis failed: {e}")
                     analysis_results['nlp_analysis'] = {'error': str(e)}
             
-            # Test full crisis handler decision
-            if hasattr(self.bot, 'crisis_handler') and self.bot.crisis_handler:
+            # Test full detection decision through message handler
+            if hasattr(self.bot, 'message_handler') and self.bot.message_handler:
                 try:
                     # Create a mock message for testing
                     class MockMessage:
                         def __init__(self, content):
                             self.content = content
-                            self.author = type('author', (), {'id': interaction.user.id, 'mention': f'<@{interaction.user.id}>'})()
+                            self.author = type('author', (), {
+                                'id': interaction.user.id, 
+                                'mention': f'<@{interaction.user.id}>',
+                                'display_name': interaction.user.display_name
+                            })()
                             self.channel = interaction.channel
                             self.guild = interaction.guild
                     
                     mock_msg = MockMessage(test_message)
-                    final_result = await self.bot.crisis_handler.analyze_message(mock_msg)
+                    # Use the message handler's hybrid detection method
+                    final_result = await self.bot.message_handler._perform_hybrid_detection(mock_msg)
                     analysis_results['final_decision'] = final_result
                 except Exception as e:
-                    logger.warning(f"Crisis handler analysis failed: {e}")
+                    logger.warning(f"Message handler analysis failed: {e}")
                     analysis_results['final_decision'] = {'error': str(e)}
             
             # Create response embed
