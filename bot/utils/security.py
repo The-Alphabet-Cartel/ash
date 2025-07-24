@@ -66,8 +66,10 @@ class SecurityManager:
         
         is_allowed = channel_id in allowed_channels
         
-        if not is_allowed:
-            logger.warning(f"Channel access denied: {channel_id} not in allowed channels")
+        # Removed the warning log since unauthorized channels are expected behavior
+        # If you need debugging, uncomment the following 2 lines:
+        # if not is_allowed:
+        #     logger.debug(f"Channel access denied: {channel_id} not in allowed channels")
         
         return is_allowed
     
