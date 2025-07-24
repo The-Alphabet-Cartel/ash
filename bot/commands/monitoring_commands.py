@@ -548,187 +548,187 @@ class MonitoringCommands(commands.Cog):
             )
 
     @app_commands.command(name="test_message_analysis", description="Test message analysis and crisis detection on sample text")
-        @app_commands.describe(
-            test_message="Message text to analyze for crisis detection",
-            show_details="Show detailed analysis breakdown"
-        )
-        async def test_message_analysis(self, interaction: discord.Interaction, 
-                                      test_message: str,
-                                      show_details: bool = True):
-            """Test message analysis and crisis detection capabilities"""
+    @app_commands.describe(
+        test_message="Message text to analyze for crisis detection",
+        show_details="Show detailed analysis breakdown"
+    )
+    async def test_message_analysis(self, interaction: discord.Interaction, 
+                                  test_message: str,
+                                  show_details: bool = True):
+        """Test message analysis and crisis detection capabilities"""
+        
+        if not await self._check_crisis_role(interaction):
+            return
+        
+        try:
+            await interaction.response.defer(ephemeral=True)
             
-            if not await self._check_crisis_role(interaction):
-                return
+            # Initialize analysis results
+            analysis_results = {
+                'keyword_detection': None,
+                'nlp_analysis': None,
+                'final_decision': None
+            }
             
-            try:
-                await interaction.response.defer(ephemeral=True)
+            # Test keyword detection
+            if hasattr(self.bot, 'keyword_detector') and self.bot.keyword_detector:
+                keyword_result = self.bot.keyword_detector.check_message(test_message)
+                analysis_results['keyword_detection'] = keyword_result
+            
+            # Test NLP analysis if available
+            if hasattr(self.bot, 'nlp_client') and self.bot.nlp_client:
+                try:
+                    nlp_result = await self.bot.nlp_client.analyze_message(test_message)
+                    analysis_results['nlp_analysis'] = nlp_result
+                except Exception as e:
+                    logger.warning(f"NLP analysis failed: {e}")
+                    analysis_results['nlp_analysis'] = {'error': str(e)}
+            
+            # Test full crisis handler decision
+            if hasattr(self.bot, 'crisis_handler') and self.bot.crisis_handler:
+                try:
+                    # Create a mock message for testing
+                    class MockMessage:
+                        def __init__(self, content):
+                            self.content = content
+                            self.author = type('author', (), {'id': interaction.user.id, 'mention': f'<@{interaction.user.id}>'})()
+                            self.channel = interaction.channel
+                            self.guild = interaction.guild
+                    
+                    mock_msg = MockMessage(test_message)
+                    final_result = await self.bot.crisis_handler.analyze_message(mock_msg)
+                    analysis_results['final_decision'] = final_result
+                except Exception as e:
+                    logger.warning(f"Crisis handler analysis failed: {e}")
+                    analysis_results['final_decision'] = {'error': str(e)}
+            
+            # Create response embed
+            embed = discord.Embed(
+                title="🧪 Message Analysis Test",
+                description=f"**Test Message:** `{test_message[:100]}{'...' if len(test_message) > 100 else ''}`",
+                color=discord.Color.blue()
+            )
+            
+            # Keyword Detection Results
+            if analysis_results['keyword_detection']:
+                kw_result = analysis_results['keyword_detection']
+                kw_color = "🔴" if kw_result['crisis_level'] == 'high' else "🟡" if kw_result['crisis_level'] == 'medium' else "🟢" if kw_result['crisis_level'] == 'low' else "⚪"
                 
-                # Initialize analysis results
-                analysis_results = {
-                    'keyword_detection': None,
-                    'nlp_analysis': None,
-                    'final_decision': None
-                }
-                
-                # Test keyword detection
-                if hasattr(self.bot, 'keyword_detector') and self.bot.keyword_detector:
-                    keyword_result = self.bot.keyword_detector.check_message(test_message)
-                    analysis_results['keyword_detection'] = keyword_result
-                
-                # Test NLP analysis if available
-                if hasattr(self.bot, 'nlp_client') and self.bot.nlp_client:
-                    try:
-                        nlp_result = await self.bot.nlp_client.analyze_message(test_message)
-                        analysis_results['nlp_analysis'] = nlp_result
-                    except Exception as e:
-                        logger.warning(f"NLP analysis failed: {e}")
-                        analysis_results['nlp_analysis'] = {'error': str(e)}
-                
-                # Test full crisis handler decision
-                if hasattr(self.bot, 'crisis_handler') and self.bot.crisis_handler:
-                    try:
-                        # Create a mock message for testing
-                        class MockMessage:
-                            def __init__(self, content):
-                                self.content = content
-                                self.author = type('author', (), {'id': interaction.user.id, 'mention': f'<@{interaction.user.id}>'})()
-                                self.channel = interaction.channel
-                                self.guild = interaction.guild
-                        
-                        mock_msg = MockMessage(test_message)
-                        final_result = await self.bot.crisis_handler.analyze_message(mock_msg)
-                        analysis_results['final_decision'] = final_result
-                    except Exception as e:
-                        logger.warning(f"Crisis handler analysis failed: {e}")
-                        analysis_results['final_decision'] = {'error': str(e)}
-                
-                # Create response embed
-                embed = discord.Embed(
-                    title="🧪 Message Analysis Test",
-                    description=f"**Test Message:** `{test_message[:100]}{'...' if len(test_message) > 100 else ''}`",
-                    color=discord.Color.blue()
+                embed.add_field(
+                    name="🔤 Keyword Detection",
+                    value=f"{kw_color} **Level:** {kw_result['crisis_level'].title()}\n"
+                          f"**Needs Response:** {'✅' if kw_result['needs_response'] else '❌'}\n"
+                          f"**Categories:** {', '.join(kw_result.get('detected_categories', [])) if kw_result.get('detected_categories') else 'None'}",
+                    inline=True
                 )
                 
-                # Keyword Detection Results
-                if analysis_results['keyword_detection']:
-                    kw_result = analysis_results['keyword_detection']
-                    kw_color = "🔴" if kw_result['crisis_level'] == 'high' else "🟡" if kw_result['crisis_level'] == 'medium' else "🟢" if kw_result['crisis_level'] == 'low' else "⚪"
-                    
+                if show_details and kw_result.get('detected_keywords'):
                     embed.add_field(
-                        name="🔤 Keyword Detection",
-                        value=f"{kw_color} **Level:** {kw_result['crisis_level'].title()}\n"
-                              f"**Needs Response:** {'✅' if kw_result['needs_response'] else '❌'}\n"
-                              f"**Categories:** {', '.join(kw_result.get('detected_categories', [])) if kw_result.get('detected_categories') else 'None'}",
+                        name="🎯 Detected Keywords",
+                        value=f"```{', '.join(kw_result['detected_keywords'][:5])}{'...' if len(kw_result['detected_keywords']) > 5 else ''}```",
                         inline=True
                     )
-                    
-                    if show_details and kw_result.get('detected_keywords'):
-                        embed.add_field(
-                            name="🎯 Detected Keywords",
-                            value=f"```{', '.join(kw_result['detected_keywords'][:5])}{'...' if len(kw_result['detected_keywords']) > 5 else ''}```",
-                            inline=True
-                        )
-                else:
-                    embed.add_field(
-                        name="🔤 Keyword Detection",
-                        value="❌ Keyword detector not available",
-                        inline=True
-                    )
-                
-                # NLP Analysis Results
-                if analysis_results['nlp_analysis']:
-                    nlp_result = analysis_results['nlp_analysis']
-                    if 'error' in nlp_result:
-                        embed.add_field(
-                            name="🧠 NLP Analysis",
-                            value=f"❌ Error: {nlp_result['error'][:50]}...",
-                            inline=True
-                        )
-                    else:
-                        confidence = nlp_result.get('confidence', 0)
-                        nlp_level = nlp_result.get('crisis_level', 'unknown')
-                        nlp_color = "🔴" if nlp_level == 'high' else "🟡" if nlp_level == 'medium' else "🟢" if nlp_level == 'low' else "⚪"
-                        
-                        embed.add_field(
-                            name="🧠 NLP Analysis",
-                            value=f"{nlp_color} **Level:** {nlp_level.title()}\n"
-                                  f"**Confidence:** {confidence:.2%}\n"
-                                  f"**Sentiment:** {nlp_result.get('sentiment', 'Unknown')}",
-                            inline=True
-                        )
-                        
-                        if show_details and nlp_result.get('reasoning'):
-                            embed.add_field(
-                                name="🔍 AI Reasoning",
-                                value=f"```{nlp_result['reasoning'][:100]}{'...' if len(nlp_result['reasoning']) > 100 else ''}```",
-                                inline=False
-                            )
-                else:
+            else:
+                embed.add_field(
+                    name="🔤 Keyword Detection",
+                    value="❌ Keyword detector not available",
+                    inline=True
+                )
+            
+            # NLP Analysis Results
+            if analysis_results['nlp_analysis']:
+                nlp_result = analysis_results['nlp_analysis']
+                if 'error' in nlp_result:
                     embed.add_field(
                         name="🧠 NLP Analysis",
-                        value="⚪ NLP service not available",
+                        value=f"❌ Error: {nlp_result['error'][:50]}...",
                         inline=True
                     )
-                
-                # Final Decision
-                if analysis_results['final_decision']:
-                    final_result = analysis_results['final_decision']
-                    if 'error' in final_result:
-                        embed.add_field(
-                            name="⚡ Final Decision",
-                            value=f"❌ Error: {final_result['error'][:50]}...",
-                            inline=False
-                        )
-                    else:
-                        final_level = final_result.get('crisis_level', 'unknown')
-                        final_color = "🔴" if final_level == 'high' else "🟡" if final_level == 'medium' else "🟢" if final_level == 'low' else "⚪"
-                        would_respond = final_result.get('needs_response', False)
-                        
-                        embed.add_field(
-                            name="⚡ Final Decision",
-                            value=f"{final_color} **Crisis Level:** {final_level.title()}\n"
-                                  f"**Would Respond:** {'✅ Yes' if would_respond else '❌ No'}\n"
-                                  f"**Method:** {final_result.get('detection_method', 'Unknown')}",
-                            inline=False
-                        )
                 else:
+                    confidence = nlp_result.get('confidence', 0)
+                    nlp_level = nlp_result.get('crisis_level', 'unknown')
+                    nlp_color = "🔴" if nlp_level == 'high' else "🟡" if nlp_level == 'medium' else "🟢" if nlp_level == 'low' else "⚪"
+                    
+                    embed.add_field(
+                        name="🧠 NLP Analysis",
+                        value=f"{nlp_color} **Level:** {nlp_level.title()}\n"
+                              f"**Confidence:** {confidence:.2%}\n"
+                              f"**Sentiment:** {nlp_result.get('sentiment', 'Unknown')}",
+                        inline=True
+                    )
+                    
+                    if show_details and nlp_result.get('reasoning'):
+                        embed.add_field(
+                            name="🔍 AI Reasoning",
+                            value=f"```{nlp_result['reasoning'][:100]}{'...' if len(nlp_result['reasoning']) > 100 else ''}```",
+                            inline=False
+                        )
+            else:
+                embed.add_field(
+                    name="🧠 NLP Analysis",
+                    value="⚪ NLP service not available",
+                    inline=True
+                )
+            
+            # Final Decision
+            if analysis_results['final_decision']:
+                final_result = analysis_results['final_decision']
+                if 'error' in final_result:
                     embed.add_field(
                         name="⚡ Final Decision",
-                        value="❌ Crisis handler not available",
+                        value=f"❌ Error: {final_result['error'][:50]}...",
                         inline=False
                     )
-                
-                # Summary and recommendations
-                summary_lines = []
-                if analysis_results['keyword_detection'] and analysis_results['keyword_detection']['needs_response']:
-                    summary_lines.append("✅ Keywords detected crisis language")
-                if analysis_results['nlp_analysis'] and not analysis_results['nlp_analysis'].get('error'):
-                    nlp_confidence = analysis_results['nlp_analysis'].get('confidence', 0)
-                    if nlp_confidence > 0.7:
-                        summary_lines.append("✅ High NLP confidence in analysis")
-                    elif nlp_confidence > 0.4:
-                        summary_lines.append("⚠️ Moderate NLP confidence")
-                    else:
-                        summary_lines.append("⚪ Low NLP confidence")
-                
-                if summary_lines:
+                else:
+                    final_level = final_result.get('crisis_level', 'unknown')
+                    final_color = "🔴" if final_level == 'high' else "🟡" if final_level == 'medium' else "🟢" if final_level == 'low' else "⚪"
+                    would_respond = final_result.get('needs_response', False)
+                    
                     embed.add_field(
-                        name="📊 Analysis Summary",
-                        value="\n".join(summary_lines),
+                        name="⚡ Final Decision",
+                        value=f"{final_color} **Crisis Level:** {final_level.title()}\n"
+                              f"**Would Respond:** {'✅ Yes' if would_respond else '❌ No'}\n"
+                              f"**Method:** {final_result.get('detection_method', 'Unknown')}",
                         inline=False
                     )
-                
-                embed.set_footer(text=f"Analysis completed • Detection System v2.0")
-                
-                await interaction.followup.send(embed=embed, ephemeral=True)
-                
-            except Exception as e:
-                logger.error(f"Error in test_message_analysis command: {e}")
-                logger.exception("Full traceback:")
-                await interaction.followup.send(
-                    f"❌ Error during message analysis: {str(e)}", 
-                    ephemeral=True
+            else:
+                embed.add_field(
+                    name="⚡ Final Decision",
+                    value="❌ Crisis handler not available",
+                    inline=False
                 )
+            
+            # Summary and recommendations
+            summary_lines = []
+            if analysis_results['keyword_detection'] and analysis_results['keyword_detection']['needs_response']:
+                summary_lines.append("✅ Keywords detected crisis language")
+            if analysis_results['nlp_analysis'] and not analysis_results['nlp_analysis'].get('error'):
+                nlp_confidence = analysis_results['nlp_analysis'].get('confidence', 0)
+                if nlp_confidence > 0.7:
+                    summary_lines.append("✅ High NLP confidence in analysis")
+                elif nlp_confidence > 0.4:
+                    summary_lines.append("⚠️ Moderate NLP confidence")
+                else:
+                    summary_lines.append("⚪ Low NLP confidence")
+            
+            if summary_lines:
+                embed.add_field(
+                    name="📊 Analysis Summary",
+                    value="\n".join(summary_lines),
+                    inline=False
+                )
+            
+            embed.set_footer(text=f"Analysis completed • Detection System v2.0")
+            
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"Error in test_message_analysis command: {e}")
+            logger.exception("Full traceback:")
+            await interaction.followup.send(
+                f"❌ Error during message analysis: {str(e)}", 
+                ephemeral=True
+            )
 
 async def setup(bot):
     """Setup function for the monitoring commands cog"""
