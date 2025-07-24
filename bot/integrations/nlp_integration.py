@@ -92,39 +92,43 @@ class RemoteNLPClient:
                         if response.status == 200:
                             data = await response.json()
                             
-                            # Convert to format expected by bot
+                            # FIXED: Properly map all fields from NLP response
                             return {
                                 'needs_response': data.get('needs_response', False),
                                 'crisis_level': data.get('crisis_level', 'none'),
                                 'confidence_score': data.get('confidence_score', 0.0),
-                                'method': 'remote_nlp_service',
-                                'processing_time_ms': data.get('processing_time_ms', 0),
-                                'model_info': data.get('model_info', 'unknown'),
-                                'detected_categories': data.get('detected_categories', [])
+                                'detected_categories': data.get('detected_categories', []),
+                                'method': data.get('method', 'remote_nlp_service'),  # Use actual method from server
+                                'processing_time_ms': data.get('processing_time_ms', 0),  # Correct field name
+                                'model_info': data.get('model_info', 'Unknown'),
+                                'reasoning': data.get('reasoning', ''),
+                                # Legacy field for backward compatibility
+                                'processing_time': data.get('processing_time_ms', 0)
                             }
-                            
-                        elif response.status == 503:
-                            logger.error("🤖 Remote NLP service model not loaded")
-                            self.service_healthy = False
-                            return None
-                            
                         else:
-                            logger.error(f"🔥 NLP service error: HTTP {response.status}")
+                            logger.warning(f"NLP service returned status {response.status}")
+                            if attempt < self.retry_attempts - 1:
+                                await asyncio.sleep(0.5)
+                                continue
                             return None
-                            
+                        
             except asyncio.TimeoutError:
-                logger.warning(f"⏰ NLP analysis timeout (attempt {attempt + 1}/{self.retry_attempts})")
-                if attempt == self.retry_attempts - 1:
-                    self.service_healthy = False
-                    return None
-                    
+                logger.warning(f"NLP service timeout (attempt {attempt + 1}/{self.retry_attempts})")
+                if attempt < self.retry_attempts - 1:
+                    await asyncio.sleep(0.5)
+                    continue
+                self.service_healthy = False
+                return None
             except Exception as e:
-                logger.error(f"🔥 NLP analysis error (attempt {attempt + 1}): {e}")
-                if attempt == self.retry_attempts - 1:
-                    return None
+                logger.warning(f"NLP service error (attempt {attempt + 1}/{self.retry_attempts}): {e}")
+                if attempt < self.retry_attempts - 1:
+                    await asyncio.sleep(0.5)
+                    continue
+                self.service_healthy = False
+                return None
         
         return None
-    
+
     async def get_service_stats(self) -> Optional[Dict]:
         """Get statistics from remote NLP service"""
         try:
