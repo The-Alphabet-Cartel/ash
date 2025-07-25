@@ -65,11 +65,25 @@ class ConfigManager:
             secret_file_env = f"{key}_FILE"
             secret_file_path = os.getenv(secret_file_env)
             
+            # If explicit secret file path is provided, use it
             if secret_file_path:
                 secret_value = self._read_secret_file(secret_file_path)
                 if secret_value:
                     return secret_value
                 logger.warning(f"⚠️ Secret file specified but couldn't read: {secret_file_path}")
+            else:
+                # Try common secret file locations for local development
+                local_secret_paths = [
+                    f"./secrets/{secret_file_suffix}",  # Local development
+                    f"/run/secrets/{secret_file_suffix}",  # Docker container
+                    f"./{secret_file_suffix}.txt",  # Alternative local location
+                ]
+                
+                for path in local_secret_paths:
+                    secret_value = self._read_secret_file(path)
+                    if secret_value:
+                        logger.info(f"🔐 Found secret in local path: {path}")
+                        return secret_value
         
         # Fall back to environment variable
         env_value = os.getenv(key)
