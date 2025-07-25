@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 """
-Core Bot Manager - Integrated with Resource Management
+Core Bot Manager - Integrated with Resource Management and API Server
 """
 
 import discord
 from discord.ext import commands
 import logging
+from datetime import datetime, timezone
 from utils.resource_managers import ResourceCleanupMixin, graceful_shutdown
 from utils.security import get_security_manager
 
 logger = logging.getLogger(__name__)
 
 class AshBot(commands.Bot, ResourceCleanupMixin):
-    """Enhanced Ash Bot with Resource Management and Security"""
+    """Enhanced Ash Bot with Resource Management, Security, and API Server"""
     
     def __init__(self, config):
         self.config = config
@@ -40,14 +41,18 @@ class AshBot(commands.Bot, ResourceCleanupMixin):
         self.message_handler = None
         self.security_manager = None
         
+        # NEW: API Server components
+        self.api_server = None
+        self.start_time = datetime.now(timezone.utc)
+        
         # Register shutdown handler
         graceful_shutdown.register_shutdown_handler(self.cleanup_resources)
         
-        logger.info("🤖 AshBot initialized with enhanced resource management")
+        logger.info("🤖 AshBot initialized with enhanced resource management and API server")
     
     async def setup_hook(self):
-        """Setup hook - initialize components with resource management"""
-        logger.info("🔄 Starting enhanced setup_hook...")
+        """Setup hook - initialize components with resource management and API server"""
+        logger.info("🔄 Starting enhanced setup_hook with API server...")
         
         try:
             # Initialize security manager first
@@ -56,18 +61,71 @@ class AshBot(commands.Bot, ResourceCleanupMixin):
             # Initialize components (now with resource management)
             await self._initialize_components()
             
+            # NEW: Initialize API Server
+            await self._initialize_api_server()
+            
             # Add command cogs
             await self._load_command_cogs()
             
             # Sync commands globally
             await self._sync_slash_commands()
             
-            logger.info("✅ Enhanced setup completed successfully")
+            logger.info("✅ Enhanced setup with API server completed successfully")
             return True
             
         except Exception as e:
             logger.error(f"❌ Setup hook failed: {e}")
             logger.exception("Full setup_hook traceback:")
+            return False
+    
+    async def _initialize_api_server(self):
+        """Initialize and start the API server"""
+        try:
+            # Get API server configuration
+            api_host = self.config.get('API_HOST', '0.0.0.0')
+            api_port = int(self.config.get('API_PORT', '8882'))
+            
+            logger.info(f"🌐 Initializing API server on {api_host}:{api_port}...")
+            
+            # Import and create API server instance
+            from api.api_server import setup_api_server
+            self.api_server = setup_api_server(self, api_host, api_port)
+            
+            # Register cleanup for API server
+            self.register_cleanup(self.api_server.stop_server)
+            
+            # Start the API server
+            server_started = await self.api_server.start_server()
+            
+            if server_started:
+                logger.info(f"✅ API Server running at http://{api_host}:{api_port}")
+                logger.info("📊 Dashboard endpoints available:")
+                logger.info(f"   • http://{api_host}:{api_port}/health")
+                logger.info(f"   • http://{api_host}:{api_port}/api/metrics")
+                logger.info(f"   • http://{api_host}:{api_port}/api/crisis-stats")
+                logger.info(f"   • http://{api_host}:{api_port}/api/learning-stats")
+                
+                # Log API server startup as security event
+                self.security_manager.log_security_event(
+                    "api_server_startup", 0, 0, 0,
+                    {"host": api_host, "port": api_port}, "info"
+                )
+                
+                return True
+            else:
+                logger.warning("⚠️ API Server failed to start - dashboard will not be available")
+                self.security_manager.log_security_event(
+                    "api_server_startup_failed", 0, 0, 0,
+                    {"host": api_host, "port": api_port}, "warning"
+                )
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ API Server initialization failed: {e}")
+            self.security_manager.log_security_event(
+                "api_server_error", 0, 0, 0,
+                {"error": str(e)}, "error"
+            )
             return False
     
     async def _initialize_components(self):
@@ -227,7 +285,7 @@ class AshBot(commands.Bot, ResourceCleanupMixin):
             return False
     
     async def on_ready(self):
-        """Bot ready event with enhanced security logging"""
+        """Bot ready event with enhanced security logging and API server status"""
         logger.info(f'✅ {self.user} has awakened in The Alphabet Cartel')
         
         # Log bot startup as security event
@@ -235,6 +293,11 @@ class AshBot(commands.Bot, ResourceCleanupMixin):
             "bot_startup", 0, 0, 0,
             {"bot_user": str(self.user), "bot_id": self.user.id}, "info"
         )
+        
+        # Log service status
+        logger.info(f"📊 API Server: {'Running' if self.api_server else 'Not Available'}")
+        logger.info(f"🧠 NLP Server: {'Connected' if self.nlp_client else 'Not Connected'}")
+        logger.info(f"🔍 Learning System: {'Enabled' if self.config.get_bool('ENABLE_LEARNING_SYSTEM') else 'Disabled'}")
         
         # Log guild information with security context
         guild = discord.utils.get(self.guilds, id=self.config.get_int('GUILD_ID'))
@@ -272,7 +335,16 @@ class AshBot(commands.Bot, ResourceCleanupMixin):
                 {"error": str(e)}, "error"
             )
         
-        logger.info("🎉 Ash Bot fully operational with enhanced security")
+        # Set bot status
+        await self.change_presence(
+            status=discord.Status.online,
+            activity=discord.Activity(
+                type=discord.ActivityType.watching,
+                name="for crisis patterns | /ash_help"
+            )
+        )
+        
+        logger.info("🎉 Ash Bot fully operational with enhanced security and API server")
     
     async def on_message(self, message):
         """Route messages with security validation"""
@@ -303,17 +375,51 @@ class AshBot(commands.Bot, ResourceCleanupMixin):
                 {"command": str(ctx.command), "error": str(error)}, "warning"
             )
     
-    async def close(self):
-        """Enhanced cleanup with resource management"""
-        logger.info("🛑 Starting enhanced shutdown...")
+    async def cleanup_resources(self):
+        """Enhanced cleanup with resource management and API server"""
+        logger.info("🧹 Starting enhanced cleanup with API server...")
         
-        # Use resource cleanup mixin
+        try:
+            # Stop API server first
+            if self.api_server:
+                await self.api_server.stop_server()
+                logger.info("✅ API Server stopped")
+            
+            # Cleanup other components
+            if self.claude_api:
+                await self.claude_api.close()
+            
+            if self.nlp_client and hasattr(self.nlp_client, 'close'):
+                await self.nlp_client.close()
+            
+            if self.keyword_detector and hasattr(self.keyword_detector, 'cleanup'):
+                await self.keyword_detector.cleanup()
+            
+            if self.crisis_handler and hasattr(self.crisis_handler, 'cleanup'):
+                await self.crisis_handler.cleanup()
+            
+            if self.message_handler and hasattr(self.message_handler, 'cleanup'):
+                await self.message_handler.cleanup()
+            
+            # Call parent cleanup
+            await ResourceCleanupMixin.cleanup_resources(self)
+            
+            logger.info("✅ All resources including API server cleaned up successfully")
+            
+        except Exception as e:
+            logger.error(f"❌ Error during cleanup: {e}")
+    
+    async def close(self):
+        """Enhanced cleanup with resource management and API server shutdown"""
+        logger.info("🛑 Starting enhanced shutdown with API server...")
+        
+        # Use enhanced resource cleanup
         await self.cleanup_resources()
         
         # Close parent
         await super().close()
         
-        logger.info("✅ Enhanced shutdown complete")
+        logger.info("✅ Enhanced shutdown with API server complete")
 
 # Export for backwards compatibility
 AshBotEnhanced = AshBot
