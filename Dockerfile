@@ -58,9 +58,7 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
 # Core Discord Bot Configuration (these will be overridden by docker-compose)
-ENV DISCORD_TOKEN=""
 ENV GUILD_ID=""
-ENV CLAUDE_API_KEY=""
 ENV CLAUDE_MODEL="claude-sonnet-4-20250514"
 
 # Channel Configuration defaults

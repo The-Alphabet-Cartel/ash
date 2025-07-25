@@ -1,22 +1,22 @@
 services:
   ash:
-    # For production: pull from GitHub Container Registry
-    image: ghcr.io/the-alphabet-cartel/ash:latest
-    
     # For local development: build locally
     # build:
     #   context: .
     #   dockerfile: Dockerfile
-    
+
+    # For production: pull from GitHub Container Registry
+    image: ghcr.io/the-alphabet-cartel/ash:latest
+
     container_name: ash
     restart: unless-stopped
     networks:
       - ash-network
     environment:
-      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - DISCORD_TOKEN_FILE=/run/secrets/discord_token
+      - CLAUDE_API_KEY_FILE=/run/secrets/claude_api_key
       - GUILD_ID=${GUILD_ID}
       - CLAUDE_MODEL=${CLAUDE_MODEL}
-      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
       - RESOURCES_CHANNEL_ID=${RESOURCES_CHANNEL_ID}
       - CRISIS_RESPONSE_CHANNEL_ID=${CRISIS_RESPONSE_CHANNEL_ID}
       - ALLOWED_CHANNELS=${ALLOWED_CHANNELS}
@@ -42,6 +42,8 @@ services:
     volumes:
       - ./bot/logs:/app/logs
       - ./bot/data:/app/data
+      - ./secrets:/run/secrets:ro
+    user: "1001:1001"
     depends_on:
       ash-redis:
         condition: service_started
