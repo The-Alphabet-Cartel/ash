@@ -15,9 +15,22 @@ from core.ash_character import format_ash_prompt, get_crisis_addition, get_respo
 logger = logging.getLogger(__name__)
 
 class ClaudeAPI:
-    def __init__(self):
-        self.model = os.getenv('CLAUDE_MODEL', 'claude-sonnet-4-20250514')
-        self.api_key = os.getenv('CLAUDE_API_KEY')
+    def __init__(self, config=None):
+        """
+        Initialize Claude API with configuration
+        
+        Args:
+            config: ConfigManager instance. If None, will try to read from environment
+        """
+        if config:
+            # Use config manager (preferred)
+            self.model = config.get('CLAUDE_MODEL', 'claude-sonnet-4-20250514')
+            self.api_key = config.get('CLAUDE_API_KEY')
+        else:
+            # Fallback to environment variables (legacy)
+            self.model = os.getenv('CLAUDE_MODEL', 'claude-sonnet-4-20250514')
+            self.api_key = os.getenv('CLAUDE_API_KEY')
+            
         self.base_url = "https://api.anthropic.com/v1/messages"
         self.max_tokens = 300  # Keep responses concise
         self.session = None
@@ -33,7 +46,7 @@ class ClaudeAPI:
         self._cleanup_mixin.register_cleanup(self.close)
 
         if not self.api_key:
-            logger.error("CLAUDE_API_KEY not found in environment variables")
+            logger.error("CLAUDE_API_KEY not found in configuration or environment variables")
             raise ValueError("Claude API key is required")
 
         logger.info(f"🤖 Claude API initialized with model: {self.model}")
@@ -48,96 +61,78 @@ class ClaudeAPI:
             'anthropic-version': '2023-06-01'
         }
         
-        # Use the resource-managed session
-        return await session_manager.get_session("claude", headers=headers).__aenter__()
-    
-    # Remove the @asynccontextmanager decorator and _request_context method for now
-    # Keep the rest of your methods as they were...
-    
-    async def get_ash_response(self, user_message: str, crisis_level: str = 'low', username: str = 'friend') -> str:
-        """Enhanced response with resource management and better error handling"""
+        return await session_manager.get_session("claude", headers=headers)
+
+    async def get_ash_response(self, message: str, crisis_level: str = "none", 
+                              user_name: str = "User", channel_type: str = "general") -> str:
+        """
+        Get response from Claude API with Ash's character
+        """
+        if not message.strip():
+            return get_response_templates()['general']['default']
+
+        # Rate limiting
+        import time
+        current_time = time.time()
+        if current_time - self.last_call_time < self.min_call_interval:
+            await asyncio.sleep(self.min_call_interval - (current_time - self.last_call_time))
         
+        self.last_call_time = time.time()
+        self.calls_today += 1
+
         try:
-            # Rate limiting
-            current_time = asyncio.get_event_loop().time()
-            time_since_last = current_time - self.last_call_time
-            if time_since_last < self.min_call_interval:
-                await asyncio.sleep(self.min_call_interval - time_since_last)
+            session = await self._get_session()
             
-            # Format the prompt with Ash's character
-            prompt = format_ash_prompt(user_message, crisis_level, username)
+            # Format the message with Ash's character
+            prompt = format_ash_prompt(message, crisis_level, user_name, channel_type)
             
-            # Use resource-managed session
-            from utils.resource_managers import managed_claude_session
-            
-            async with managed_claude_session(self.api_key) as session:
-                payload = {
-                    "model": self.model,
-                    "max_tokens": self.max_tokens,
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ],
-                    "temperature": 0.7,
-                    "top_p": 0.9
-                }
-                
-                logger.info(f"Sending request to Claude API for {username} (crisis: {crisis_level})")
-                
-                async with session.post(self.base_url, json=payload) as response:
-                    self.last_call_time = asyncio.get_event_loop().time()
-                    self.calls_today += 1
+            # Add crisis-specific additions
+            if crisis_level in ["high", "medium"]:
+                prompt += get_crisis_addition(crisis_level)
+
+            payload = {
+                "model": self.model,
+                "max_tokens": self.max_tokens,
+                "messages": [
+                    {"role": "user", "content": prompt}
+                ]
+            }
+
+            async with session.post(self.base_url, json=payload) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    content = data['content'][0]['text']
                     
-                    if response.status == 200:
-                        data = await response.json()
-                        ash_response = data['content'][0]['text'].strip()
-                        
-                        # Add crisis-level specific additions
-                        crisis_addition = get_crisis_addition(crisis_level)
-                        final_response = ash_response + crisis_addition
-                        
-                        # Ensure response isn't too long for Discord
-                        if len(final_response) > 2000:
-                            final_response = final_response[:1997] + "..."
-                        
-                        logger.info(f"Successfully got response from Claude ({len(final_response)} chars)")
-                        return final_response
-                        
-                    elif response.status == 429:
-                        logger.warning("Claude API rate limit hit")
-                        return get_response_templates()['rate_limited']
-                    
-                    elif response.status == 529:
-                        logger.warning("Claude API temporarily overloaded")
-                        resources_channel = os.getenv('RESOURCES_CHANNEL_NAME', 'resources')
-                        return f"I'm having trouble connecting right now due to high demand. Please try again in a moment, or reach out to our crisis team if you need immediate help."
-                        
-                    elif response.status == 401:
-                        logger.error("Claude API authentication failed")
-                        return get_response_templates()['api_error']
-                        
-                    else:
-                        error_text = await response.text()
-                        logger.error(f"Claude API error {response.status}: {error_text}")
-                        return get_response_templates()['api_error']
-                        
+                    logger.debug(f"Claude API response received for crisis level: {crisis_level}")
+                    return content.strip()
+                
+                elif response.status == 429:
+                    logger.warning("Claude API rate limit exceeded")
+                    return get_response_templates()['rate_limit']
+                
+                else:
+                    error_text = await response.text()
+                    logger.error(f"Claude API error {response.status}: {error_text}")
+                    return get_response_templates()['api_error']
+
+        except asyncio.TimeoutError:
+            logger.error("Claude API request timeout")
+            return get_response_templates()['timeout']
+        
         except Exception as e:
-            logger.error(f"Unexpected error in Claude API call: {e}")
+            logger.error(f"Claude API unexpected error: {e}")
             return get_response_templates()['api_error']
-    
+
     async def test_connection(self) -> bool:
         """
-        Test connection to Claude API
+        Test Claude API connection
         
         Returns:
-            bool: True if connection successful
+            bool: True if connection successful, False otherwise
         """
-        
         try:
             test_response = await self.get_ash_response(
-                "Hello, can you hear me?", 
+                "This is a connection test", 
                 "low", 
                 "test_user"
             )
@@ -203,8 +198,8 @@ class ClaudeAPIError(Exception):
 
 # Async context manager for proper session handling
 class AsyncClaudeAPI:
-    def __init__(self):
-        self.api = ClaudeAPI()
+    def __init__(self, config=None):
+        self.api = ClaudeAPI(config)
     
     async def __aenter__(self):
         return self.api
