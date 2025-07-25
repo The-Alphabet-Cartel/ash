@@ -98,6 +98,14 @@ services:
     networks:
       - ash-network
 
+secrets:
+  discord_token:
+    file: ./bot/secrets/discord_token
+  claude_api_key:
+    file: ./bot/secrets/claude_api_key
+  session_token:
+    file: ./bot/secrets/session_token
+
 volumes:
   redis_data:
 
