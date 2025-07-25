@@ -166,3 +166,6 @@ tmp/
 
 devNotes/
 ash-env/
+secrets/
+
+.github/
