@@ -52,7 +52,7 @@ class ClaudeAPI:
         logger.info(f"🤖 Claude API initialized with model: {self.model}")
 
     async def get_ash_response(self, message: str, crisis_level: str = "none", 
-                              user_name: str = "User", channel_type: str = "general") -> str:
+                              user_name: str = "User") -> str:
         """
         Get response from Claude API with Ash's character
         """
@@ -79,8 +79,8 @@ class ClaudeAPI:
             }
             
             async with session_manager.get_session("claude", headers=headers) as session:
-                # Format the message with Ash's character
-                prompt = format_ash_prompt(message, crisis_level, user_name, channel_type)
+                # Format the message with Ash's character (only 3 parameters)
+                prompt = format_ash_prompt(message, crisis_level, user_name)
                 
                 # Add crisis-specific additions
                 if crisis_level in ["high", "medium"]:
