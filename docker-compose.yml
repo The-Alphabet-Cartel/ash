@@ -42,7 +42,7 @@ services:
     volumes:
       - ./bot/logs:/app/logs
       - ./bot/data:/app/data
-      - ./secrets:/run/secrets:ro
+      - ./bot/secrets:/run/secrets:ro
     user: "1001:1001"
     depends_on:
       ash-redis:
