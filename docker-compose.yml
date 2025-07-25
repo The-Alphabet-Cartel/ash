@@ -12,10 +12,6 @@ services:
     restart: unless-stopped
     networks:
       - ash-network
-    secrets:
-      - discord_token
-      - session_token
-      - claude_api_key
     environment:
       # Core Discord and Claude settings (using Docker Secrets)
       - DISCORD_TOKEN=/run/secrets/discord_token
@@ -100,14 +96,6 @@ services:
       - redis_data:/data
     networks:
       - ash-network
-
-secrets:
-  discord_token:
-    file: ./bot/secrets/discord_token
-  claude_api_key:
-    file: ./bot/secrets/claude_api_key
-  session_token:
-    file: ./bot/secrets/session_token
 
 volumes:
   redis_data:
