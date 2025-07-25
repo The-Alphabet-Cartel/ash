@@ -61,13 +61,16 @@ class AshBotAPIServer:
             session_setup(self.app, EncryptedCookieStorage(secret_key.encode()))
             
             # Register routes
+            logger.info("📋 Registering API routes...")
             self._register_routes()
             
             # Add CORS to all routes
+            logger.info("🌐 Applying CORS to all routes...")
             for route in list(self.app.router.routes()):
                 cors.add(route)
             
             # Start server
+            logger.info(f"🌍 Starting web server on {self.host}:{self.port}...")
             self.runner = web.AppRunner(self.app)
             await self.runner.setup()
             
@@ -79,6 +82,7 @@ class AshBotAPIServer:
             
         except Exception as e:
             logger.error(f"❌ Failed to start API server: {e}")
+            logger.exception("Full API server startup error:")
             return False
     
     async def stop_server(self):
