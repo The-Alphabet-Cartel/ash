@@ -236,8 +236,8 @@ class ConfigManager:
             
             # Log configuration summary
             using_secrets = bool(
-                os.getenv('DISCORD_TOKEN_FILE') or 
-                os.getenv('CLAUDE_API_KEY_FILE') or
+                os.getenv('DISCORD_TOKEN') or 
+                os.getenv('CLAUDE_API_KEY') or
                 Path("./secrets/discord_token").exists() or
                 Path("/run/secrets/discord_token").exists()
             )
