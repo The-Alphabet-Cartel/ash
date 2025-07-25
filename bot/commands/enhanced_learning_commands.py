@@ -1,6 +1,6 @@
 """
 Enhanced False Positive & Negative Learning System - Discord Slash Commands
-Fixed version with proper context dictionary handling
+Fixed version with proper error handling and data structure validation
 """
 
 import discord
@@ -24,42 +24,99 @@ class EnhancedLearningCommands(commands.Cog):
         self.learning_data_file = './data/learning_data.json'
         self.nlp_client = getattr(bot, 'nlp_client', None)
         
-        # Ensure learning data file exists
+        # Ensure learning data file exists with proper structure
         self._ensure_learning_data_file()
         
         logger.info("🧠 Enhanced learning commands loaded (false positives + false negatives)")
     
     def _ensure_learning_data_file(self):
-        """Create enhanced learning data file if it doesn't exist"""
-        if not os.path.exists(self.learning_data_file):
-            os.makedirs('./data', exist_ok=True)
-            
-            initial_data = {
-                'false_positives': [],
-                'false_negatives': [],  # NEW: Track missed crises
-                'learning_patterns': {
-                    'common_false_positive_phrases': [],
-                    'missed_crisis_patterns': [],  # NEW: Patterns we missed
-                    'context_indicators': [],
-                    'sentiment_overrides': []
-                },
-                'statistics': {
-                    'total_false_positives': 0,
-                    'total_false_negatives': 0,  # NEW
-                    'false_positives_by_level': {'high': 0, 'medium': 0, 'low': 0},
-                    'false_negatives_by_level': {'high': 0, 'medium': 0, 'low': 0},  # NEW
-                    'learning_effectiveness': {
-                        'patterns_learned': 0,
-                        'adjustments_applied': 0,
-                        'last_update': None
-                    }
+        """Create enhanced learning data file if it doesn't exist or fix incomplete structure"""
+        data_exists = os.path.exists(self.learning_data_file)
+        
+        # Define the complete expected structure
+        expected_structure = {
+            'false_positives': [],
+            'false_negatives': [],
+            'learning_patterns': {
+                'common_false_positive_phrases': [],
+                'missed_crisis_patterns': [],
+                'context_indicators': [],
+                'sentiment_overrides': []
+            },
+            'statistics': {
+                'total_false_positives': 0,
+                'total_false_negatives': 0,
+                'false_positives_by_level': {'high': 0, 'medium': 0, 'low': 0},
+                'false_negatives_by_level': {'high': 0, 'medium': 0, 'low': 0},
+                'learning_effectiveness': {
+                    'patterns_learned': 0,
+                    'adjustments_applied': 0,
+                    'last_update': None
                 }
             }
-            
+        }
+        
+        if not data_exists:
+            # Create new file
+            os.makedirs('./data', exist_ok=True)
             with open(self.learning_data_file, 'w') as f:
-                json.dump(initial_data, f, indent=2)
-            
+                json.dump(expected_structure, f, indent=2)
             logger.info(f"Created enhanced learning data file: {self.learning_data_file}")
+        else:
+            # Check and fix existing file structure
+            try:
+                with open(self.learning_data_file, 'r') as f:
+                    existing_data = json.load(f)
+                
+                # Check if structure needs updating
+                needs_update = False
+                
+                # Ensure all main keys exist
+                for key in expected_structure:
+                    if key not in existing_data:
+                        existing_data[key] = expected_structure[key]
+                        needs_update = True
+                
+                # Ensure statistics structure is complete
+                if 'statistics' in existing_data:
+                    stats = existing_data['statistics']
+                    expected_stats = expected_structure['statistics']
+                    
+                    for key in expected_stats:
+                        if key not in stats:
+                            stats[key] = expected_stats[key]
+                            needs_update = True
+                    
+                    # Ensure learning_effectiveness is complete
+                    if 'learning_effectiveness' in stats:
+                        le = stats['learning_effectiveness']
+                        expected_le = expected_stats['learning_effectiveness']
+                        
+                        for key in expected_le:
+                            if key not in le:
+                                le[key] = expected_le[key]
+                                needs_update = True
+                    else:
+                        stats['learning_effectiveness'] = expected_stats['learning_effectiveness']
+                        needs_update = True
+                
+                # Save updated structure if needed
+                if needs_update:
+                    with open(self.learning_data_file, 'w') as f:
+                        json.dump(existing_data, f, indent=2)
+                    logger.info("Updated learning data file structure to include missing fields")
+                
+            except (json.JSONDecodeError, IOError) as e:
+                logger.error(f"Error reading existing learning data file: {e}")
+                # Backup and recreate
+                if os.path.exists(self.learning_data_file):
+                    backup_name = f"{self.learning_data_file}.backup_{int(datetime.now().timestamp())}"
+                    os.rename(self.learning_data_file, backup_name)
+                    logger.info(f"Backed up corrupt file to: {backup_name}")
+                
+                with open(self.learning_data_file, 'w') as f:
+                    json.dump(expected_structure, f, indent=2)
+                logger.info("Recreated learning data file with proper structure")
     
     async def _check_crisis_role(self, interaction: discord.Interaction) -> bool:
         """Check if user has crisis response role"""
@@ -75,6 +132,131 @@ class EnhancedLearningCommands(commands.Cog):
             return False
         return True
     
+    @app_commands.command(name="learning_stats", description="View comprehensive learning system statistics")
+    async def learning_stats(self, interaction: discord.Interaction):
+        """View comprehensive learning system statistics - NEW ENHANCED VERSION"""
+        
+        if not await self._check_crisis_role(interaction):
+            return
+        
+        try:
+            with open(self.learning_data_file, 'r') as f:
+                data = json.load(f)
+            
+            stats = data.get('statistics', {})
+            recent_fps = data.get('false_positives', [])[-10:]  # Last 10 false positives
+            recent_fns = data.get('false_negatives', [])[-10:]   # Last 10 false negatives
+            
+            embed = discord.Embed(
+                title="📊 Enhanced Learning Statistics",
+                description="Comprehensive learning system performance overview",
+                color=discord.Color.purple()
+            )
+            
+            # Overall statistics with safe access
+            learning_eff = stats.get('learning_effectiveness', {})
+            embed.add_field(
+                name="📈 Overall Performance",
+                value=f"**False Positives:** {stats.get('total_false_positives', 0)}\n"
+                      f"**False Negatives:** {stats.get('total_false_negatives', 0)}\n"
+                      f"**Learning Updates:** {learning_eff.get('adjustments_applied', 0)}\n"
+                      f"**Patterns Learned:** {learning_eff.get('patterns_learned', 0)}",
+                inline=True
+            )
+            
+            # False positive breakdown with safe access
+            fp_stats = stats.get('false_positives_by_level', {'high': 0, 'medium': 0, 'low': 0})
+            embed.add_field(
+                name="🔴 False Positives",
+                value=f"**High→Other:** {fp_stats.get('high', 0)}\n"
+                      f"**Medium→Other:** {fp_stats.get('medium', 0)}\n"
+                      f"**Low→Other:** {fp_stats.get('low', 0)}",
+                inline=True
+            )
+            
+            # False negative breakdown with safe access
+            fn_stats = stats.get('false_negatives_by_level', {'high': 0, 'medium': 0, 'low': 0})
+            embed.add_field(
+                name="🟡 False Negatives", 
+                value=f"**Missed High:** {fn_stats.get('high', 0)}\n"
+                      f"**Missed Medium:** {fn_stats.get('medium', 0)}\n"
+                      f"**Missed Low:** {fn_stats.get('low', 0)}",
+                inline=True
+            )
+            
+            # Recent activity with safe access
+            if recent_fps or recent_fns:
+                recent_activity = []
+                
+                # Combine and sort recent reports by timestamp
+                all_recent = []
+                for fp in recent_fps[-5:]:
+                    if 'timestamp' in fp and 'detection_error' in fp:
+                        all_recent.append((fp['timestamp'], 'FP', fp['detection_error']))
+                for fn in recent_fns[-5:]:
+                    if 'timestamp' in fn and 'detection_error' in fn:
+                        all_recent.append((fn['timestamp'], 'FN', fn['detection_error']))
+                
+                all_recent.sort(key=lambda x: x[0], reverse=True)
+                
+                for timestamp, report_type, error in all_recent[:5]:
+                    try:
+                        if report_type == 'FP':
+                            detected = error.get('detected_level', 'unknown').title()
+                            correct = error.get('correct_level', 'unknown').title()
+                            desc = f"🔴 {detected} → {correct}"
+                        else:  # FN
+                            actually = error.get('actually_detected', 'unknown').title()
+                            should = error.get('should_detect_level', 'unknown').title()
+                            desc = f"🟡 {actually} → {should}"
+                        recent_activity.append(desc)
+                    except (KeyError, AttributeError):
+                        continue  # Skip malformed entries
+                
+                if recent_activity:
+                    embed.add_field(
+                        name="🔄 Recent Reports",
+                        value='\n'.join(recent_activity),
+                        inline=False
+                    )
+            
+            # Learning effectiveness with safe access
+            last_update = learning_eff.get('last_update')
+            if last_update:
+                embed.add_field(
+                    name="🧠 Learning Status",
+                    value=f"**Last Update:** {last_update[:10] if len(last_update) >= 10 else last_update}\n"
+                          f"**System Status:** {'Active' if learning_eff.get('adjustments_applied', 0) > 0 else 'Initializing'}",
+                    inline=False
+                )
+            else:
+                embed.add_field(
+                    name="🧠 Learning Status",
+                    value="**System Status:** Initializing\n**Last Update:** Never",
+                    inline=False
+                )
+            
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            
+        except FileNotFoundError:
+            logger.error("Learning data file not found")
+            await interaction.response.send_message(
+                "❌ Learning data file not found. Please contact an administrator.",
+                ephemeral=True
+            )
+        except json.JSONDecodeError as e:
+            logger.error(f"Error parsing learning data file: {e}")
+            await interaction.response.send_message(
+                "❌ Learning data file is corrupted. Please contact an administrator.",
+                ephemeral=True
+            )
+        except Exception as e:
+            logger.error(f"Error generating learning stats: {e}")
+            await interaction.response.send_message(
+                "❌ Error retrieving statistics. Please try again or contact an administrator.",
+                ephemeral=True
+            )
+
     @app_commands.command(name="report_false_positive", description="Report a false positive detection for learning")
     @app_commands.describe(
         message_link="Discord message link that was incorrectly flagged",
