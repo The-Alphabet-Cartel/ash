@@ -57,7 +57,7 @@ class AshBotAPIServer:
             })
             
             # Setup session encryption
-            secret_key = os.getenv('SESSION_TOKEN', 'ash-bot-secret-key-change-in-production')
+            secret_key = os.getenv('SESSION_SECRET', 'ash-bot-secret-key-change-in-production')
             session_setup(self.app, EncryptedCookieStorage(secret_key.encode()))
             
             # Register routes
@@ -537,63 +537,94 @@ class AshBotAPIServer:
         }
     
     def _get_session_secret(self):
-        """Get and validate session secret with detailed logging"""
+        """Get and validate session secret with detailed logging and Docker Secrets support"""
         logger.info("🔍 Looking for session secret...")
+        
+        # Check Docker Secrets first (highest priority)
+        logger.info("🐳 Checking Docker Secrets...")
+        docker_secret_paths = [
+            '/run/secrets/session_secret',
+            '/run/secrets/session_token',
+            './bot/secrets/session_secret.txt',
+            './bot/secrets/session_token.txt'
+        ]
+        
+        for secret_path in docker_secret_paths:
+            logger.info(f"🔍 Checking Docker Secret path: {secret_path}")
+            try:
+                if os.path.exists(secret_path):
+                    logger.info(f"📁 Found Docker Secret file: {secret_path}")
+                    with open(secret_path, 'r') as f:
+                        secret_content = f.read().strip()
+                    logger.info(f"📋 Docker Secret content length: {len(secret_content)} chars")
+                    logger.info(f"📋 Docker Secret preview: {secret_content[:20]}...")
+                    
+                    if self._validate_fernet_key(secret_content, f"Docker Secret ({secret_path})"):
+                        return secret_content.encode()
+                else:
+                    logger.debug(f"❌ Docker Secret not found: {secret_path}")
+            except Exception as e:
+                logger.error(f"❌ Error reading Docker Secret {secret_path}: {e}")
+        
+        # Check environment variables
+        logger.info("🌍 Checking environment variables...")
         
         # Try SESSION_TOKEN first (your preference)
         session_token = os.getenv('SESSION_TOKEN')
+        logger.info(f"🔍 SESSION_TOKEN environment variable: {'SET' if session_token else 'NOT SET'}")
         if session_token:
-            logger.info(f"📋 Found SESSION_TOKEN environment variable (length: {len(session_token)} chars)")
-            try:
-                # Validate the token by trying to create a Fernet key
-                from cryptography.fernet import Fernet
-                if session_token.startswith('b\'') and session_token.endswith('\''):
-                    # Handle case where token is saved as string representation of bytes
-                    session_token = session_token[2:-1]  # Remove b' and '
-                    logger.info("🔧 Cleaned up byte string format from SESSION_TOKEN")
-                
-                # Try to use as-is first
+            logger.info(f"📋 SESSION_TOKEN length: {len(session_token)} chars")
+            logger.info(f"📋 SESSION_TOKEN preview: {session_token[:20]}...")
+            logger.info(f"📋 SESSION_TOKEN ends with: ...{session_token[-5:]}")
+            logger.info(f"📋 SESSION_TOKEN type: {type(session_token)}")
+            
+            # Check if it looks like a file path (Docker Secrets reference)
+            if session_token.startswith('/') or session_token.startswith('./'):
+                logger.info(f"🐳 SESSION_TOKEN looks like a file path, attempting to read...")
                 try:
-                    secret_key = session_token.encode() if isinstance(session_token, str) else session_token
-                    test_fernet = Fernet(secret_key)
-                    logger.info("✅ SESSION_TOKEN is valid Fernet key format")
-                    return secret_key
-                except Exception as fernet_error:
-                    logger.warning(f"⚠️ SESSION_TOKEN not valid Fernet format: {fernet_error}")
-                    
-                    # Try base64 decoding if it's not already proper format
-                    try:
-                        import base64
-                        decoded = base64.urlsafe_b64decode(session_token.encode())
-                        if len(decoded) == 32:
-                            test_fernet = Fernet(session_token.encode())
-                            logger.info("✅ SESSION_TOKEN is valid base64 Fernet key")
-                            return session_token.encode()
-                        else:
-                            logger.error(f"❌ SESSION_TOKEN decoded length is {len(decoded)}, expected 32 bytes")
-                    except Exception as decode_error:
-                        logger.error(f"❌ Failed to decode SESSION_TOKEN: {decode_error}")
-                
-            except ImportError:
-                logger.error("❌ cryptography library not available for Fernet validation")
-            except Exception as e:
-                logger.error(f"❌ Error validating SESSION_TOKEN: {e}")
+                    if os.path.exists(session_token):
+                        logger.info(f"📁 Reading SESSION_TOKEN from file: {session_token}")
+                        with open(session_token, 'r') as f:
+                            file_content = f.read().strip()
+                        logger.info(f"📋 File content length: {len(file_content)} chars")
+                        logger.info(f"📋 File content preview: {file_content[:20]}...")
+                        
+                        if self._validate_fernet_key(file_content, f"SESSION_TOKEN file ({session_token})"):
+                            return file_content.encode()
+                    else:
+                        logger.error(f"❌ SESSION_TOKEN file does not exist: {session_token}")
+                except Exception as e:
+                    logger.error(f"❌ Error reading SESSION_TOKEN file: {e}")
+            else:
+                # Treat as direct token value
+                if self._validate_fernet_key(session_token, "SESSION_TOKEN environment variable"):
+                    return session_token.encode()
         
-        # Fallback to SESSION_SECRET
+        # Try SESSION_SECRET as fallback
         session_secret = os.getenv('SESSION_SECRET')
+        logger.info(f"🔍 SESSION_SECRET environment variable: {'SET' if session_secret else 'NOT SET'}")
         if session_secret:
-            logger.info(f"📋 Found SESSION_SECRET environment variable (length: {len(session_secret)} chars)")
-            try:
-                secret_key = session_secret.encode() if isinstance(session_secret, str) else session_secret
-                from cryptography.fernet import Fernet
-                test_fernet = Fernet(secret_key)
-                logger.info("✅ SESSION_SECRET is valid Fernet key format")
-                return secret_key
-            except Exception as e:
-                logger.error(f"❌ SESSION_SECRET validation failed: {e}")
+            logger.info(f"📋 SESSION_SECRET length: {len(session_secret)} chars")
+            logger.info(f"📋 SESSION_SECRET preview: {session_secret[:20]}...")
+            
+            if self._validate_fernet_key(session_secret, "SESSION_SECRET environment variable"):
+                return session_secret.encode()
         
-        # Generate a new key if neither works
-        logger.warning("⚠️ No valid session secret found, generating new one...")
+        # Check all environment variables for debugging
+        logger.info("🔍 All environment variables containing 'SESSION':")
+        for key, value in os.environ.items():
+            if 'SESSION' in key.upper():
+                logger.info(f"   {key} = {value[:50]}..." if len(value) > 50 else f"   {key} = {value}")
+        
+        # Generate a new key if nothing works
+        logger.warning("⚠️ No valid session secret found anywhere!")
+        logger.warning("🔍 Checked:")
+        logger.warning("   • Docker Secrets: /run/secrets/session_*")
+        logger.warning("   • Local Secrets: ./bot/secrets/session_*.txt")
+        logger.warning("   • Environment: SESSION_TOKEN")
+        logger.warning("   • Environment: SESSION_SECRET")
+        
+        logger.warning("⚠️ Generating temporary session key...")
         try:
             from cryptography.fernet import Fernet
             new_key = Fernet.generate_key()
@@ -608,6 +639,56 @@ class AshBotAPIServer:
             default_key = 'change-this-in-production-32-byte-key!!'
             logger.error("🚨 CRITICAL: Using default session key - THIS IS INSECURE!")
             return default_key.encode()
+    
+    def _validate_fernet_key(self, key_value, source_description):
+        """Validate if a key value can be used with Fernet"""
+        logger.info(f"🔐 Validating Fernet key from {source_description}...")
+        
+        try:
+            from cryptography.fernet import Fernet
+            
+            # Handle different input formats
+            if isinstance(key_value, bytes):
+                test_key = key_value
+            else:
+                test_key = key_value.encode()
+            
+            # Check if it's wrapped in quotes and clean it
+            key_str = key_value.decode() if isinstance(key_value, bytes) else key_value
+            if key_str.startswith('"') and key_str.endswith('"'):
+                key_str = key_str[1:-1]
+                test_key = key_str.encode()
+                logger.info("🔧 Removed surrounding quotes from key")
+            
+            # Try to create Fernet instance
+            fernet = Fernet(test_key)
+            
+            # Test encryption/decryption
+            test_message = b"test_message"
+            encrypted = fernet.encrypt(test_message)
+            decrypted = fernet.decrypt(encrypted)
+            
+            if decrypted == test_message:
+                logger.info(f"✅ {source_description} is valid Fernet key!")
+                return True
+            else:
+                logger.error(f"❌ {source_description} failed encryption test")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ {source_description} Fernet validation failed: {e}")
+            logger.error(f"❌ Key details: type={type(key_value)}, length={len(key_value)}")
+            
+            # Try to give helpful debugging info
+            try:
+                import base64
+                key_str = key_value.decode() if isinstance(key_value, bytes) else key_value
+                decoded = base64.urlsafe_b64decode(key_str.encode())
+                logger.error(f"❌ Base64 decoded length: {len(decoded)} bytes (need exactly 32)")
+            except Exception as decode_error:
+                logger.error(f"❌ Base64 decode also failed: {decode_error}")
+            
+            return False
     
     # Additional placeholder methods for complete API coverage
     async def _get_messages_processed_count(self) -> int:
