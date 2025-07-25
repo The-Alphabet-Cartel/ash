@@ -57,7 +57,7 @@ class AshBotAPIServer:
             })
             
             # Setup session encryption
-            secret_key = os.getenv('SESSION_SECRET', 'ash-bot-secret-key-change-in-production')
+            secret_key = os.getenv('SESSION_TOKEN', 'ash-bot-secret-key-change-in-production')
             session_setup(self.app, EncryptedCookieStorage(secret_key.encode()))
             
             # Register routes
