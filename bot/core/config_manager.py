@@ -36,7 +36,7 @@ class ConfigManager:
             except ImportError:
                 logger.warning("python-dotenv not available, using system environment only")
     
-    def _read_secret_file(self, secret_path: str) -> Optional[str]:
+    def _read_secret_file(self, secret_path: str, suppress_warnings: bool = False) -> Optional[str]:
         """Read secret from Docker secrets file"""
         try:
             if Path(secret_path).exists():
@@ -45,7 +45,8 @@ class ConfigManager:
                 logger.info(f"🔐 Successfully read secret from {secret_path}")
                 return secret
             else:
-                logger.warning(f"⚠️ Secret file not found: {secret_path}")
+                if not suppress_warnings:
+                    logger.debug(f"🔍 Secret file not found: {secret_path}")
                 return None
         except Exception as e:
             logger.error(f"❌ Failed to read secret from {secret_path}: {e}")
@@ -79,8 +80,10 @@ class ConfigManager:
                     f"./{secret_file_suffix}.txt",  # Alternative local location
                 ]
                 
-                for path in local_secret_paths:
-                    secret_value = self._read_secret_file(path)
+                for i, path in enumerate(local_secret_paths):
+                    # Only suppress warnings for the fallback paths
+                    suppress_warnings = i > 0
+                    secret_value = self._read_secret_file(path, suppress_warnings)
                     if secret_value:
                         logger.info(f"🔐 Found secret in local path: {path}")
                         return secret_value
@@ -113,14 +116,14 @@ class ConfigManager:
             )
             
             # Validate required secrets
-            if not self._config['DISCORD_TOKEN']:
+            if not self._config.get('DISCORD_TOKEN'):
                 errors.append("🔴 DISCORD_TOKEN is required (environment variable or secret file)")
-            elif len(self._config['DISCORD_TOKEN']) < 50:
+            elif len(str(self._config.get('DISCORD_TOKEN', ''))) < 50:
                 errors.append("🔴 DISCORD_TOKEN appears to be invalid (too short)")
             
-            if not self._config['CLAUDE_API_KEY']:
+            if not self._config.get('CLAUDE_API_KEY'):
                 errors.append("🔴 CLAUDE_API_KEY is required (environment variable or secret file)")
-            elif not self._config['CLAUDE_API_KEY'].startswith(('sk-ant-', 'claude-')):
+            elif not str(self._config.get('CLAUDE_API_KEY', '')).startswith(('sk-ant-', 'claude-')):
                 warnings.append("⚠️ CLAUDE_API_KEY format may be incorrect")
             
             # Regular configuration (non-sensitive)
@@ -232,8 +235,15 @@ class ConfigManager:
                 errors.append("🔴 CONVERSATION_TIMEOUT must be a valid integer")
             
             # Log configuration summary
+            using_secrets = bool(
+                os.getenv('DISCORD_TOKEN_FILE') or 
+                os.getenv('CLAUDE_API_KEY_FILE') or
+                Path("./secrets/discord_token").exists() or
+                Path("/run/secrets/discord_token").exists()
+            )
+            
             logger.info("📊 Configuration Summary:")
-            logger.info(f"   🔐 Using secrets: {bool(os.getenv('DISCORD_TOKEN_FILE') or os.getenv('CLAUDE_API_KEY_FILE'))}")
+            logger.info(f"   🔐 Using secrets: {using_secrets}")
             logger.info(f"   🤖 Discord Guild: {self._config['GUILD_ID']}")
             logger.info(f"   🧠 Claude Model: {self._config['CLAUDE_MODEL']}")
             logger.info(f"   📡 NLP Service: {self._config['NLP_SERVICE_HOST']}:{self._config['NLP_SERVICE_PORT']}")
