@@ -532,6 +532,79 @@ class AshBotAPIServer:
             "uptime_percentage": 100.0
         }
     
+    def _get_session_secret(self):
+        """Get and validate session secret with detailed logging"""
+        logger.info("🔍 Looking for session secret...")
+        
+        # Try SESSION_TOKEN first (your preference)
+        session_token = os.getenv('SESSION_TOKEN')
+        if session_token:
+            logger.info(f"📋 Found SESSION_TOKEN environment variable (length: {len(session_token)} chars)")
+            try:
+                # Validate the token by trying to create a Fernet key
+                from cryptography.fernet import Fernet
+                if session_token.startswith('b\'') and session_token.endswith('\''):
+                    # Handle case where token is saved as string representation of bytes
+                    session_token = session_token[2:-1]  # Remove b' and '
+                    logger.info("🔧 Cleaned up byte string format from SESSION_TOKEN")
+                
+                # Try to use as-is first
+                try:
+                    secret_key = session_token.encode() if isinstance(session_token, str) else session_token
+                    test_fernet = Fernet(secret_key)
+                    logger.info("✅ SESSION_TOKEN is valid Fernet key format")
+                    return secret_key
+                except Exception as fernet_error:
+                    logger.warning(f"⚠️ SESSION_TOKEN not valid Fernet format: {fernet_error}")
+                    
+                    # Try base64 decoding if it's not already proper format
+                    try:
+                        import base64
+                        decoded = base64.urlsafe_b64decode(session_token.encode())
+                        if len(decoded) == 32:
+                            test_fernet = Fernet(session_token.encode())
+                            logger.info("✅ SESSION_TOKEN is valid base64 Fernet key")
+                            return session_token.encode()
+                        else:
+                            logger.error(f"❌ SESSION_TOKEN decoded length is {len(decoded)}, expected 32 bytes")
+                    except Exception as decode_error:
+                        logger.error(f"❌ Failed to decode SESSION_TOKEN: {decode_error}")
+                
+            except ImportError:
+                logger.error("❌ cryptography library not available for Fernet validation")
+            except Exception as e:
+                logger.error(f"❌ Error validating SESSION_TOKEN: {e}")
+        
+        # Fallback to SESSION_SECRET
+        session_secret = os.getenv('SESSION_SECRET')
+        if session_secret:
+            logger.info(f"📋 Found SESSION_SECRET environment variable (length: {len(session_secret)} chars)")
+            try:
+                secret_key = session_secret.encode() if isinstance(session_secret, str) else session_secret
+                from cryptography.fernet import Fernet
+                test_fernet = Fernet(secret_key)
+                logger.info("✅ SESSION_SECRET is valid Fernet key format")
+                return secret_key
+            except Exception as e:
+                logger.error(f"❌ SESSION_SECRET validation failed: {e}")
+        
+        # Generate a new key if neither works
+        logger.warning("⚠️ No valid session secret found, generating new one...")
+        try:
+            from cryptography.fernet import Fernet
+            new_key = Fernet.generate_key()
+            logger.info("✅ Generated new Fernet key for session")
+            logger.warning("🚨 SECURITY WARNING: Using generated session key - sessions will not persist across restarts!")
+            logger.info("💡 To fix this, set SESSION_TOKEN environment variable to a proper Fernet key")
+            logger.info(f"💡 Example: SESSION_TOKEN={new_key.decode()}")
+            return new_key
+        except Exception as e:
+            logger.error(f"❌ Failed to generate new session key: {e}")
+            # Last resort - use a default but warn heavily
+            default_key = 'change-this-in-production-32-byte-key!!'
+            logger.error("🚨 CRITICAL: Using default session key - THIS IS INSECURE!")
+            return default_key.encode()
+    
     # Additional placeholder methods for complete API coverage
     async def _get_messages_processed_count(self) -> int:
         return 0
