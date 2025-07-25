@@ -80,7 +80,8 @@ class AshBot(commands.Bot, ResourceCleanupMixin):
         from integrations.nlp_integration import RemoteNLPClient
         from utils.keyword_detector import KeywordDetector
         
-        self.claude_api = ClaudeAPI()
+        # Pass config to ClaudeAPI
+        self.claude_api = ClaudeAPI(self.config)
         self.nlp_client = RemoteNLPClient()
         self.keyword_detector = KeywordDetector()
         
@@ -149,7 +150,7 @@ class AshBot(commands.Bot, ResourceCleanupMixin):
         )
         
         logger.info("✅ All enhanced components initialized")
-    
+
     async def _load_command_cogs(self):
         """Load command cogs with enhanced learning system"""
         cog_errors = []
