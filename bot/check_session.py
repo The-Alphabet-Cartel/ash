@@ -10,7 +10,7 @@ from pathlib import Path
 
 def load_env_file():
     """Load .env file if it exists"""
-    env_file = Path('.env')
+    env_file = Path('../.env')
     if env_file.exists():
         print(f"📁 Found .env file: {env_file.absolute()}")
         with open(env_file, 'r') as f:
