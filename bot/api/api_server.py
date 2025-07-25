@@ -134,6 +134,8 @@ class AshBotAPIServer:
                     logger.info(f"📋 Docker Secret preview: {secret_content[:20]}...")
                     
                     if self._validate_fernet_key(secret_content, f"Docker Secret ({secret_path})"):
+                        # Return the string encoded as bytes (Fernet expects base64 string as bytes)
+                        logger.info(f"🔑 Returning Docker Secret key as bytes")
                         return secret_content.encode()
                 else:
                     logger.debug(f"❌ Docker Secret not found: {secret_path}")
@@ -164,6 +166,7 @@ class AshBotAPIServer:
                         logger.info(f"📋 File content preview: {file_content[:20]}...")
                         
                         if self._validate_fernet_key(file_content, f"SESSION_TOKEN file ({session_token})"):
+                            logger.info(f"🔑 Returning SESSION_TOKEN file key as bytes")
                             return file_content.encode()
                     else:
                         logger.error(f"❌ SESSION_TOKEN file does not exist: {session_token}")
@@ -172,6 +175,7 @@ class AshBotAPIServer:
             else:
                 # Treat as direct token value
                 if self._validate_fernet_key(session_token, "SESSION_TOKEN environment variable"):
+                    logger.info(f"🔑 Returning SESSION_TOKEN environment key as bytes")
                     return session_token.encode()
         
         # Try SESSION_SECRET as fallback
@@ -182,6 +186,7 @@ class AshBotAPIServer:
             logger.info(f"📋 SESSION_SECRET preview: {session_secret[:20]}...")
             
             if self._validate_fernet_key(session_secret, "SESSION_SECRET environment variable"):
+                logger.info(f"🔑 Returning SESSION_SECRET key as bytes")
                 return session_secret.encode()
         
         # Check all environment variables for debugging
@@ -220,48 +225,69 @@ class AshBotAPIServer:
         
         try:
             from cryptography.fernet import Fernet
+            import base64
             
             # Handle different input formats
-            if isinstance(key_value, bytes):
-                test_key = key_value
-            else:
-                test_key = key_value.encode()
+            key_str = key_value.decode() if isinstance(key_value, bytes) else key_value
             
             # Check if it's wrapped in quotes and clean it
-            key_str = key_value.decode() if isinstance(key_value, bytes) else key_value
             if key_str.startswith('"') and key_str.endswith('"'):
                 key_str = key_str[1:-1]
-                test_key = key_str.encode()
                 logger.info("🔧 Removed surrounding quotes from key")
             
-            # Try to create Fernet instance
-            fernet = Fernet(test_key)
+            logger.info(f"🔍 Key string length: {len(key_str)} chars")
+            logger.info(f"🔍 Key string preview: {key_str[:20]}...")
             
-            # Test encryption/decryption
-            test_message = b"test_message"
-            encrypted = fernet.encrypt(test_message)
-            decrypted = fernet.decrypt(encrypted)
-            
-            if decrypted == test_message:
-                logger.info(f"✅ {source_description} is valid Fernet key!")
-                return True
-            else:
-                logger.error(f"❌ {source_description} failed encryption test")
-                return False
+            # Try to decode from base64 first (this is the likely correct approach)
+            try:
+                decoded_key = base64.urlsafe_b64decode(key_str.encode())
+                logger.info(f"📐 Base64 decoded length: {len(decoded_key)} bytes")
+                
+                if len(decoded_key) == 32:
+                    # Test with the decoded key
+                    fernet = Fernet(key_str.encode())  # Fernet expects the base64 string, not raw bytes
+                    
+                    # Test encryption/decryption
+                    test_message = b"test_message"
+                    encrypted = fernet.encrypt(test_message)
+                    decrypted = fernet.decrypt(encrypted)
+                    
+                    if decrypted == test_message:
+                        logger.info(f"✅ {source_description} is valid Fernet key!")
+                        return True
+                    else:
+                        logger.error(f"❌ {source_description} failed encryption test")
+                        return False
+                else:
+                    logger.error(f"❌ Decoded key wrong length: {len(decoded_key)} bytes (need exactly 32)")
+                    return False
+                    
+            except Exception as decode_error:
+                logger.error(f"❌ Base64 decode failed: {decode_error}")
+                
+                # Try using the key as-is (for already-decoded keys)
+                try:
+                    test_key = key_str.encode()
+                    fernet = Fernet(test_key)
+                    
+                    test_message = b"test_message"
+                    encrypted = fernet.encrypt(test_message)
+                    decrypted = fernet.decrypt(encrypted)
+                    
+                    if decrypted == test_message:
+                        logger.info(f"✅ {source_description} is valid Fernet key (direct)!")
+                        return True
+                    else:
+                        logger.error(f"❌ {source_description} failed encryption test (direct)")
+                        return False
+                        
+                except Exception as direct_error:
+                    logger.error(f"❌ Direct key usage also failed: {direct_error}")
+                    return False
                 
         except Exception as e:
             logger.error(f"❌ {source_description} Fernet validation failed: {e}")
             logger.error(f"❌ Key details: type={type(key_value)}, length={len(key_value)}")
-            
-            # Try to give helpful debugging info
-            try:
-                import base64
-                key_str = key_value.decode() if isinstance(key_value, bytes) else key_value
-                decoded = base64.urlsafe_b64decode(key_str.encode())
-                logger.error(f"❌ Base64 decoded length: {len(decoded)} bytes (need exactly 32)")
-            except Exception as decode_error:
-                logger.error(f"❌ Base64 decode also failed: {decode_error}")
-            
             return False
     
     async def stop_server(self):
