@@ -134,9 +134,11 @@ class AshBotAPIServer:
                     logger.info(f"📋 Docker Secret preview: {secret_content[:20]}...")
                     
                     if self._validate_fernet_key(secret_content, f"Docker Secret ({secret_path})"):
-                        # Return the string encoded as bytes (Fernet expects base64 string as bytes)
-                        logger.info(f"🔑 Returning Docker Secret key as bytes")
-                        return secret_content.encode()
+                        # EncryptedCookieStorage expects raw 32 bytes, not base64 string
+                        import base64
+                        decoded_key = base64.urlsafe_b64decode(secret_content.encode())
+                        logger.info(f"🔑 Returning Docker Secret key as decoded bytes (length: {len(decoded_key)})")
+                        return decoded_key
                 else:
                     logger.debug(f"❌ Docker Secret not found: {secret_path}")
             except Exception as e:
@@ -166,8 +168,10 @@ class AshBotAPIServer:
                         logger.info(f"📋 File content preview: {file_content[:20]}...")
                         
                         if self._validate_fernet_key(file_content, f"SESSION_TOKEN file ({session_token})"):
-                            logger.info(f"🔑 Returning SESSION_TOKEN file key as bytes")
-                            return file_content.encode()
+                            import base64
+                            decoded_key = base64.urlsafe_b64decode(file_content.encode())
+                            logger.info(f"🔑 Returning SESSION_TOKEN file key as decoded bytes (length: {len(decoded_key)})")
+                            return decoded_key
                     else:
                         logger.error(f"❌ SESSION_TOKEN file does not exist: {session_token}")
                 except Exception as e:
@@ -175,8 +179,10 @@ class AshBotAPIServer:
             else:
                 # Treat as direct token value
                 if self._validate_fernet_key(session_token, "SESSION_TOKEN environment variable"):
-                    logger.info(f"🔑 Returning SESSION_TOKEN environment key as bytes")
-                    return session_token.encode()
+                    import base64
+                    decoded_key = base64.urlsafe_b64decode(session_token.encode())
+                    logger.info(f"🔑 Returning SESSION_TOKEN environment key as decoded bytes (length: {len(decoded_key)})")
+                    return decoded_key
         
         # Try SESSION_SECRET as fallback
         session_secret = os.getenv('SESSION_SECRET')
@@ -186,8 +192,10 @@ class AshBotAPIServer:
             logger.info(f"📋 SESSION_SECRET preview: {session_secret[:20]}...")
             
             if self._validate_fernet_key(session_secret, "SESSION_SECRET environment variable"):
-                logger.info(f"🔑 Returning SESSION_SECRET key as bytes")
-                return session_secret.encode()
+                import base64
+                decoded_key = base64.urlsafe_b64decode(session_secret.encode())
+                logger.info(f"🔑 Returning SESSION_SECRET key as decoded bytes (length: {len(decoded_key)})")
+                return decoded_key
         
         # Check all environment variables for debugging
         logger.info("🔍 All environment variables containing 'SESSION':")
