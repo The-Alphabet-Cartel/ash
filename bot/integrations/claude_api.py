@@ -51,18 +51,6 @@ class ClaudeAPI:
 
         logger.info(f"🤖 Claude API initialized with model: {self.model}")
 
-    async def _get_session(self):
-        """Get session using resource manager"""
-        from utils.resource_managers import session_manager
-        
-        headers = {
-            'Content-Type': 'application/json',
-            'x-api-key': self.api_key,
-            'anthropic-version': '2023-06-01'
-        }
-        
-        return await session_manager.get_session("claude", headers=headers)
-
     async def get_ash_response(self, message: str, crisis_level: str = "none", 
                               user_name: str = "User", channel_type: str = "general") -> str:
         """
@@ -81,39 +69,47 @@ class ClaudeAPI:
         self.calls_today += 1
 
         try:
-            session = await self._get_session()
+            # Use the session manager properly
+            from utils.resource_managers import session_manager
             
-            # Format the message with Ash's character
-            prompt = format_ash_prompt(message, crisis_level, user_name, channel_type)
-            
-            # Add crisis-specific additions
-            if crisis_level in ["high", "medium"]:
-                prompt += get_crisis_addition(crisis_level)
-
-            payload = {
-                "model": self.model,
-                "max_tokens": self.max_tokens,
-                "messages": [
-                    {"role": "user", "content": prompt}
-                ]
+            headers = {
+                'Content-Type': 'application/json',
+                'x-api-key': self.api_key,
+                'anthropic-version': '2023-06-01'
             }
+            
+            async with session_manager.get_session("claude", headers=headers) as session:
+                # Format the message with Ash's character
+                prompt = format_ash_prompt(message, crisis_level, user_name, channel_type)
+                
+                # Add crisis-specific additions
+                if crisis_level in ["high", "medium"]:
+                    prompt += get_crisis_addition(crisis_level)
 
-            async with session.post(self.base_url, json=payload) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    content = data['content'][0]['text']
+                payload = {
+                    "model": self.model,
+                    "max_tokens": self.max_tokens,
+                    "messages": [
+                        {"role": "user", "content": prompt}
+                    ]
+                }
+
+                async with session.post(self.base_url, json=payload) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        content = data['content'][0]['text']
+                        
+                        logger.debug(f"Claude API response received for crisis level: {crisis_level}")
+                        return content.strip()
                     
-                    logger.debug(f"Claude API response received for crisis level: {crisis_level}")
-                    return content.strip()
-                
-                elif response.status == 429:
-                    logger.warning("Claude API rate limit exceeded")
-                    return get_response_templates()['rate_limit']
-                
-                else:
-                    error_text = await response.text()
-                    logger.error(f"Claude API error {response.status}: {error_text}")
-                    return get_response_templates()['api_error']
+                    elif response.status == 429:
+                        logger.warning("Claude API rate limit exceeded")
+                        return get_response_templates()['rate_limit']
+                    
+                    else:
+                        error_text = await response.text()
+                        logger.error(f"Claude API error {response.status}: {error_text}")
+                        return get_response_templates()['api_error']
 
         except asyncio.TimeoutError:
             logger.error("Claude API request timeout")
