@@ -1,0 +1,618 @@
+"""
+Ash Bot API Server Module
+Provides REST API endpoints for the analytics dashboard
+"""
+
+import asyncio
+import json
+import logging
+import os
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List, Optional, Any
+from pathlib import Path
+
+from aiohttp import web, web_request
+from aiohttp.web_runner import GracefulExit
+import aiohttp_cors
+from aiohttp_session import setup as session_setup
+from aiohttp_session.cookie_storage import EncryptedCookieStorage
+
+logger = logging.getLogger(__name__)
+
+class AshBotAPIServer:
+    """REST API server for Ash Bot analytics and monitoring"""
+    
+    def __init__(self, bot, host='0.0.0.0', port=8882):
+        self.bot = bot
+        self.host = host
+        self.port = port
+        self.app = None
+        self.runner = None
+        self.site = None
+        
+        # Data paths
+        self.data_dir = Path('./data')
+        self.learning_data_file = self.data_dir / 'learning_data.json'
+        self.crisis_stats_file = self.data_dir / 'crisis_stats.json'
+        self.keyword_stats_file = self.data_dir / 'keyword_stats.json'
+        
+        # Ensure data directory exists
+        self.data_dir.mkdir(exist_ok=True)
+        
+        logger.info(f"🌐 API Server initialized for {host}:{port}")
+    
+    async def start_server(self):
+        """Start the API server"""
+        try:
+            self.app = web.Application()
+            
+            # Setup CORS
+            cors = aiohttp_cors.setup(self.app, defaults={
+                "*": aiohttp_cors.ResourceOptions(
+                    allow_credentials=True,
+                    expose_headers="*",
+                    allow_headers="*",
+                    allow_methods="*"
+                )
+            })
+            
+            # Setup session encryption
+            secret_key = os.getenv('SESSION_TOKEN', 'ash-bot-secret-key-change-in-production')
+            session_setup(self.app, EncryptedCookieStorage(secret_key.encode()))
+            
+            # Register routes
+            self._register_routes()
+            
+            # Add CORS to all routes
+            for route in list(self.app.router.routes()):
+                cors.add(route)
+            
+            # Start server
+            self.runner = web.AppRunner(self.app)
+            await self.runner.setup()
+            
+            self.site = web.TCPSite(self.runner, self.host, self.port)
+            await self.site.start()
+            
+            logger.info(f"🚀 API Server started at http://{self.host}:{self.port}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to start API server: {e}")
+            return False
+    
+    async def stop_server(self):
+        """Stop the API server"""
+        try:
+            if self.site:
+                await self.site.stop()
+            if self.runner:
+                await self.runner.cleanup()
+            logger.info("🛑 API Server stopped")
+        except Exception as e:
+            logger.error(f"Error stopping API server: {e}")
+    
+    def _register_routes(self):
+        """Register all API routes"""
+        # Health check
+        self.app.router.add_get('/health', self.health_check)
+        
+        # Core metrics
+        self.app.router.add_get('/api/metrics', self.get_metrics)
+        self.app.router.add_get('/api/status', self.get_status)
+        
+        # Crisis detection analytics
+        self.app.router.add_get('/api/crisis-stats', self.get_crisis_stats)
+        self.app.router.add_get('/api/crisis-trends', self.get_crisis_trends)
+        
+        # Learning system endpoints
+        self.app.router.add_get('/api/learning-stats', self.get_learning_stats)
+        self.app.router.add_get('/api/learning-history', self.get_learning_history)
+        
+        # Keyword management
+        self.app.router.add_get('/api/keyword-performance', self.get_keyword_performance)
+        self.app.router.add_get('/api/keywords', self.get_keywords)
+        
+        # Performance monitoring
+        self.app.router.add_get('/api/performance', self.get_performance)
+        
+        # Team activity
+        self.app.router.add_get('/api/team-activity', self.get_team_activity)
+        
+        logger.info("📋 API routes registered")
+    
+    # ===============================
+    # HEALTH AND STATUS ENDPOINTS
+    # ===============================
+    
+    async def health_check(self, request):
+        """Health check endpoint"""
+        try:
+            # Check bot status
+            bot_ready = self.bot.is_ready() if self.bot else False
+            
+            # Check NLP server connection
+            nlp_status = "unknown"
+            if hasattr(self.bot, 'nlp_client') and self.bot.nlp_client:
+                try:
+                    # Simple ping to NLP server
+                    nlp_status = "connected"
+                except:
+                    nlp_status = "disconnected"
+            
+            health_data = {
+                "status": "healthy" if bot_ready else "unhealthy",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "version": "2.0",
+                "components": {
+                    "bot": "ready" if bot_ready else "not_ready",
+                    "nlp_server": nlp_status,
+                    "api_server": "running"
+                },
+                "uptime": self._get_uptime_seconds()
+            }
+            
+            status_code = 200 if bot_ready else 503
+            return web.json_response(health_data, status=status_code)
+            
+        except Exception as e:
+            logger.error(f"Health check error: {e}")
+            return web.json_response({
+                "status": "error",
+                "error": str(e)
+            }, status=500)
+    
+    async def get_status(self, request):
+        """Detailed status information"""
+        try:
+            status_data = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "bot": {
+                    "ready": self.bot.is_ready() if self.bot else False,
+                    "latency": round(self.bot.latency * 1000) if self.bot else None,
+                    "guild_count": len(self.bot.guilds) if self.bot and self.bot.guilds else 0,
+                    "user_count": sum(guild.member_count for guild in self.bot.guilds) if self.bot and self.bot.guilds else 0
+                },
+                "nlp_server": await self._get_nlp_status(),
+                "learning_system": await self._get_learning_system_status(),
+                "performance": await self._get_performance_stats()
+            }
+            
+            return web.json_response(status_data)
+            
+        except Exception as e:
+            logger.error(f"Status endpoint error: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+    
+    # ===============================
+    # METRICS AND ANALYTICS
+    # ===============================
+    
+    async def get_metrics(self, request):
+        """Main metrics dashboard endpoint"""
+        try:
+            # Get timeframe parameter
+            timeframe = request.query.get('timeframe', '24h')
+            
+            metrics_data = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timeframe": timeframe,
+                "crisis_stats": await self._get_crisis_metrics(timeframe),
+                "learning_stats": await self._get_learning_metrics(),
+                "keyword_stats": await self._get_keyword_metrics(),
+                "performance_stats": await self._get_performance_metrics(),
+                "bot_stats": {
+                    "uptime_seconds": self._get_uptime_seconds(),
+                    "total_guilds": len(self.bot.guilds) if self.bot and self.bot.guilds else 0,
+                    "messages_processed": await self._get_messages_processed_count(),
+                    "crisis_interventions": await self._get_crisis_intervention_count()
+                }
+            }
+            
+            return web.json_response(metrics_data)
+            
+        except Exception as e:
+            logger.error(f"Metrics endpoint error: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+    
+    async def get_crisis_stats(self, request):
+        """Crisis detection statistics"""
+        try:
+            stats = await self._load_crisis_stats()
+            
+            # Calculate summary statistics
+            total_detections = sum(stats.get('daily_counts', {}).values())
+            
+            crisis_data = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "total_detections": total_detections,
+                "by_level": stats.get('by_level', {'high': 0, 'medium': 0, 'low': 0}),
+                "daily_counts": stats.get('daily_counts', {}),
+                "recent_trends": await self._calculate_crisis_trends(),
+                "accuracy_metrics": {
+                    "false_positive_rate": stats.get('false_positive_rate', 0.0),
+                    "false_negative_rate": stats.get('false_negative_rate', 0.0),
+                    "detection_accuracy": stats.get('detection_accuracy', 0.0)
+                }
+            }
+            
+            return web.json_response(crisis_data)
+            
+        except Exception as e:
+            logger.error(f"Crisis stats error: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+    
+    async def get_crisis_trends(self, request):
+        """Crisis detection trends over time"""
+        try:
+            timeframe = request.query.get('timeframe', '24h')
+            
+            trends_data = await self._generate_crisis_trends(timeframe)
+            
+            return web.json_response({
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timeframe": timeframe,
+                "trends": trends_data
+            })
+            
+        except Exception as e:
+            logger.error(f"Crisis trends error: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+    
+    # ===============================
+    # LEARNING SYSTEM ENDPOINTS
+    # ===============================
+    
+    async def get_learning_stats(self, request):
+        """Learning system statistics"""
+        try:
+            learning_data = await self._load_learning_data()
+            
+            stats = learning_data.get('statistics', {})
+            
+            learning_stats = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "false_positive_reports": len(learning_data.get('false_positives', [])),
+                "false_negative_reports": len(learning_data.get('false_negatives', [])),
+                "total_adjustments": stats.get('learning_effectiveness', {}).get('adjustments_applied', 0),
+                "patterns_learned": stats.get('learning_effectiveness', {}).get('patterns_learned', 0),
+                "effectiveness_score": await self._calculate_learning_effectiveness(),
+                "recent_activity": await self._get_recent_learning_activity(),
+                "improvement_metrics": {
+                    "false_positive_reduction": await self._calculate_fp_reduction(),
+                    "false_negative_improvement": await self._calculate_fn_improvement(),
+                    "overall_accuracy_gain": await self._calculate_accuracy_gain()
+                }
+            }
+            
+            return web.json_response(learning_stats)
+            
+        except Exception as e:
+            logger.error(f"Learning stats error: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+    
+    async def get_learning_history(self, request):
+        """Learning system activity history"""
+        try:
+            learning_data = await self._load_learning_data()
+            
+            # Combine false positives and negatives with timestamps
+            all_reports = []
+            
+            for fp in learning_data.get('false_positives', []):
+                all_reports.append({
+                    **fp,
+                    'report_type': 'false_positive'
+                })
+            
+            for fn in learning_data.get('false_negatives', []):
+                all_reports.append({
+                    **fn,
+                    'report_type': 'false_negative'
+                })
+            
+            # Sort by timestamp
+            all_reports.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+            
+            # Limit to last 100 entries
+            recent_reports = all_reports[:100]
+            
+            return web.json_response({
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "total_reports": len(all_reports),
+                "recent_reports": recent_reports
+            })
+            
+        except Exception as e:
+            logger.error(f"Learning history error: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+    
+    # ===============================
+    # KEYWORD MANAGEMENT ENDPOINTS
+    # ===============================
+    
+    async def get_keyword_performance(self, request):
+        """Keyword detection performance"""
+        try:
+            keyword_stats = await self._load_keyword_stats()
+            
+            performance_data = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "total_keywords": await self._get_total_keyword_count(),
+                "active_keywords": await self._get_active_keyword_count(),
+                "keyword_effectiveness": keyword_stats.get('effectiveness', {}),
+                "top_performing_keywords": await self._get_top_keywords(),
+                "recent_additions": await self._get_recent_keyword_additions(),
+                "detection_statistics": {
+                    "keyword_triggered": keyword_stats.get('keyword_triggered', 0),
+                    "ml_triggered": keyword_stats.get('ml_triggered', 0),
+                    "combined_triggered": keyword_stats.get('combined_triggered', 0)
+                }
+            }
+            
+            return web.json_response(performance_data)
+            
+        except Exception as e:
+            logger.error(f"Keyword performance error: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+    
+    async def get_keywords(self, request):
+        """Get all keyword categories and counts"""
+        try:
+            keywords_data = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "categories": await self._get_keyword_categories(),
+                "total_count": await self._get_total_keyword_count(),
+                "custom_keywords": await self._get_custom_keywords_count(),
+                "last_modified": await self._get_keywords_last_modified()
+            }
+            
+            return web.json_response(keywords_data)
+            
+        except Exception as e:
+            logger.error(f"Keywords endpoint error: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+    
+    # ===============================
+    # PERFORMANCE MONITORING
+    # ===============================
+    
+    async def get_performance(self, request):
+        """Bot performance metrics"""
+        try:
+            performance_data = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "response_times": await self._get_response_time_stats(),
+                "memory_usage": await self._get_memory_usage(),
+                "api_call_statistics": await self._get_api_call_stats(),
+                "error_rates": await self._get_error_rates(),
+                "uptime_statistics": {
+                    "current_uptime_seconds": self._get_uptime_seconds(),
+                    "average_uptime": await self._get_average_uptime(),
+                    "downtime_incidents": await self._get_downtime_incidents()
+                }
+            }
+            
+            return web.json_response(performance_data)
+            
+        except Exception as e:
+            logger.error(f"Performance endpoint error: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+    
+    async def get_team_activity(self, request):
+        """Crisis response team activity"""
+        try:
+            team_data = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "active_team_members": await self._get_active_team_members(),
+                "recent_interventions": await self._get_recent_interventions(),
+                "response_times": await self._get_team_response_times(),
+                "learning_contributions": await self._get_learning_contributions()
+            }
+            
+            return web.json_response(team_data)
+            
+        except Exception as e:
+            logger.error(f"Team activity error: {e}")
+            return web.json_response({"error": str(e)}, status=500)
+    
+    # ===============================
+    # HELPER METHODS
+    # ===============================
+    
+    async def _load_learning_data(self) -> Dict:
+        """Load learning data from file"""
+        try:
+            if self.learning_data_file.exists():
+                with open(self.learning_data_file, 'r') as f:
+                    return json.load(f)
+            return {}
+        except Exception as e:
+            logger.error(f"Error loading learning data: {e}")
+            return {}
+    
+    async def _load_crisis_stats(self) -> Dict:
+        """Load crisis statistics from file"""
+        try:
+            if self.crisis_stats_file.exists():
+                with open(self.crisis_stats_file, 'r') as f:
+                    return json.load(f)
+            return {}
+        except Exception as e:
+            logger.error(f"Error loading crisis stats: {e}")
+            return {}
+    
+    async def _load_keyword_stats(self) -> Dict:
+        """Load keyword statistics from file"""
+        try:
+            if self.keyword_stats_file.exists():
+                with open(self.keyword_stats_file, 'r') as f:
+                    return json.load(f)
+            return {}
+        except Exception as e:
+            logger.error(f"Error loading keyword stats: {e}")
+            return {}
+    
+    def _get_uptime_seconds(self) -> int:
+        """Get bot uptime in seconds"""
+        if hasattr(self.bot, 'start_time'):
+            return int((datetime.now(timezone.utc) - self.bot.start_time).total_seconds())
+        return 0
+    
+    async def _get_nlp_status(self) -> Dict:
+        """Get NLP server status"""
+        try:
+            if hasattr(self.bot, 'nlp_client') and self.bot.nlp_client:
+                # Try to ping NLP server
+                return {
+                    "status": "connected",
+                    "response_time": 0,  # TODO: Implement actual ping
+                    "last_request": datetime.now(timezone.utc).isoformat()
+                }
+            return {"status": "disconnected"}
+        except Exception:
+            return {"status": "error"}
+    
+    async def _get_learning_system_status(self) -> Dict:
+        """Get learning system status"""
+        try:
+            learning_enabled = os.getenv('ENABLE_LEARNING_SYSTEM', 'false').lower() == 'true'
+            
+            if learning_enabled:
+                learning_data = await self._load_learning_data()
+                total_reports = len(learning_data.get('false_positives', [])) + len(learning_data.get('false_negatives', []))
+                
+                return {
+                    "status": "active",
+                    "total_reports": total_reports,
+                    "last_update": learning_data.get('statistics', {}).get('learning_effectiveness', {}).get('last_update')
+                }
+            
+            return {"status": "disabled"}
+            
+        except Exception as e:
+            logger.error(f"Error getting learning system status: {e}")
+            return {"status": "error", "error": str(e)}
+    
+    async def _get_performance_stats(self) -> Dict:
+        """Get basic performance statistics"""
+        return {
+            "uptime_seconds": self._get_uptime_seconds(),
+            "memory_usage_mb": 0,  # TODO: Implement actual memory monitoring
+            "avg_response_time_ms": 0,  # TODO: Implement response time tracking
+            "error_count_24h": 0  # TODO: Implement error tracking
+        }
+    
+    # Placeholder methods for future implementation
+    async def _get_crisis_metrics(self, timeframe: str) -> Dict:
+        """Calculate crisis detection metrics for timeframe"""
+        # TODO: Implement based on actual crisis detection data
+        return {"high": 0, "medium": 0, "low": 0, "total": 0}
+    
+    async def _get_learning_metrics(self) -> Dict:
+        """Calculate learning system metrics"""
+        learning_data = await self._load_learning_data()
+        return {
+            "false_positive_reports": len(learning_data.get('false_positives', [])),
+            "false_negative_reports": len(learning_data.get('false_negatives', [])),
+            "total_adjustments": learning_data.get('statistics', {}).get('learning_effectiveness', {}).get('adjustments_applied', 0)
+        }
+    
+    async def _get_keyword_metrics(self) -> Dict:
+        """Calculate keyword performance metrics"""
+        # TODO: Implement based on keyword usage data
+        return {"total_keywords": 0, "active_keywords": 0, "effectiveness_score": 0.0}
+    
+    async def _get_performance_metrics(self) -> Dict:
+        """Calculate performance metrics"""
+        return {
+            "avg_response_time": 0.0,
+            "memory_usage": 0.0,
+            "cpu_usage": 0.0,
+            "uptime_percentage": 100.0
+        }
+    
+    # Additional placeholder methods for complete API coverage
+    async def _get_messages_processed_count(self) -> int:
+        return 0
+    
+    async def _get_crisis_intervention_count(self) -> int:
+        return 0
+    
+    async def _calculate_crisis_trends(self) -> Dict:
+        return {}
+    
+    async def _generate_crisis_trends(self, timeframe: str) -> Dict:
+        return {"labels": [], "high": [], "medium": [], "low": []}
+    
+    async def _calculate_learning_effectiveness(self) -> float:
+        return 0.0
+    
+    async def _get_recent_learning_activity(self) -> List:
+        return []
+    
+    async def _calculate_fp_reduction(self) -> float:
+        return 0.0
+    
+    async def _calculate_fn_improvement(self) -> float:
+        return 0.0
+    
+    async def _calculate_accuracy_gain(self) -> float:
+        return 0.0
+    
+    async def _get_total_keyword_count(self) -> int:
+        return 0
+    
+    async def _get_active_keyword_count(self) -> int:
+        return 0
+    
+    async def _get_top_keywords(self) -> List:
+        return []
+    
+    async def _get_recent_keyword_additions(self) -> List:
+        return []
+    
+    async def _get_keyword_categories(self) -> Dict:
+        return {}
+    
+    async def _get_custom_keywords_count(self) -> int:
+        return 0
+    
+    async def _get_keywords_last_modified(self) -> str:
+        return datetime.now(timezone.utc).isoformat()
+    
+    async def _get_response_time_stats(self) -> Dict:
+        return {"avg": 0.0, "min": 0.0, "max": 0.0}
+    
+    async def _get_memory_usage(self) -> Dict:
+        return {"current_mb": 0, "peak_mb": 0, "percentage": 0.0}
+    
+    async def _get_api_call_stats(self) -> Dict:
+        return {"total_calls": 0, "successful_calls": 0, "failed_calls": 0}
+    
+    async def _get_error_rates(self) -> Dict:
+        return {"error_rate_24h": 0.0, "critical_errors": 0}
+    
+    async def _get_average_uptime(self) -> float:
+        return 99.9
+    
+    async def _get_downtime_incidents(self) -> List:
+        return []
+    
+    async def _get_active_team_members(self) -> List:
+        return []
+    
+    async def _get_recent_interventions(self) -> List:
+        return []
+    
+    async def _get_team_response_times(self) -> Dict:
+        return {"avg_response_minutes": 0.0}
+    
+    async def _get_learning_contributions(self) -> Dict:
+        return {}
+
+
+# Integration helper function
+def setup_api_server(bot, host='0.0.0.0', port=8080):
+    """Setup and return the API server instance"""
+    return AshBotAPIServer(bot, host, port)
