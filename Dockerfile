@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for Ash Discord Bot - Production Ready
+# Multi-stage Dockerfile for Ash Discord Bot with API Server - Production Ready
 # Build stage
 FROM python:3.11-slim AS builder
 
@@ -42,7 +42,7 @@ WORKDIR /app
 RUN groupadd -r botuser && useradd -r -g botuser -u 1001 botuser
 
 # Create necessary directories with proper ownership
-RUN mkdir -p logs data tests && \
+RUN mkdir -p logs data tests api && \
     chown -R botuser:botuser /app && \
     chmod 755 /app
 
@@ -54,9 +54,9 @@ USER botuser
 
 # Set default environment variables
 ## (can be overridden by docker-compose or .env)
-ENV PYTHONPATH=/app
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONPATH="/app"
+ENV PYTHONUNBUFFERED="1"
+ENV PYTHONDONTWRITEBYTECODE="1"
 
 # Core Bot Configuration
 ## (these will be overridden by docker-compose)
@@ -88,6 +88,24 @@ ENV NLP_SERVICE_HOST="10.20.30.16"
 ENV NLP_SERVICE_PORT="8881"
 ENV REQUEST_TIMEOUT="30"
 
+## API Server Configuration
+ENV API_HOST="0.0.0.0"
+ENV API_PORT="8882"
+ENV API_RATE_LIMIT_PER_MINUTE="60"
+ENV API_RATE_LIMIT_PER_HOUR="1000"
+ENV API_ENABLE_CORS="true"
+ENV API_ALLOWED_ORIGINS="*"
+
+## Performance Monitoring defaults
+ENV ENABLE_PERFORMANCE_TRACKING="true"
+ENV TRACK_RESPONSE_TIMES="true"
+ENV TRACK_MEMORY_USAGE="true"
+ENV COLLECT_CRISIS_STATS="true"
+ENV COLLECT_KEYWORD_STATS="true"
+ENV COLLECT_LEARNING_STATS="true"
+ENV STATS_RETENTION_DAYS="90"
+ENV LOGS_RETENTION_DAYS="30"
+
 ## Bot Performance defaults
 ENV LOG_LEVEL="INFO"
 ENV MAX_DAILY_CALLS="1000"
@@ -101,18 +119,23 @@ ENV CONVERSATION_SETUP_INSTRUCTIONS="true"
 ENV CONVERSATION_LOG_ATTEMPTS="true"
 ENV CONVERSATION_TIMEOUT="300"
 
-# Health check with better implementation
-HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
-    CMD python -c "import asyncio; import sys; sys.exit(0)" || exit 1
+# Expose API server port
+EXPOSE 8882
 
-# Note: No ports exposed - Discord bot connects outbound to Discord's servers
+# Health check with API server validation
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD curl -f http://localhost:8882/health || python -c "import asyncio; import sys; sys.exit(0)" || exit 1
 
 # Use exec form for better signal handling
 CMD ["python", "-u", "main.py"]
 
-# Labels for better container management
+# Updated labels for API server version
 LABEL maintainer="The Alphabet Cartel" \
-      version="2.0" \
-      description="Ash Discord Bot - Mental Health Support with Conversation Isolation" \
+      version="2.0-api" \
+      description="Ash Discord Bot with API Server - Mental Health Support with Analytics" \
       org.opencontainers.image.source="https://github.com/The-Alphabet-Cartel/ash" \
-      feature.conversation-isolation="enabled"
+      feature.conversation-isolation="enabled" \
+      feature.api-server="enabled" \
+      feature.analytics-dashboard="supported" \
+      api.port="8882" \
+      api.endpoints="/health,/api/metrics,/api/crisis-stats,/api/learning-stats"
