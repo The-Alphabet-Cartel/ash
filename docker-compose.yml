@@ -81,7 +81,7 @@ services:
       ash-nlp:
         condition: service_healthy
       ash-redis:
-        condition: service_healthy
+        condition: service_started
     deploy:
       resources:
         limits:
@@ -176,7 +176,7 @@ services:
       - ./secrets:/run/secrets:ro
     depends_on:
       ash-redis:
-        condition: service_healthy
+        condition: service_started
     deploy:
       resources:
         limits:
@@ -249,7 +249,7 @@ services:
       ash-nlp:
         condition: service_healthy
       ash-redis:
-        condition: service_healthy
+        condition: service_started
     deploy:
       resources:
         limits:
@@ -293,7 +293,7 @@ services:
       ash-dash:
         condition: service_healthy
       ash-redis:
-        condition: service_healthy
+        condition: service_started
       ash-postgres:
         condition: service_healthy
     deploy:
@@ -336,7 +336,7 @@ services:
       ash-thrash:
         condition: service_healthy
       ash-redis:
-        condition: service_healthy
+        condition: service_started
     deploy:
       resources:
         limits:
