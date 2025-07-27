@@ -36,7 +36,7 @@ services:
 
       # API Server Configuration
       - API_HOST=${BOT_API_HOST:-0.0.0.0}
-      - API_PORT=${GLOBAL_BOT_SERVICE_PORT:-8882}
+      - API_PORT=${GLOBAL_BOT_API_PORT:-8882}
       - API_RATE_LIMIT_PER_MINUTE=${BOT_API_RATE_LIMIT_PER_MINUTE:-60}
       - API_RATE_LIMIT_PER_HOUR=${BOT_API_RATE_LIMIT_PER_HOUR:-1000}
       - API_ENABLE_CORS=${GLOBAL_ENABLE_CORS:-true}
@@ -48,8 +48,8 @@ services:
       - MAX_LEARNING_ADJUSTMENTS_PER_DAY=${BOT_MAX_LEARNING_ADJUSTMENTS_PER_DAY}
 
       # NLP Server Configuration
-      - NLP_SERVICE_HOST=${GLOBAL_NLP_SERVICE_HOST}
-      - NLP_SERVICE_PORT=${GLOBAL_NLP_SERVICE_PORT:-8881}
+      - NLP_SERVICE_HOST=${GLOBAL_NLP_API_HOST}
+      - NLP_SERVICE_PORT=${GLOBAL_NLP_API_PORT:-8881}
 
       # Bot Behavior Configuration
       - LOG_LEVEL=${GLOBAL_LOG_LEVEL:-INFO}
@@ -140,8 +140,8 @@ services:
       - REQUEST_TIMEOUT=${NLP_REQUEST_TIMEOUT:-30}
       
       # Server Configuration
-      - NLP_SERVICE_HOST=${GLOBAL_NLP_SERVICE_HOST:-0.0.0.0}
-      - NLP_SERVICE_PORT=${GLOBAL_NLP_SERVICE_PORT:-8881}
+      - NLP_SERVICE_HOST=${NLP_API_HOST:-0.0.0.0}
+      - NLP_SERVICE_PORT=${GLOBAL_NLP_API_PORT:-8881}
       - UVICORN_WORKERS=${NLP_UVICORN_WORKERS:-1}
       - RELOAD_ON_CHANGES=${NLP_RELOAD_ON_CHANGES:-false}
       
@@ -208,8 +208,8 @@ services:
       - 8883:8883
     environment:
       - NODE_ENV=${GLOBAL_ENV:-production}
-      - PORT=${GLOBAL_DASH_SERVICE_PORT:-8883}
-      - DASH_PORT=${GLOBAL_DASH_SERVICE_PORT:-8883}
+      - PORT=${GLOBAL_DASH_API_PORT:-8883}
+      - DASH_PORT=${GLOBAL_DASH_API_PORT:-8883}
       
       # SSL Configuration
       - ENABLE_SSL=${DASH_ENABLE_SSL:-true}
@@ -275,7 +275,7 @@ services:
     ports:
       - 8884:8884
     environment:
-      - NLP_SERVER_URL=${GLOBAL_NLP_SERVICE_URL}
+      - NLP_SERVER_URL=${GLOBAL_NLP_API_URL}
       - MAX_CONCURRENT_TESTS=${THRASH_MAX_CONCURRENT_TESTS}
       - ENABLE_SCHEDULED_TESTING=${THRASH_ENABLE_SCHEDULED_TESTING}
       - COMPREHENSIVE_TEST_SCHEDULE=${THRASH_COMPREHENSIVE_TEST_SCHEDULE}
@@ -293,7 +293,7 @@ services:
       ash-dash:
         condition: service_healthy
       ash-redis:
-        condition: service_started
+        condition: service_healthy
       ash-postgres:
         condition: service_healthy
     deploy:
@@ -315,12 +315,15 @@ services:
       dockerfile: docker/Dockerfile.api
     container_name: ash-thrash-api
     restart: unless-stopped
+    networks:
+      ash-network:
+        ipv4_address: 172.20.0.14
     ports:
-      - 8884:8884
+      - 8885:8885
     environment:
       - NLP_SERVER_URL=${GLOBAL_NLP_SERICE_URL}
       - API_HOST=${THRASH_API_HOST}
-      - API_PORT=${GLOBAL_THRASH_SERVICE_PORT}
+      - API_PORT=${GLOBAL_THRASH_API_PORT}
       - API_DEBUG=${THRASH_API_DEBUG}
     volumes:
       - ./ash-thrash/config:/app/config
@@ -333,16 +336,14 @@ services:
       ash-thrash:
         condition: service_healthy
       ash-redis:
-        condition: service_started
-    networks:
-      - ash-thrash-network
+        condition: service_healthy
     deploy:
       resources:
         limits:
           memory: 4G
           cpus: '1.0'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8884/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8885/health"]
       interval: 30s
       timeout: 10s
       retries: 3
