@@ -7,7 +7,6 @@ services:
   # Discord Bot (ash-bot)
   # ========================================================================
   ash-bot:
-    #build: ./ash-bot
     image: ghcr.io/the-alphabet-cartel/ash-bot:latest
     container_name: ash-bot
     restart: unless-stopped
@@ -99,7 +98,6 @@ services:
   # NLP Server (ash-nlp)
   # ========================================================================
   ash-nlp:
-    #build: ./ash-nlp
     image: ghcr.io/the-alphabet-cartel/ash-nlp:latest
     container_name: ash-nlp
     restart: unless-stopped
@@ -200,7 +198,6 @@ services:
   # Analytics Dashboard (ash-dash)
   # ========================================================================
   ash-dash:
-    #build: ./ash-dash
     image: ghcr.io/the-alphabet-cartel/ash-dash:latest
     container_name: ash-dash
     restart: unless-stopped
@@ -269,7 +266,6 @@ services:
   # Testing Suite (ash-thrash)
   # ========================================================================
   ash-thrash:
-    #build: ./ash-thrash
     image: ghcr.io/the-alphabet-cartel/ash-thrash:latest
     container_name: ash-thrash
     restart: unless-stopped
@@ -336,6 +332,8 @@ services:
         condition: service_healthy
       ash-thrash:
         condition: service_healthy
+      ash-redis:
+        condition: service_started
     networks:
       - ash-thrash-network
     deploy:
@@ -348,6 +346,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
   # ========================================================================
   # Shared Database
   # ========================================================================
