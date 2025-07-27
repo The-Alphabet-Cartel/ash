@@ -81,7 +81,7 @@ services:
       ash-nlp:
         condition: service_healthy
       ash-redis:
-        condition: service_started
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -176,7 +176,7 @@ services:
       - ./secrets:/run/secrets:ro
     depends_on:
       ash-redis:
-        condition: service_started
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -321,7 +321,7 @@ services:
     ports:
       - 8885:8885
     environment:
-      - NLP_SERVER_URL=${GLOBAL_NLP_SERICE_URL}
+      - NLP_SERVER_URL=${GLOBAL_NLP_API_URL}
       - API_HOST=${THRASH_API_HOST}
       - API_PORT=${GLOBAL_THRASH_API_PORT}
       - API_DEBUG=${THRASH_API_DEBUG}
