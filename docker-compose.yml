@@ -1,0 +1,249 @@
+# Master Docker Compose for Ash Ecosystem
+# Repository: https://github.com/the-alphabet-cartel/ash
+# Discord: https://discord.gg/alphabetcartel
+# Website: http://alphabetcartel.org
+
+version: '3.8'
+
+networks:
+  ash-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+services:
+  # =============================================================================
+  # Discord Bot (ash-bot) - Runs on Linux Server (10.20.30.253)
+  # =============================================================================
+  ash-bot:
+    build: ./ash-bot
+    container_name: ash-bot
+    restart: unless-stopped
+    ports:
+      - "8882:8882"
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - NLP_SERVER_URL=http://10.20.30.16:8881
+      - API_PORT=8882
+      - ENVIRONMENT=production
+    volumes:
+      - ./ash-bot/logs:/app/logs
+      - ./ash-bot/data:/app/data
+    networks:
+      ash-network:
+        ipv4_address: 172.20.0.10
+    depends_on:
+      - ash-nlp
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8882/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+  # =============================================================================
+  # NLP Server (ash-nlp) - Runs on Windows Server (10.20.30.16)
+  # =============================================================================
+  ash-nlp:
+    build: ./ash-nlp
+    container_name: ash-nlp
+    restart: unless-stopped
+    ports:
+      - "8881:8881"
+    environment:
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - API_PORT=8881
+      - ENVIRONMENT=production
+      - ENABLE_GPU=${ENABLE_GPU:-true}
+    volumes:
+      - ./ash-nlp/models:/app/models
+      - ./ash-nlp/logs:/app/logs
+      - ./ash-nlp/cache:/app/cache
+    networks:
+      ash-network:
+        ipv4_address: 172.20.0.11
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+          cpus: '4.0'
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8881/health"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+
+  # =============================================================================
+  # Analytics Dashboard (ash-dash) - Runs on Windows Server (10.20.30.16)
+  # =============================================================================
+  ash-dash:
+    build: ./ash-dash
+    container_name: ash-dash
+    restart: unless-stopped
+    ports:
+      - "8883:8883"
+    environment:
+      - NODE_ENV=production
+      - API_PORT=8883
+      - BOT_API_URL=http://10.20.30.253:8882
+      - NLP_API_URL=http://10.20.30.16:8881
+      - THRASH_API_URL=http://10.20.30.16:8884
+    volumes:
+      - ./ash-dash/logs:/app/logs
+      - ./ash-dash/data:/app/data
+    networks:
+      ash-network:
+        ipv4_address: 172.20.0.12
+    depends_on:
+      - ash-nlp
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8883/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+
+  # =============================================================================
+  # Testing Suite (ash-thrash) - Runs on Windows Server (10.20.30.16)
+  # =============================================================================
+  ash-thrash:
+    build: ./ash-thrash
+    container_name: ash-thrash
+    restart: unless-stopped
+    ports:
+      - "8884:8884"
+    environment:
+      - NLP_SERVER_URL=http://10.20.30.16:8881
+      - DASH_API_URL=http://10.20.30.16:8883
+      - API_PORT=8884
+      - ENVIRONMENT=production
+      - MAX_CONCURRENT_TESTS=8
+      - TEST_TIMEOUT_SECONDS=15
+    volumes:
+      - ./ash-thrash/results:/app/results
+      - ./ash-thrash/logs:/app/logs
+      - ./ash-thrash/reports:/app/reports
+    networks:
+      ash-network:
+        ipv4_address: 172.20.0.13
+    depends_on:
+      - ash-nlp
+      - ash-dash
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8884/health"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2.0'
+
+  # =============================================================================
+  # Shared Database (Optional - for centralized logging/analytics)
+  # =============================================================================
+  ash-postgres:
+    image: postgres:15-alpine
+    container_name: ash-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-ash_db}
+      - POSTGRES_USER=${POSTGRES_USER:-ash_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init:/docker-entrypoint-initdb.d
+    networks:
+      ash-network:
+        ipv4_address: 172.20.0.20
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ash_user} -d ${POSTGRES_DB:-ash_db}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+  # =============================================================================
+  # Redis Cache (Optional - for performance optimization)
+  # =============================================================================
+  ash-redis:
+    image: redis:7-alpine
+    container_name: ash-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks:
+      ash-network:
+        ipv4_address: 172.20.0.21
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# =============================================================================
+# Configuration Notes
+# =============================================================================
+# 
+# Server Distribution:
+# - ash-bot: Deploy on Linux server (10.20.30.253)
+# - ash-nlp, ash-dash, ash-thrash: Deploy on Windows server (10.20.30.16)
+# 
+# To deploy on specific servers:
+# 1. Linux Server: docker-compose up ash-bot
+# 2. Windows Server: docker-compose up ash-nlp ash-dash ash-thrash
+# 
+# Network Configuration:
+# - All services communicate via ash-network (172.20.0.0/16)
+# - Each service has a static IP for reliable inter-service communication
+# 
+# Resource Allocation:
+# - ash-nlp: 8GB RAM, 4 CPU cores, GPU access (RTX 3050)
+# - ash-thrash: 4GB RAM, 2 CPU cores (for parallel testing)
+# - ash-dash: 2GB RAM, 1 CPU core
+# - ash-bot: 1GB RAM, 0.5 CPU cores
+# 
+# Health Checks:
+# - All services include health monitoring
+# - Automatic restart on failure
+# - Dependency management ensures proper startup order
