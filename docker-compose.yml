@@ -2,73 +2,183 @@
 # Repository: https://github.com/the-alphabet-cartel/ash
 # Discord: https://discord.gg/alphabetcartel
 # Website: http://alphabetcartel.org
-
-version: '3.8'
-
-networks:
-  ash-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
-
 services:
-  # =============================================================================
-  # Discord Bot (ash-bot) - Runs on Linux Server (10.20.30.253)
-  # =============================================================================
+  # ========================================================================
+  # Discord Bot (ash-bot)
+  # ========================================================================
   ash-bot:
-    build: ./ash-bot
+    #build: ./ash-bot
+    image: ghcr.io/the-alphabet-cartel/ash-bot:latest
     container_name: ash-bot
     restart: unless-stopped
-    ports:
-      - "8882:8882"
-    environment:
-      - DISCORD_TOKEN=${DISCORD_TOKEN}
-      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
-      - NLP_SERVER_URL=http://10.20.30.16:8881
-      - API_PORT=8882
-      - ENVIRONMENT=production
-    volumes:
-      - ./ash-bot/logs:/app/logs
-      - ./ash-bot/data:/app/data
     networks:
       ash-network:
         ipv4_address: 172.20.0.10
+    ports:
+      - 8882:8882
+    environment:
+      - DISCORD_TOKEN=${BOT_DISCORD_TOKEN}
+      - SESSION_TOKEN=${GLOBAL_SESSION_TOKEN}
+      - CLAUDE_API_KEY=${GLOBAL_CLAUDE_API_KEY}
+      - CLAUDE_MODEL=${GLOBAL_CLAUDE_MODEL}
+
+      # Discord and Channel Configuration
+      - GUILD_ID=${BOT_GUILD_ID}
+      - RESOURCES_CHANNEL_ID=${BOT_RESOURCES_CHANNEL_ID}
+      - CRISIS_RESPONSE_CHANNEL_ID=${BOT_CRISIS_RESPONSE_CHANNEL_ID}
+      - ALLOWED_CHANNELS=${BOT_ALLOWED_CHANNELS}
+
+      # Team Configuration
+      - STAFF_PING_USER=${BOT_STAFF_PING_USER}
+      - CRISIS_RESPONSE_ROLE_ID=${BOT_CRISIS_RESPONSE_ROLE_ID}
+      - RESOURCES_CHANNEL_NAME=${BOT_RESOURCES_CHANNEL_NAME}
+      - CRISIS_RESPONSE_ROLE_NAME=${BOT_CRISIS_RESPONSE_ROLE_NAME}
+      - STAFF_PING_NAME=${BOT_STAFF_PING_NAME}
+
+      # API Server Configuration
+      - API_HOST=${BOT_API_HOST:-0.0.0.0}
+      - API_PORT=${GLOBAL_BOT_SERVICE_PORT:-8882}
+      - API_RATE_LIMIT_PER_MINUTE=${BOT_API_RATE_LIMIT_PER_MINUTE:-60}
+      - API_RATE_LIMIT_PER_HOUR=${BOT_API_RATE_LIMIT_PER_HOUR:-1000}
+      - API_ENABLE_CORS=${GLOBAL_ENABLE_CORS:-true}
+      - API_ALLOWED_ORIGINS=${BOT_API_ALLOWED_ORIGINS:-*}
+
+      # Learning System Configuration
+      - ENABLE_LEARNING_SYSTEM=${GLOBAL_ENABLE_LEARNING_SYSTEM}
+      - LEARNING_CONFIDENCE_THRESHOLD=${BOT_LEARNING_CONFIDENCE_THRESHOLD}
+      - MAX_LEARNING_ADJUSTMENTS_PER_DAY=${BOT_MAX_LEARNING_ADJUSTMENTS_PER_DAY}
+
+      # NLP Server Configuration
+      - NLP_SERVICE_HOST=${GLOBAL_NLP_SERVICE_HOST}
+      - NLP_SERVICE_PORT=${GLOBAL_NLP_SERVICE_PORT:-8881}
+
+      # Bot Behavior Configuration
+      - LOG_LEVEL=${GLOBAL_LOG_LEVEL:-INFO}
+      - MAX_DAILY_CALLS=${BOT_MAX_DAILY_CALLS:-1000}
+      - RATE_LIMIT_PER_USER=${BOT_RATE_LIMIT_PER_USER:-10}
+
+      # Conversation Configuration
+      - CONVERSATION_REQUIRES_MENTION=${BOT_CONVERSATION_REQUIRES_MENTION:-true}
+      - CONVERSATION_TRIGGER_PHRASES=${BOT_CONVERSATION_TRIGGER_PHRASES:-ash,hey ash,ash help,@ash}
+      - CONVERSATION_ALLOW_STARTERS=${BOT_CONVERSATION_ALLOW_STARTERS:-true}
+      - CONVERSATION_SETUP_INSTRUCTIONS=${BOT_CONVERSATION_SETUP_INSTRUCTIONS:-true}
+      - CONVERSATION_LOG_ATTEMPTS=${BOT_CONVERSATION_LOG_ATTEMPTS:-true}
+      - CONVERSATION_TIMEOUT=${BOT_CONVERSATION_TIMEOUT:-300}
+
+      # Performance Monitoring
+      - ENABLE_PERFORMANCE_TRACKING=${BOT_ENABLE_PERFORMANCE_TRACKING:-true}
+      - TRACK_RESPONSE_TIMES=${BOT_TRACK_RESPONSE_TIMES:-true}
+      - TRACK_MEMORY_USAGE=${BOT_TRACK_MEMORY_USAGE:-true}
+      - COLLECT_CRISIS_STATS=${BOT_COLLECT_CRISIS_STATS:-true}
+      - COLLECT_KEYWORD_STATS=${BOT_COLLECT_KEYWORD_STATS:-true}
+      - COLLECT_LEARNING_STATS=${BOT_COLLECT_LEARNING_STATS:-true}
+      - STATS_RETENTION_DAYS=${BOT_STATS_RETENTION_DAYS:-90}
+      - LOGS_RETENTION_DAYS=${GLOBAL_LOGS_RETENTION_DAYS:-90}
+    volumes:
+      - ./ash-bot/logs:/app/logs
+      - ./ash-bot/data:/app/data
+      - ./secrets:/run/secrets:ro
     depends_on:
-      - ash-nlp
+      ash-nlp:
+        condition: service_healthy
+      ash-redis:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8882/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '0.5'
 
-  # =============================================================================
-  # NLP Server (ash-nlp) - Runs on Windows Server (10.20.30.16)
-  # =============================================================================
+  # ========================================================================
+  # NLP Server (ash-nlp)
+  # ========================================================================
   ash-nlp:
-    build: ./ash-nlp
+    #build: ./ash-nlp
+    image: ghcr.io/the-alphabet-cartel/ash-nlp:latest
     container_name: ash-nlp
     restart: unless-stopped
-    ports:
-      - "8881:8881"
-    environment:
-      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
-      - API_PORT=8881
-      - ENVIRONMENT=production
-      - ENABLE_GPU=${ENABLE_GPU:-true}
-    volumes:
-      - ./ash-nlp/models:/app/models
-      - ./ash-nlp/logs:/app/logs
-      - ./ash-nlp/cache:/app/cache
     networks:
       ash-network:
         ipv4_address: 172.20.0.11
+    ports:
+      - 8881:8881
+    environment:
+      # Point to secret files
+      - HUGGINGFACE_TOKEN=${GLOBAL_HUGGINGFACE_TOKEN}
+
+      # Core Python settings
+      - PYTHONUNBUFFERED=${GLOBAL_PYTHONUNBUFFERED}
+      
+      # Hugging Face Configuration
+      - HUGGINGFACE_CACHE_DIR=${NLP_HUGGINGFACE_CACHE_DIR}
+      
+      # Learning System Configuration
+      - ENABLE_LEARNING_SYSTEM=${GLOBAL_ENABLE_LEARNING_SYSTEM:-true}
+      - LEARNING_RATE=${NLP_LEARNING_RATE:-0.1}
+      - MAX_LEARNING_ADJUSTMENTS_PER_DAY=${NLP_MAX_LEARNING_ADJUSTMENTS_PER_DAY:-50}
+      - LEARNING_PERSISTENCE_FILE=${NLP_LEARNING_PERSISTENCE_FILE}
+      - MIN_CONFIDENCE_ADJUSTMENT=${NLP_MIN_CONFIDENCE_ADJUSTMENT:-0.05}
+      - MAX_CONFIDENCE_ADJUSTMENT=${NLP_MAX_CONFIDENCE_ADJUSTMENT:-0.30}
+      
+      # Model Configuration
+      - DEPRESSION_MODEL=${NLP_DEPRESSION_MODEL:-rafalposwiata/deproberta-large-depression}
+      - SENTIMENT_MODEL=${NLP_SENTIMENT_MODEL:-cardiffnlp/twitter-roberta-base-sentiment-latest}
+      - MODEL_CACHE_DIR=${NLP_MODEL_CACHE_DIR}
+      
+      # Hardware Configuration - Optimized for your RTX 3050
+      - DEVICE=${NLP_DEVICE:-auto}
+      - MODEL_PRECISION=${NLP_MODEL_PRECISION:-float16}
+      
+      # Performance Tuning - Tuned for your Ryzen 7 7700x
+      - MAX_BATCH_SIZE=${NLP_MAX_BATCH_SIZE:-32}
+      - INFERENCE_THREADS=${NLP_INFERENCE_THREADS:-4}
+      - MAX_CONCURRENT_REQUESTS=${NLP_MAX_CONCURRENT_REQUESTS:-10}
+      - REQUEST_TIMEOUT=${NLP_REQUEST_TIMEOUT:-30}
+      
+      # Server Configuration
+      - NLP_SERVICE_HOST=${GLOBAL_NLP_SERVICE_HOST:-0.0.0.0}
+      - NLP_SERVICE_PORT=${GLOBAL_NLP_SERVICE_PORT:-8881}
+      - UVICORN_WORKERS=${NLP_UVICORN_WORKERS:-1}
+      - RELOAD_ON_CHANGES=${NLP_RELOAD_ON_CHANGES:-false}
+      
+      # Logging Configuration
+      - LOG_LEVEL=${GLOBAL_LOG_LEVEL:-INFO}
+      - LOG_FILE=${NLP_LOG_FILE:-nlp_service.log}
+      - ENABLE_DEBUG_LOGGING=${GLOBAL_ENABLE_DEBUG_LOGGING:-false}
+      
+      # Storage Paths
+      - DATA_DIR=${NLP_DATA_DIR}
+      - MODELS_DIR=${NLP_MODELS_DIR}
+      - LOGS_DIR=${NLP_LOGS_DIR}
+      - LEARNING_DATA_DIR=${NLP_LEARNING_DATA_DIR}
+      
+      # Crisis Detection Thresholds
+      - HIGH_CRISIS_THRESHOLD=${NLP_HIGH_CRISIS_THRESHOLD}
+      - MEDIUM_CRISIS_THRESHOLD=${NLP_MEDIUM_CRISIS_THRESHOLD}
+      - LOW_CRISIS_THRESHOLD=${NLP_LOW_CRISIS_THRESHOLD}
+      
+      # Rate Limiting
+      - MAX_REQUESTS_PER_MINUTE=${NLP_MAX_REQUESTS_PER_MINUTE:-60}
+      - MAX_REQUESTS_PER_HOUR=${NLP_MAX_REQUESTS_PER_HOUR:-1000}
+      
+      # Security
+      - ALLOWED_IPS=${GLOBAL_ALLOWED_IPS}
+      - ENABLE_CORS=${GLOBAL_ENABLE_CORS}
+    volumes:
+      - ./ash-nlp/data:/app/data
+      - ./ash-nlp/models/cache:/app/models/cache
+      - ./ash-nlp/logs:/app/logs
+      - ./ash-nlp/learning_data:/app/learning_data
+      - ./secrets:/run/secrets:ro
+    depends_on:
+      ash-redis:
+        condition: service_started
     deploy:
       resources:
         limits:
@@ -86,164 +196,225 @@ services:
       retries: 3
       start_period: 60s
 
-  # =============================================================================
-  # Analytics Dashboard (ash-dash) - Runs on Windows Server (10.20.30.16)
-  # =============================================================================
+  # ========================================================================
+  # Analytics Dashboard (ash-dash)
+  # ========================================================================
   ash-dash:
-    build: ./ash-dash
+    #build: ./ash-dash
+    image: ghcr.io/the-alphabet-cartel/ash-dash:latest
     container_name: ash-dash
     restart: unless-stopped
-    ports:
-      - "8883:8883"
-    environment:
-      - NODE_ENV=production
-      - API_PORT=8883
-      - BOT_API_URL=http://10.20.30.253:8882
-      - NLP_API_URL=http://10.20.30.16:8881
-      - THRASH_API_URL=http://10.20.30.16:8884
-    volumes:
-      - ./ash-dash/logs:/app/logs
-      - ./ash-dash/data:/app/data
     networks:
       ash-network:
         ipv4_address: 172.20.0.12
+    ports:
+      - 8883:8883
+    environment:
+      - NODE_ENV=${GLOBAL_ENV:-production}
+      - PORT=${GLOBAL_DASH_SERVICE_PORT:-8883}
+      - DASH_PORT=${GLOBAL_DASH_SERVICE_PORT:-8883}
+      
+      # SSL Configuration
+      - ENABLE_SSL=${DASH_ENABLE_SSL:-true}
+      - SSL_CERT_PATH=${DASH_SSL_CERT_PATH}
+      - SSL_KEY_PATH=${DASH_SSL_KEY_PATH}
+      
+      # Ash Bot API (Discord Bot with Crisis Detection)
+      - ASH_BOT_API=${GLOBAL_BOT_API_URL}
+      - ASH_BOT_API_TIMEOUT=${DASH_BOT_API_TIMEOUT:-5000}
+      
+      # Ash NLP Server API (Machine Learning Analysis)
+      - ASH_NLP_API=${GLOBAL_NLP_API_URL}
+      - ASH_NLP_API_TIMEOUT=${DASH_NLP_API_TIMEOUT:-10000}
+      
+      # Cache Settings
+      - CACHE_TTL=${DASH_CACHE_TTL:-300}
+      - ENABLE_ANALYTICS=${DASH_ENABLE_ANALYTICS:-true}
+      - ANALYTICS_RETENTION_DAYS=${DASH_ANALYTICS_RETENTION_DAYS:-90}
+      
+      # Real-time Updates
+      - ENABLE_SOCKET_IO=${DASH_ENABLE_SOCKET_IO:-true}
+      - METRICS_UPDATE_INTERVAL=${DASH_METRICS_UPDATE_INTERVAL:-30000}
+
+      # LOGGING & MONITORING
+      - LOG_LEVEL=${GLOBAL_LOG_LEVEL:-info}
+      
+      # DOCKER SECRETS CONFIGURATION
+      - SESSION_SECRET=${GLOBAL_SESSION_TOKEN}
+    volumes:
+      - ./ash-dash/logs:/app/logs
+      - ./ash-dash/data:/app/data
+      - ./ash-dash/cache:/app/cache
+      - ./ash-dash/public:/app/public:ro
+      - ./ash-dash/dashboard:/app/dashboard:ro
+      - ./secrets:/run/secrets:ro
     depends_on:
-      - ash-nlp
+      ash-nlp:
+        condition: service_healthy
+      ash-redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8883/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-          cpus: '1.0'
 
-  # =============================================================================
-  # Testing Suite (ash-thrash) - Runs on Windows Server (10.20.30.16)
-  # =============================================================================
+  # ========================================================================
+  # Testing Suite (ash-thrash)
+  # ========================================================================
   ash-thrash:
-    build: ./ash-thrash
+    #build: ./ash-thrash
+    image: ghcr.io/the-alphabet-cartel/ash-thrash:latest
     container_name: ash-thrash
     restart: unless-stopped
-    ports:
-      - "8884:8884"
-    environment:
-      - NLP_SERVER_URL=http://10.20.30.16:8881
-      - DASH_API_URL=http://10.20.30.16:8883
-      - API_PORT=8884
-      - ENVIRONMENT=production
-      - MAX_CONCURRENT_TESTS=8
-      - TEST_TIMEOUT_SECONDS=15
-    volumes:
-      - ./ash-thrash/results:/app/results
-      - ./ash-thrash/logs:/app/logs
-      - ./ash-thrash/reports:/app/reports
     networks:
       ash-network:
         ipv4_address: 172.20.0.13
+    ports:
+      - 8884:8884
+    environment:
+      - NLP_SERVER_URL=${GLOBAL_NLP_SERVICE_URL}
+      - MAX_CONCURRENT_TESTS=${THRASH_MAX_CONCURRENT_TESTS}
+      - ENABLE_SCHEDULED_TESTING=${THRASH_ENABLE_SCHEDULED_TESTING}
+      - COMPREHENSIVE_TEST_SCHEDULE=${THRASH_COMPREHENSIVE_TEST_SCHEDULE}
+      - QUICK_VALIDATION_SCHEDULE=${THRASH_QUICK_VALIDATION_SCHEDULE}
+    volumes:
+      - ./ash-thrash/config:/app/config
+      - ./ash-thrash/src:/app/src
+      - ./ash-thrash/logs:/app/logs
+      - ./ash-thrash/results:/app/results
+      - ./ash-thrash/reports:/app/reports
+      - ./secrets:/run/secrets:ro
     depends_on:
-      - ash-nlp
-      - ash-dash
+      ash-nlp:
+        condition: service_healthy
+      ash-dash:
+        condition: service_healthy
+      ash-redis:
+        condition: service_started
+      ash-postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2.0'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8884/health"]
       interval: 60s
       timeout: 15s
       retries: 3
       start_period: 45s
+
+  ash-thrash-api:
+    image: ghcr.io/the-alphabet-cartel/ash-thrash-api:latest
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: ash-thrash-api
+    restart: unless-stopped
+    ports:
+      - 8884:8884
+    environment:
+      - NLP_SERVER_URL=${GLOBAL_NLP_SERICE_URL}
+      - API_HOST=${THRASH_API_HOST}
+      - API_PORT=${GLOBAL_THRASH_SERVICE_PORT}
+      - API_DEBUG=${THRASH_API_DEBUG}
+    volumes:
+      - ./ash-thrash/config:/app/config
+      - ./ash-thrash/src:/app/src
+      - ./ash-thrash/results:/app/results
+      - ./secrets:/run/secrets:ro
+    depends_on:
+      ash-nlp:
+        condition: service_healthy
+      ash-thrash:
+        condition: service_healthy
+    networks:
+      - ash-thrash-network
     deploy:
       resources:
         limits:
           memory: 4G
-          cpus: '2.0'
-
-  # =============================================================================
-  # Shared Database (Optional - for centralized logging/analytics)
-  # =============================================================================
+          cpus: '1.0'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8884/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  # ========================================================================
+  # Shared Database
+  # ========================================================================
   ash-postgres:
     image: postgres:15-alpine
     container_name: ash-postgres
     restart: unless-stopped
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB:-ash_db}
-      - POSTGRES_USER=${POSTGRES_USER:-ash_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./sql/init:/docker-entrypoint-initdb.d
     networks:
       ash-network:
         ipv4_address: 172.20.0.20
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ash_user} -d ${POSTGRES_DB:-ash_db}"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_DB=${GLOBAL_POSTGRES_DB:-ash}
+      - POSTGRES_USER=${GLOBAL_POSTGRES_USER:-ash}
+      - POSTGRES_PASSWORD=${GLOBAL_POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./ash-thrash/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./secrets:/run/secrets:ro
     deploy:
       resources:
         limits:
           memory: 1G
           cpus: '0.5'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${GLOBAL_POSTGRES_USER:-ash} -d ${GLOBAL_POSTGRES_DB:-ash}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # =============================================================================
-  # Redis Cache (Optional - for performance optimization)
-  # =============================================================================
+  # ========================================================================
+  # Redis Cache
+  # ========================================================================
   ash-redis:
     image: redis:7-alpine
     container_name: ash-redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
-    volumes:
-      - redis_data:/data
     networks:
       ash-network:
         ipv4_address: 172.20.0.21
-    healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    ports:
+      - 6379:6379
+    command: redis-server --appendonly yes --requirepass ${GLOBAL_REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+      - ./secrets:/run/secrets:ro
     deploy:
       resources:
         limits:
           memory: 512M
           cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  ash-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
 
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
-
-# =============================================================================
-# Configuration Notes
-# =============================================================================
-# 
-# Server Distribution:
-# - ash-bot: Deploy on Linux server (10.20.30.253)
-# - ash-nlp, ash-dash, ash-thrash: Deploy on Windows server (10.20.30.16)
-# 
-# To deploy on specific servers:
-# 1. Linux Server: docker-compose up ash-bot
-# 2. Windows Server: docker-compose up ash-nlp ash-dash ash-thrash
-# 
-# Network Configuration:
-# - All services communicate via ash-network (172.20.0.0/16)
-# - Each service has a static IP for reliable inter-service communication
-# 
-# Resource Allocation:
-# - ash-nlp: 8GB RAM, 4 CPU cores, GPU access (RTX 3050)
-# - ash-thrash: 4GB RAM, 2 CPU cores (for parallel testing)
-# - ash-dash: 2GB RAM, 1 CPU core
-# - ash-bot: 1GB RAM, 0.5 CPU cores
-# 
-# Health Checks:
-# - All services include health monitoring
-# - Automatic restart on failure
-# - Dependency management ensures proper startup order
