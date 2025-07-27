@@ -206,7 +206,4 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-ash-bot/.git/
-ash-nlp/.git/
-ash-dash/.git/
-ash-thrash/.git/
+secrets/*
