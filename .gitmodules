@@ -1,0 +1,12 @@
+[submodule "ash-bot"]
+	path = ash-bot
+	url = https://github.com/the-alphabet-cartel/ash-bot.git
+[submodule "ash-nlp"]
+	path = ash-nlp
+	url = https://github.com/the-alphabet-cartel/ash-nlp.git
+[submodule "ash-dash"]
+	path = ash-dash
+	url = https://github.com/the-alphabet-cartel/ash-dash.git
+[submodule "ash-thrash"]
+	path = ash-thrash
+	url = https://github.com/the-alphabet-cartel/ash-thrash.git
