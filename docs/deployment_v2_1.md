@@ -374,8 +374,6 @@ LOG_RETENTION_DAYS=90
 # =============================================================================
 # Backup Configuration
 # =============================================================================
-ENABLE_AUTOMATED_BACKUPS=true
-BACKUP_SCHEDULE=0 2 * * *  # Daily at 2 AM
 DASH_BACKUP_RETENTION_DAYS=30
 BACKUP_LOCATION=/opt/ash/backups
 ```
@@ -718,7 +716,6 @@ docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
 # Enable development features
 export LOG_LEVEL=DEBUG
-export ENABLE_DEBUG_ROUTES=true
 export CACHE_TTL=10
 ```
 

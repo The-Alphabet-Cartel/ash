@@ -187,7 +187,6 @@ LOG_LEVEL=DEBUG
 NODE_ENV=development
 ENABLE_SSL=false  # Disable SSL for local development
 DASH_ENABLE_HOT_RELOAD=true
-ENABLE_DEBUG_ROUTES=true
 
 # Internal service connections
 ASH_BOT_API=http://ash-bot:8882
