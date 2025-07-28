@@ -336,8 +336,6 @@ services:
     depends_on:
       ash-nlp:
         condition: service_healthy
-      ash-thrash:
-        condition: service_started
       ash-redis:
         condition: service_started
     deploy:
