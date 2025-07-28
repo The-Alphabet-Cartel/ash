@@ -211,9 +211,9 @@ TEST_PHRASES_COUNT=50  # Reduced from 350 for faster development
 # =============================================================================
 # Database Configuration
 # =============================================================================
-POSTGRES_DB=ash_development
-POSTGRES_USER=ash_dev
-POSTGRES_PASSWORD=ash_dev_password
+GLOBAL_POSTGRES_DB=ash_development
+GLOBAL_POSTGRES_USER=ash_dev
+GLOBAL_POSTGRES_PASSWORD=ash_dev_password
 THRASH_DATABASE_URL=postgresql://ash_dev:ash_dev_password@postgres:5432/ash_development
 
 # =============================================================================
@@ -281,9 +281,9 @@ services:
   # Development database with reduced resources
   postgres:
     environment:
-      POSTGRES_DB: ash_development
-      POSTGRES_USER: ash_dev
-      POSTGRES_PASSWORD: ash_dev_password
+      GLOBAL_POSTGRES_DB: ash_development
+      GLOBAL_POSTGRES_USER: ash_dev
+      GLOBAL_POSTGRES_PASSWORD: ash_dev_password
     ports:
       - "5432:5432"
     deploy:

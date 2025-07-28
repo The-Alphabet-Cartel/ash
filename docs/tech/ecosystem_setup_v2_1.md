@@ -325,9 +325,9 @@ QUICK_TEST_SCHEDULE=*/30 * * * *       # Every 30 minutes
 # =============================================================================
 # Database Configuration
 # =============================================================================
-POSTGRES_DB=ash_production
-POSTGRES_USER=ash_user
-POSTGRES_PASSWORD=your_very_secure_database_password_here
+GLOBAL_POSTGRES_DB=ash_production
+GLOBAL_POSTGRES_USER=ash_user
+GLOBAL_POSTGRES_PASSWORD=your_very_secure_database_password_here
 THRASH_DATABASE_URL=postgresql://ash_user:your_very_secure_database_password_here@postgres:5432/ash_production
 
 # Database Performance
@@ -399,9 +399,9 @@ services:
     container_name: ash-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      GLOBAL_POSTGRES_DB: ${GLOBAL_POSTGRES_DB}
+      GLOBAL_POSTGRES_USER: ${GLOBAL_POSTGRES_USER}
+      GLOBAL_POSTGRES_PASSWORD: ${GLOBAL_POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
@@ -410,7 +410,7 @@ services:
     networks:
       - ash_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${GLOBAL_POSTGRES_USER} -d ${GLOBAL_POSTGRES_DB}"]
       interval: 30s
       timeout: 10s
       retries: 5

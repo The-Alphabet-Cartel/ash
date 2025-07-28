@@ -148,7 +148,7 @@ CLAUDE_API_KEY=your_claude_api_key
 GPU_MEMORY_FRACTION=0.8
 
 # Database
-POSTGRES_PASSWORD=your_secure_database_password
+GLOBAL_POSTGRES_PASSWORD=your_secure_database_password
 
 # Dashboard Security
 SESSION_SECRET=your_session_secret
@@ -372,7 +372,7 @@ SESSION_SECRET=your_session_secret
 # =============================================================================
 # Database Configuration
 # =============================================================================
-POSTGRES_PASSWORD=your_database_password
+GLOBAL_POSTGRES_PASSWORD=your_database_password
 THRASH_DATABASE_URL=postgresql://ash_user:your_password@postgres:5432/ash_production
 
 # =============================================================================

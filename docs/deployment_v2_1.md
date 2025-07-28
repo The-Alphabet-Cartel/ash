@@ -317,9 +317,9 @@ PERFORMANCE_TEST_SCHEDULE=0 */6 * * *  # Every 6 hours
 # =============================================================================
 # Database Configuration
 # =============================================================================
-POSTGRES_DB=ash_production
-POSTGRES_USER=ash_user
-POSTGRES_PASSWORD=your_very_secure_database_password_here
+GLOBAL_POSTGRES_DB=ash_production
+GLOBAL_POSTGRES_USER=ash_user
+GLOBAL_POSTGRES_PASSWORD=your_very_secure_database_password_here
 THRASH_DATABASE_URL=postgresql://ash_user:your_very_secure_database_password_here@postgres:5432/ash_production
 
 # Database performance (optimized for 64GB RAM)
