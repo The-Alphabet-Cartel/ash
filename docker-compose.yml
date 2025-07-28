@@ -213,7 +213,7 @@ services:
       - DASH_PORT=${GLOBAL_DASH_API_PORT:-8883}
       
       # SSL Configuration
-      - ENABLE_SSL=${DASH_ENABLE_SSL:-true}
+      - ENABLE_SSL=${DASH_ENABLE_SSL:-false}
       - SSL_CERT_PATH=${DASH_SSL_CERT_PATH}
       - SSL_KEY_PATH=${DASH_SSL_KEY_PATH}
       
@@ -247,6 +247,8 @@ services:
       - ./ash-dash/dashboard:/app/dashboard:ro
       - ./secrets:/run/secrets:ro
     depends_on:
+      ash-bot:
+        condition: service_healthy
       ash-nlp:
         condition: service_healthy
       ash-redis:
