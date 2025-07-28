@@ -159,7 +159,7 @@ DISCORD_GUILD_ID=your_dev_guild_id
 # Internal service URLs (container networking)
 NLP_SERVER_URL=http://ash-nlp:8881
 TESTING_SERVER_URL=http://ash-thrash:8884
-DASHBOARD_URL=http://ash-dash:8883
+GLOBAL_DASH_API_URL=http://ash-dash:8883
 
 # Development Settings
 LOG_LEVEL=DEBUG

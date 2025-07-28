@@ -229,7 +229,7 @@ DISCORD_BOT_PREFIX=!ash
 # Internal service URLs (container networking)
 NLP_SERVER_URL=http://ash-nlp:8881
 TESTING_SERVER_URL=http://ash-thrash:8884
-DASHBOARD_URL=http://ash-dash:8883
+GLOBAL_DASH_API_URL=http://ash-dash:8883
 
 # Performance settings
 BOT_MAX_CONCURRENT_ANALYSIS=15
@@ -282,7 +282,6 @@ ASH_TESTING_API=http://ash-thrash:8884
 
 # Performance settings
 CACHE_TTL=300
-HEALTH_CHECK_INTERVAL=30000
 METRICS_UPDATE_INTERVAL=15000
 
 # Security settings
@@ -342,8 +341,6 @@ REDIS_MAXMEMORY_POLICY=allkeys-lru
 # Monitoring Configuration
 # =============================================================================
 ENABLE_METRICS=true
-ENABLE_HEALTH_CHECKS=true
-HEALTH_CHECK_INTERVAL=60
 
 # Monitoring ports
 METRICS_PORT_BOT=9091
@@ -357,7 +354,7 @@ GRAFANA_ADMIN_PASSWORD=your_secure_grafana_password
 # =============================================================================
 # Security & Privacy
 # =============================================================================
-ENABLE_API_AUTHENTICATION=true
+THRASH_ENABLE_API_AUTHENTICATION=true
 API_KEY_HEADER=X-API-Key
 INTERNAL_API_KEY=your_internal_api_key_here
 

@@ -242,7 +242,7 @@ DISCORD_BOT_PREFIX=!ash
 # Internal service URLs
 NLP_SERVER_URL=http://ash-nlp:8881
 TESTING_SERVER_URL=http://ash-thrash:8884
-DASHBOARD_URL=http://ash-dash:8883
+GLOBAL_DASH_API_URL=http://ash-dash:8883
 
 # Bot Performance Settings
 BOT_MAX_CONCURRENT_ANALYSIS=10
@@ -295,7 +295,6 @@ ASH_TESTING_API=http://ash-thrash:8884
 
 # Dashboard Performance
 CACHE_TTL=300
-HEALTH_CHECK_INTERVAL=30000
 METRICS_UPDATE_INTERVAL=15000
 
 # Security Settings
@@ -340,8 +339,6 @@ POSTGRES_EFFECTIVE_CACHE_SIZE=16GB
 # =============================================================================
 LOG_LEVEL=INFO
 ENABLE_METRICS=true
-ENABLE_HEALTH_CHECKS=true
-HEALTH_CHECK_INTERVAL=60
 
 # Monitoring Ports
 METRICS_PORT_BOT=9091
@@ -357,7 +354,7 @@ DASH_RATE_LIMIT_WINDOW=900000
 DASH_RATE_LIMIT_MAX=1000
 
 # API Security
-ENABLE_API_AUTHENTICATION=true
+THRASH_ENABLE_API_AUTHENTICATION=true
 API_KEY_HEADER=X-API-Key
 INTERNAL_API_KEY=your_internal_api_key_here
 
