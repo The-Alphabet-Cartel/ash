@@ -33,7 +33,6 @@ The Ash ecosystem consists of four interconnected components working together to
 
 ### [ash-bot](./ash-bot) - Discord Bot
 **Repository:** https://github.com/the-alphabet-cartel/ash-bot  
-**Server:** Linux (10.20.30.253)  
 **Technology:** Python, Discord.py, Docker  
 **API Port:** 8882
 
@@ -41,8 +40,6 @@ The main Discord bot that monitors conversations, detects crisis situations, and
 
 ### [ash-nlp](./ash-nlp) - NLP Processing Server
 **Repository:** https://github.com/the-alphabet-cartel/ash-nlp  
-**Server:** Windows 11 (10.20.30.16)  
-**Hardware:** Ryzen 7 7700X, 64GB RAM, RTX 3050  
 **Technology:** Python, FastAPI, Machine Learning, Docker  
 **API Port:** 8881
 
@@ -50,7 +47,6 @@ Advanced natural language processing server that analyzes messages for crisis in
 
 ### [ash-dash](./ash-dash) - Analytics Dashboard
 **Repository:** https://github.com/the-alphabet-cartel/ash-dash  
-**Server:** Windows 11 (10.20.30.16)  
 **Technology:** Node.js, Vue.js, Docker  
 **Dashboard Port:** 8883
 
@@ -58,7 +54,6 @@ Real-time analytics dashboard providing insights into bot performance, crisis de
 
 ### [ash-thrash](./ash-thrash) - Testing Suite
 **Repository:** https://github.com/the-alphabet-cartel/ash-thrash  
-**Server:** Windows 11 (10.20.30.16)  
 **Technology:** Python, FastAPI, Docker  
 **API Port:** 8884
 
@@ -99,13 +94,13 @@ cp .env.template .env  # In each repository
 
 ### Production Deployment
 
-**Linux Server (10.20.30.253) - Bot:**
+**Bot:**
 ```bash
 cd ash-bot
 docker-compose up -d
 ```
 
-**Windows Server (10.20.30.16) - NLP, Dashboard, Testing:**
+**NLP, Dashboard, Testing:**
 ```bash
 # Start NLP server
 cd ash-nlp
@@ -158,12 +153,12 @@ git submodule update --init ash-bot
 
 ### Health Check Endpoints
 - **Bot API:** http://10.20.30.253:8882/health
-- **NLP Server:** http://10.20.30.16:8881/health  
-- **Dashboard:** http://10.20.30.16:8883/health
-- **Testing Suite:** http://10.20.30.16:8884/health
+- **NLP Server:** http://10.20.30.253:8881/health  
+- **Dashboard:** http://10.20.30.253:8883/health
+- **Testing Suite:** http://10.20.30.253:8884/health
 
 ### Monitoring
-All services include health monitoring and logging. Access the dashboard at http://10.20.30.16:8883 for real-time system status.
+All services include health monitoring and logging. Access the dashboard at http://dashboard.alphatbetcartel.net for real-time system status.
 
 ## 🧪 Testing
 
@@ -190,7 +185,7 @@ Each component includes detailed documentation:
 
 ## 🛠️ Development Environment
 
-### For Windows Development (Your Setup)
+### For Windows Development
 - **Editor:** Atom
 - **Git Management:** GitHub Desktop
 - **Docker:** Docker Desktop for Windows
