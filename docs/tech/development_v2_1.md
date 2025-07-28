@@ -164,7 +164,7 @@ DASHBOARD_URL=http://ash-dash:8883
 # Development Settings
 LOG_LEVEL=DEBUG
 ENABLE_CRISIS_DETECTION=true
-DEVELOPMENT_MODE=true
+THRASH_DEVELOPMENT_MODE=true
 
 # =============================================================================
 # NLP Server Configuration (ash-nlp)
@@ -186,7 +186,7 @@ LOG_LEVEL=DEBUG
 # =============================================================================
 NODE_ENV=development
 ENABLE_SSL=false  # Disable SSL for local development
-ENABLE_HOT_RELOAD=true
+DASH_ENABLE_HOT_RELOAD=true
 ENABLE_DEBUG_ROUTES=true
 
 # Internal service connections
@@ -214,13 +214,13 @@ TEST_PHRASES_COUNT=50  # Reduced from 350 for faster development
 POSTGRES_DB=ash_development
 POSTGRES_USER=ash_dev
 POSTGRES_PASSWORD=ash_dev_password
-DATABASE_URL=postgresql://ash_dev:ash_dev_password@postgres:5432/ash_development
+THRASH_DATABASE_URL=postgresql://ash_dev:ash_dev_password@postgres:5432/ash_development
 
 # =============================================================================
 # Development Tools
 # =============================================================================
 ENABLE_METRICS=true
-ENABLE_PROFILING=true
+THRASH_ENABLE_PROFILING=true
 ENABLE_DEBUG_LOGGING=true
 ```
 
@@ -249,7 +249,7 @@ services:
   ash-bot:
     environment:
       - LOG_LEVEL=DEBUG
-      - DEVELOPMENT_MODE=true
+      - THRASH_DEVELOPMENT_MODE=true
     volumes:
       - ./ash-bot/src:/app/src:cached
     ports:
@@ -259,7 +259,7 @@ services:
   ash-dash:
     environment:
       - NODE_ENV=development
-      - ENABLE_HOT_RELOAD=true
+      - DASH_ENABLE_HOT_RELOAD=true
       - LOG_LEVEL=debug
     volumes:
       - ./ash-dash/src:/app/src:cached
@@ -387,7 +387,7 @@ docker-compose up -d postgres redis
 
 # Run your component locally with container dependencies
 cd ash-bot
-export DATABASE_URL=postgresql://ash_dev:ash_dev_password@localhost:5432/ash_development
+export THRASH_DATABASE_URL=postgresql://ash_dev:ash_dev_password@localhost:5432/ash_development
 python src/main.py
 ```
 

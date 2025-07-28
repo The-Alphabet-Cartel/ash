@@ -319,7 +319,7 @@ TARGET_ACCURACY=92.0
 MAX_FALSE_POSITIVE_RATE=4.0
 
 # Testing Schedule
-COMPREHENSIVE_TEST_SCHEDULE=0 6 * * *  # Daily at 6 AM
+THRASH_COMPREHENSIVE_TEST_SCHEDULE=0 6 * * *  # Daily at 6 AM
 QUICK_TEST_SCHEDULE=*/30 * * * *       # Every 30 minutes
 
 # =============================================================================
@@ -328,7 +328,7 @@ QUICK_TEST_SCHEDULE=*/30 * * * *       # Every 30 minutes
 POSTGRES_DB=ash_production
 POSTGRES_USER=ash_user
 POSTGRES_PASSWORD=your_very_secure_database_password_here
-DATABASE_URL=postgresql://ash_user:your_very_secure_database_password_here@postgres:5432/ash_production
+THRASH_DATABASE_URL=postgresql://ash_user:your_very_secure_database_password_here@postgres:5432/ash_production
 
 # Database Performance
 POSTGRES_MAX_CONNECTIONS=200
@@ -353,8 +353,8 @@ METRICS_PORT_TESTING=9094
 # Security & Privacy
 # =============================================================================
 ENABLE_RATE_LIMITING=true
-RATE_LIMIT_WINDOW=900000
-RATE_LIMIT_MAX=1000
+DASH_RATE_LIMIT_WINDOW=900000
+DASH_RATE_LIMIT_MAX=1000
 
 # API Security
 ENABLE_API_AUTHENTICATION=true
@@ -459,7 +459,7 @@ services:
       - CLAUDE_MODEL=${CLAUDE_MODEL}
       - GPU_MEMORY_FRACTION=${GPU_MEMORY_FRACTION}
       - WORKERS=${NLP_WORKERS}
-      - DATABASE_URL=${DATABASE_URL}
+      - THRASH_DATABASE_URL=${THRASH_DATABASE_URL}
       - LOG_LEVEL=${LOG_LEVEL}
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
@@ -504,7 +504,7 @@ services:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - DISCORD_GUILD_ID=${DISCORD_GUILD_ID}
       - NLP_SERVER_URL=http://ash-nlp:8881
-      - DATABASE_URL=${DATABASE_URL}
+      - THRASH_DATABASE_URL=${THRASH_DATABASE_URL}
       - LOG_LEVEL=${LOG_LEVEL}
       - MAX_CONCURRENT_ANALYSIS=${BOT_MAX_CONCURRENT_ANALYSIS}
     volumes:
@@ -546,7 +546,7 @@ services:
       - ASH_BOT_API=http://ash-bot:8882
       - ASH_NLP_API=http://ash-nlp:8881
       - ASH_TESTING_API=http://ash-thrash:8884
-      - DATABASE_URL=${DATABASE_URL}
+      - THRASH_DATABASE_URL=${THRASH_DATABASE_URL}
       - REDIS_URL=redis://redis:6379
       - SESSION_SECRET=${SESSION_SECRET}
       - ENABLE_SSL=${ENABLE_SSL}
@@ -591,7 +591,7 @@ services:
     environment:
       - NLP_SERVER_URL=http://ash-nlp:8881
       - TEST_ENVIRONMENT=${TEST_ENVIRONMENT}
-      - DATABASE_URL=${DATABASE_URL}
+      - THRASH_DATABASE_URL=${THRASH_DATABASE_URL}
       - COMPREHENSIVE_TEST_ENABLED=${COMPREHENSIVE_TEST_ENABLED}
       - TEST_PHRASES_COUNT=${TEST_PHRASES_COUNT}
       - TARGET_ACCURACY=${TARGET_ACCURACY}

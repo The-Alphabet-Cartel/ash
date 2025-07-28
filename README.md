@@ -373,7 +373,7 @@ SESSION_SECRET=your_session_secret
 # Database Configuration
 # =============================================================================
 POSTGRES_PASSWORD=your_database_password
-DATABASE_URL=postgresql://ash_user:your_password@postgres:5432/ash_production
+THRASH_DATABASE_URL=postgresql://ash_user:your_password@postgres:5432/ash_production
 
 # =============================================================================
 # Testing Configuration

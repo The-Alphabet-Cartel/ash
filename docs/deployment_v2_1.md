@@ -291,8 +291,8 @@ JWT_SECRET=your_jwt_secret_key_here
 ENABLE_CORS=true
 CORS_ORIGINS=https://dashboard.alphabetcartel.net,https://alphabetcartel.org
 ENABLE_RATE_LIMITING=true
-RATE_LIMIT_WINDOW=900000
-RATE_LIMIT_MAX=2000
+DASH_RATE_LIMIT_WINDOW=900000
+DASH_RATE_LIMIT_MAX=2000
 
 # =============================================================================
 # Testing Suite Configuration
@@ -310,7 +310,7 @@ MAX_FALSE_POSITIVE_RATE=4.0
 ACCURACY_ALERT_THRESHOLD=88.0
 
 # Test scheduling
-COMPREHENSIVE_TEST_SCHEDULE=0 6 * * *  # Daily at 6 AM
+THRASH_COMPREHENSIVE_TEST_SCHEDULE=0 6 * * *  # Daily at 6 AM
 QUICK_TEST_SCHEDULE=*/30 * * * *       # Every 30 minutes
 PERFORMANCE_TEST_SCHEDULE=0 */6 * * *  # Every 6 hours
 
@@ -320,7 +320,7 @@ PERFORMANCE_TEST_SCHEDULE=0 */6 * * *  # Every 6 hours
 POSTGRES_DB=ash_production
 POSTGRES_USER=ash_user
 POSTGRES_PASSWORD=your_very_secure_database_password_here
-DATABASE_URL=postgresql://ash_user:your_very_secure_database_password_here@postgres:5432/ash_production
+THRASH_DATABASE_URL=postgresql://ash_user:your_very_secure_database_password_here@postgres:5432/ash_production
 
 # Database performance (optimized for 64GB RAM)
 POSTGRES_MAX_CONNECTIONS=300
@@ -371,7 +371,7 @@ MAX_CONTEXT_LENGTH=2048
 # Logging Configuration
 # =============================================================================
 LOG_LEVEL=INFO
-ENABLE_DETAILED_LOGGING=true
+THRASH_ENABLE_DETAILED_LOGGING=true
 LOG_RETENTION_DAYS=90
 
 # =============================================================================
@@ -379,7 +379,7 @@ LOG_RETENTION_DAYS=90
 # =============================================================================
 ENABLE_AUTOMATED_BACKUPS=true
 BACKUP_SCHEDULE=0 2 * * *  # Daily at 2 AM
-BACKUP_RETENTION_DAYS=30
+DASH_BACKUP_RETENTION_DAYS=30
 BACKUP_LOCATION=/opt/ash/backups
 ```
 
