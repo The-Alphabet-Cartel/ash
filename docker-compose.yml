@@ -253,6 +253,8 @@ services:
         condition: service_healthy
       ash-redis:
         condition: service_started
+      ash-postgres:
+        condition: service_started
     deploy:
       resources:
         limits:
