@@ -275,8 +275,8 @@ services:
     networks:
       ash-network:
         ipv4_address: 172.20.0.13
-    ports:
-      - 8884:8884
+    #ports:
+      #- 8884:8884
     environment:
       - NLP_SERVER_URL=${GLOBAL_NLP_API_URL}
       - MAX_CONCURRENT_TESTS=${THRASH_MAX_CONCURRENT_TESTS}
@@ -304,12 +304,12 @@ services:
         limits:
           memory: 4G
           cpus: '2.0'
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8884/health"]
-      interval: 60s
-      timeout: 15s
-      retries: 3
-      start_period: 45s
+    #healthcheck:
+      #test: ["CMD", "curl", "-f", "http://localhost:8884/health"]
+      #interval: 60s
+      #timeout: 15s
+      #retries: 3
+      #start_period: 45s
 
   ash-thrash-api:
     image: ghcr.io/the-alphabet-cartel/ash-thrash-api:latest
@@ -337,7 +337,7 @@ services:
       ash-nlp:
         condition: service_healthy
       ash-thrash:
-        condition: service_healthy
+        condition: service_started
       ash-redis:
         condition: service_started
     deploy:
