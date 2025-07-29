@@ -11,6 +11,7 @@ from transformers import (
     pipeline, AutoModel
 )
 from sentence_transformers import SentenceTransformer
+from huggingface_hub import login
 import numpy as np
 import time
 import json
@@ -21,6 +22,11 @@ import os
 from sklearn.metrics.pairwise import cosine_similarity
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=RuntimeWarning, message="Mean of empty slice")
+warnings.filterwarnings("ignore", category=RuntimeWarning, message="invalid value encountered in divide")
+
+# Set up Hugging Face authentication
+HF_TOKEN = "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"
 
 # Set up proper CUDA environment
 if torch.cuda.is_available():
@@ -35,6 +41,15 @@ class MultiModelTester:
         
         print("🔄 Initializing Multi-Model Crisis Detection Tester...")
         print(f"🖥️  Device: {self.device}")
+        
+        # Authenticate with Hugging Face
+        try:
+            print("🔐 Authenticating with Hugging Face...")
+            login(token=HF_TOKEN)
+            print("✅ Hugging Face authentication successful")
+        except Exception as e:
+            print(f"⚠️  Hugging Face authentication failed: {e}")
+            print("⚠️  Some models may not be accessible")
         
         if self.use_gpu:
             gpu_name = torch.cuda.get_device_name(0)
@@ -126,21 +141,42 @@ class MultiModelTester:
         try:
             if model_type == "similarity":
                 # Sentence transformer model
-                model = SentenceTransformer(model_name, device=self.device)
+                model = SentenceTransformer(model_name, device=self.device, use_auth_token=HF_TOKEN)
                 self.models[model_key] = model
                 print(f"✅ Loaded sentence transformer: {model_key}")
                 
             elif model_type == "classification":
-                # Classification model
-                tokenizer = AutoTokenizer.from_pretrained(model_name)
+                # Classification model with better precision handling
+                tokenizer = AutoTokenizer.from_pretrained(model_name, use_auth_token=HF_TOKEN)
                 
                 if self.use_gpu:
-                    model = AutoModelForSequenceClassification.from_pretrained(
-                        model_name, 
-                        torch_dtype=torch.float16
-                    ).to(self.device)
+                    try:
+                        # Try float16 first for speed
+                        model = AutoModelForSequenceClassification.from_pretrained(
+                            model_name, 
+                            torch_dtype=torch.float16,
+                            use_auth_token=HF_TOKEN
+                        ).to(self.device)
+                        # Test if float16 works with a dummy input
+                        test_input = tokenizer("test", return_tensors="pt", padding=True, truncation=True)
+                        test_input = {k: v.to(self.device) for k, v in test_input.items()}
+                        with torch.no_grad():
+                            _ = model(**test_input)
+                        print(f"✅ Using float16 precision for {model_key}")
+                    except Exception as e:
+                        print(f"⚠️  Float16 failed for {model_key}, falling back to float32: {e}")
+                        # Fallback to float32
+                        model = AutoModelForSequenceClassification.from_pretrained(
+                            model_name, 
+                            torch_dtype=torch.float32,
+                            use_auth_token=HF_TOKEN
+                        ).to(self.device)
                 else:
-                    model = AutoModelForSequenceClassification.from_pretrained(model_name)
+                    model = AutoModelForSequenceClassification.from_pretrained(
+                        model_name,
+                        torch_dtype=torch.float32,
+                        use_auth_token=HF_TOKEN
+                    )
                     model = model.to(self.device)
                 
                 model.eval()
@@ -188,12 +224,28 @@ class MultiModelTester:
                     torch.cuda.synchronize()
                     logits = logits.cpu()
                     
-            # Get probabilities
+            # Get probabilities with precision handling
             if len(logits.shape) == 0:  # Single output
-                probabilities = torch.sigmoid(logits).numpy()
+                try:
+                    probabilities = torch.sigmoid(logits).numpy()
+                except RuntimeError as e:
+                    if "Half" in str(e):
+                        # Convert to float32 for operations not supported in float16
+                        logits = logits.float()
+                        probabilities = torch.sigmoid(logits).numpy()
+                    else:
+                        raise e
                 labels = ["crisis"]
             else:  # Multiple outputs
-                probabilities = torch.softmax(logits, dim=-1).numpy()
+                try:
+                    probabilities = torch.softmax(logits, dim=-1).numpy()
+                except RuntimeError as e:
+                    if "Half" in str(e):
+                        # Convert to float32 for operations not supported in float16
+                        logits = logits.float()
+                        probabilities = torch.softmax(logits, dim=-1).numpy()
+                    else:
+                        raise e
                 # Try to get label names from model config
                 try:
                     labels = model.config.id2label
@@ -253,10 +305,12 @@ class MultiModelTester:
             best_similarity = float(similarities[best_match_idx])
             best_pattern = self.crisis_patterns[best_match_idx]
             
-            # Calculate overall crisis score
-            crisis_score = float(np.mean(similarities[similarities > 0.3]))  # Average of relevant similarities
-            if np.isnan(crisis_score):
-                crisis_score = float(best_similarity)
+            # Calculate overall crisis score (handle empty arrays)
+            relevant_similarities = similarities[similarities > 0.3]
+            if len(relevant_similarities) > 0:
+                crisis_score = float(np.mean(relevant_similarities))  # Average of relevant similarities
+            else:
+                crisis_score = float(best_similarity)  # Fallback to best match if no relevant ones
             
             results = {
                 'crisis_score': crisis_score,
