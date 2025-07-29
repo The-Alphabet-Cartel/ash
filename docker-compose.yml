@@ -134,7 +134,7 @@ services:
       # Logging Configuration
       - GLOBAL_LOG_LEVEL=${GLOBAL_LOG_LEVEL:-INFO}
       - NLP_LOG_FILE=${NLP_LOG_FILE:-nlp_service.log}
-      - GLOBAL_ENABLE_DEBUG_LOGGING=${GLOBAL_ENABLE_DEBUG_LOGGING:-false}
+      - GLOBAL_ENABLE_DEBUG_MODE=${GLOBAL_ENABLE_DEBUG_MODE:-false}
       
       # Storage Paths
       - NLP_DATA_DIR=${NLP_DATA_DIR}
@@ -153,7 +153,7 @@ services:
       
       # Security
       - GLOABL_ALLOWED_IPS=${GLOBAL_ALLOWED_IPS}
-      - GLOBAL_API_ENABLE_CORS=${GLOBAL_API_ENABLE_CORS}
+      - GLOBAL_ENABLE_CORS=${GLOBAL_ENABLE_CORS}
     volumes:
       - ./ash-nlp/data:/app/data
       - ./ash-nlp/models/cache:/app/models/cache
