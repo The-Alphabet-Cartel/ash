@@ -25,8 +25,9 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=RuntimeWarning, message="Mean of empty slice")
 warnings.filterwarnings("ignore", category=RuntimeWarning, message="invalid value encountered in divide")
 
-# Set up Hugging Face authentication
+# Set up Hugging Face authentication (optional)
 HF_TOKEN = "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"
+USE_AUTH_TOKEN = None  # Will be set during authentication attempt
 
 # Set up proper CUDA environment
 if torch.cuda.is_available():
@@ -42,14 +43,17 @@ class MultiModelTester:
         print("🔄 Initializing Multi-Model Crisis Detection Tester...")
         print(f"🖥️  Device: {self.device}")
         
-        # Authenticate with Hugging Face
+        # Authenticate with Hugging Face (optional)
+        global USE_AUTH_TOKEN
         try:
-            print("🔐 Authenticating with Hugging Face...")
-            login(token=HF_TOKEN)
+            print("🔐 Attempting Hugging Face authentication...")
+            login(token=HF_TOKEN, add_to_git_credential=False)
+            USE_AUTH_TOKEN = HF_TOKEN
             print("✅ Hugging Face authentication successful")
         except Exception as e:
             print(f"⚠️  Hugging Face authentication failed: {e}")
-            print("⚠️  Some models may not be accessible")
+            print("⚠️  Continuing without authentication - public models only")
+            USE_AUTH_TOKEN = None
         
         if self.use_gpu:
             gpu_name = torch.cuda.get_device_name(0)
@@ -141,13 +145,13 @@ class MultiModelTester:
         try:
             if model_type == "similarity":
                 # Sentence transformer model
-                model = SentenceTransformer(model_name, device=self.device, use_auth_token=HF_TOKEN)
+                model = SentenceTransformer(model_name, device=self.device, use_auth_token=USE_AUTH_TOKEN)
                 self.models[model_key] = model
                 print(f"✅ Loaded sentence transformer: {model_key}")
                 
             elif model_type == "classification":
                 # Classification model with better precision handling
-                tokenizer = AutoTokenizer.from_pretrained(model_name, use_auth_token=HF_TOKEN)
+                tokenizer = AutoTokenizer.from_pretrained(model_name, use_auth_token=USE_AUTH_TOKEN)
                 
                 if self.use_gpu:
                     try:
@@ -155,7 +159,7 @@ class MultiModelTester:
                         model = AutoModelForSequenceClassification.from_pretrained(
                             model_name, 
                             torch_dtype=torch.float16,
-                            use_auth_token=HF_TOKEN
+                            use_auth_token=USE_AUTH_TOKEN
                         ).to(self.device)
                         # Test if float16 works with a dummy input
                         test_input = tokenizer("test", return_tensors="pt", padding=True, truncation=True)
@@ -169,13 +173,13 @@ class MultiModelTester:
                         model = AutoModelForSequenceClassification.from_pretrained(
                             model_name, 
                             torch_dtype=torch.float32,
-                            use_auth_token=HF_TOKEN
+                            use_auth_token=USE_AUTH_TOKEN
                         ).to(self.device)
                 else:
                     model = AutoModelForSequenceClassification.from_pretrained(
                         model_name,
                         torch_dtype=torch.float32,
-                        use_auth_token=HF_TOKEN
+                        use_auth_token=USE_AUTH_TOKEN
                     )
                     model = model.to(self.device)
                 
@@ -501,12 +505,21 @@ def test_multiple_models():
         successful_tests = [r for r in model_results if 'error' not in r]
         if successful_tests:
             avg_time = np.mean([r['processing_time'] for r in successful_tests])
-            failed_phrases = [r for r in successful_tests if r['expected'] == 'high' and test_case['current_result'].endswith('(failed)') for test_case in test_phrases if test_case['phrase'] == r['phrase']]
-            improvements = sum(1 for r in failed_phrases if r.get('would_catch', False))
+            
+            # Count improvements for currently failing phrases
+            improvements = 0
+            for r in successful_tests:
+                # Find the matching test case
+                matching_test = next((t for t in test_phrases if t['phrase'] == r['phrase']), None)
+                if matching_test and matching_test['current_result'].endswith('(failed)'):
+                    if r.get('would_catch', False):
+                        improvements += 1
+            
+            total_failed = len([t for t in test_phrases if t['current_result'].endswith('(failed)')])
             
             print(f"📊 Model Performance Summary:")
             print(f"   ⚡ Avg Processing Time: {avg_time:.1f}ms")
-            print(f"   📈 Would Fix: {improvements}/{len([t for t in test_phrases if t['current_result'].endswith('(failed)')])} failing phrases")
+            print(f"   📈 Would Fix: {improvements}/{total_failed} failing phrases")
         
         all_results[model_key] = model_results
         
