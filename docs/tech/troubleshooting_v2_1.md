@@ -269,9 +269,6 @@ docker exec ash-postgres pg_isready -U ash_user -d ash_production
 
 2. **Check Database Configuration:**
 ```bash
-# Verify environment variables
-grep -E "POSTGRES_|THRASH_DATABASE_URL" .env
-
 # Check database initialization
 docker-compose logs postgres | grep -i "database system is ready"
 ```

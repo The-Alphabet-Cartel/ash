@@ -35,12 +35,7 @@ services:
       - BOT_STAFF_PING_NAME=${BOT_STAFF_PING_NAME}
 
       # API Server Configuration
-      - BOT_API_HOST=${BOT_API_HOST:-0.0.0.0}
       - GLOBAL_BOT_API_PORT=${GLOBAL_BOT_API_PORT:-8882}
-      - BOT_API_RATE_LIMIT_PER_MINUTE=${BOT_API_RATE_LIMIT_PER_MINUTE:-60}
-      - BOT_API_RATE_LIMIT_PER_HOUR=${BOT_API_RATE_LIMIT_PER_HOUR:-1000}
-      - GLOBAL_API_ENABLE_CORS=${GLOBAL_API_ENABLE_CORS:-true}
-      - GLOBAL_API_ALLOWED_ORIGINS=${GLOBAL_API_ALLOWED_ORIGINS:-*}
 
       # Learning System Configuration
       - GLOBAL_ENABLE_LEARNING_SYSTEM=${GLOBAL_ENABLE_LEARNING_SYSTEM}
@@ -63,16 +58,7 @@ services:
       - BOT_CONVERSATION_SETUP_INSTRUCTIONS=${BOT_CONVERSATION_SETUP_INSTRUCTIONS:-true}
       - BOT_CONVERSATION_LOG_ATTEMPTS=${BOT_CONVERSATION_LOG_ATTEMPTS:-true}
       - BOT_CONVERSATION_TIMEOUT=${BOT_CONVERSATION_TIMEOUT:-300}
-
-      # Performance Monitoring
-      - BOT_ENABLE_PERFORMANCE_TRACKING=${BOT_ENABLE_PERFORMANCE_TRACKING:-true}
-      - BOT_TRACK_RESPONSE_TIMES=${BOT_TRACK_RESPONSE_TIMES:-true}
-      - BOT_TRACK_MEMORY_USAGE=${BOT_TRACK_MEMORY_USAGE:-true}
-      - BOT_COLLECT_CRISIS_STATS=${BOT_COLLECT_CRISIS_STATS:-true}
-      - BOT_COLLECT_KEYWORD_STATS=${BOT_COLLECT_KEYWORD_STATS:-true}
-      - BOT_COLLECT_LEARNING_STATS=${BOT_COLLECT_LEARNING_STATS:-true}
-      - BOT_STATS_RETENTION_DAYS=${BOT_STATS_RETENTION_DAYS:-90}
-      - BOT_LOGS_RETENTION_DAYS=${BOT_LOGS_RETENTION_DAYS:-90}
+      - BOT_CRISIS_OVERRIDE_LEVELS=${BOT_CRISIS_OVERRIDE_LEVELS:-medium,high}
     volumes:
       - ./ash-bot/logs:/app/logs
       - ./ash-bot/data:/app/data
@@ -130,18 +116,17 @@ services:
       - NLP_SENTIMENT_MODEL=${NLP_SENTIMENT_MODEL:-cardiffnlp/twitter-roberta-base-sentiment-latest}
       - NLP_MODEL_CACHE_DIR=${NLP_MODEL_CACHE_DIR}
       
-      # Hardware Configuration - Optimized for your RTX 3050
+      # Hardware Configuration
       - NLP_DEVICE=${NLP_DEVICE:-auto}
       - NLP_MODEL_PRECISION=${NLP_MODEL_PRECISION:-float16}
       
-      # Performance Tuning - Tuned for your Ryzen 7 7700x
+      # Performance Tuning
       - NLP_MAX_BATCH_SIZE=${NLP_MAX_BATCH_SIZE:-32}
       - NLP_INFERENCE_THREADS=${NLP_INFERENCE_THREADS:-4}
       - NLP_MAX_CONCURRENT_REQUESTS=${NLP_MAX_CONCURRENT_REQUESTS:-10}
       - NLP_REQUEST_TIMEOUT=${NLP_REQUEST_TIMEOUT:-30}
       
       # Server Configuration
-      - NLP_API_HOST=${NLP_API_HOST:-0.0.0.0}
       - GLOBAL_NLP_API_PORT=${GLOBAL_NLP_API_PORT:-8881}
       - NLP_UVICORN_WORKERS=${NLP_UVICORN_WORKERS:-1}
       - NLP_RELOAD_ON_CHANGES=${NLP_RELOAD_ON_CHANGES:-false}
@@ -208,16 +193,13 @@ services:
     ports:
       - 8883:8883
     environment:
-      - GLOBAL_ENVIRONMENT=${GLOBAL_ENVIRONMENT:-production}
-      - GLOBAL_DASH_API_PORT=${GLOBAL_DASH_API_PORT:-8883}
-      - GLOBAL_DASH_API_PORT=${GLOBAL_DASH_API_PORT:-8883}
-      
       # SSL Configuration
       - DASH_ENABLE_SSL=${DASH_ENABLE_SSL:-false}
       - DASH_SSL_CERT_PATH=${DASH_SSL_CERT_PATH}
       - DASH_SSL_KEY_PATH=${DASH_SSL_KEY_PATH}
       
       # Ash Bot API (Discord Bot with Crisis Detection)
+      - GLOBAL_DASH_API_PORT=${GLOBAL_DASH_API_PORT:-8883}
       - GLOBAL_BOT_API_URL=${GLOBAL_BOT_API_URL}
       - DASH_BOT_API_TIMEOUT=${DASH_BOT_API_TIMEOUT:-5000}
       
@@ -227,8 +209,6 @@ services:
       
       # Cache Settings
       - DASH_CACHE_TTL=${DASH_CACHE_TTL:-300}
-      - DASH_ENABLE_ANALYTICS=${DASH_ENABLE_ANALYTICS:-true}
-      - DASH_ANALYTICS_RETENTION_DAYS=${DASH_ANALYTICS_RETENTION_DAYS:-90}
       
       # Real-time Updates
       - DASH_ENABLE_SOCKET_IO=${DASH_ENABLE_SOCKET_IO:-true}
@@ -236,9 +216,19 @@ services:
 
       # LOGGING & MONITORING
       - GLOBAL_LOG_LEVEL=${GLOBAL_LOG_LEVEL:-info}
+      - DASH_LOG_DIR=${DASH_LOG_DIR:-./logs}
+      - DASH_LOG_FILE=${DASH_LOG_FILE:-ash-dash.log}
       
       # DOCKER SECRETS CONFIGURATION
       - GLOBAL_SESSION_TOKEN=${GLOBAL_SESSION_TOKEN}
+      
+      # Enable Access
+      - DASH_ENABLE_ACCESS_LOGS=${DASH_ENABLE_ACCESS_LOGS:-true}
+      
+      # Rate Limits
+      - DASH_RATE_LIMIT_WINDOW=${DASH_RATE_LIMIT_WINDOW:-900000}
+      - DASH_RATE_LIMIT_MAX=${DASH_RATE_LIMIT_MAX:-100}
+      - DASH_RATE_LIMIT_MESSAGE=${DASH_RATE_LIMIT_MESSAGE:-Too many requests, please try again later}
     volumes:
       - ./ash-dash/logs:/app/logs
       - ./ash-dash/data:/app/data
@@ -252,8 +242,6 @@ services:
       ash-nlp:
         condition: service_healthy
       ash-redis:
-        condition: service_started
-      ash-postgres:
         condition: service_started
     deploy:
       resources:
@@ -280,9 +268,6 @@ services:
     environment:
       - GLOBAL_NLP_API_URL=${GLOBAL_NLP_API_URL}
       - THRASH_MAX_CONCURRENT_TESTS=${THRASH_MAX_CONCURRENT_TESTS}
-      - THRASH_ENABLE_SCHEDULED_TESTING=${THRASH_ENABLE_SCHEDULED_TESTING}
-      - THRASH_COMPREHENSIVE_TEST_SCHEDULE=${THRASH_COMPREHENSIVE_TEST_SCHEDULE}
-      - THRASH_QUICK_VALIDATION_SCHEDULE=${THRASH_QUICK_VALIDATION_SCHEDULE}
     volumes:
       - ./ash-thrash/config:/app/config
       - ./ash-thrash/src:/app/src
@@ -296,8 +281,6 @@ services:
       ash-dash:
         condition: service_healthy
       ash-redis:
-        condition: service_started
-      ash-postgres:
         condition: service_started
     deploy:
       resources:
@@ -316,12 +299,12 @@ services:
       ash-network:
         ipv4_address: 172.20.0.14
     ports:
-      - 8885:8885
+      - 8884:8884
     environment:
       - GLOBAL_NLP_API_URL=${GLOBAL_NLP_API_URL}
-      - THRASH_API_HOST=${THRASH_API_HOST}
       - GLOBAL_THRASH_API_PORT=${GLOBAL_THRASH_API_PORT}
       - GLOBAL_ENABLE_DEBUG_MODE=${GLOBAL_ENABLE_DEBUG_MODE}
+      - THRASH_API_HOST=${THRASH_API_HOST}
     volumes:
       - ./ash-thrash/config:/app/config
       - ./ash-thrash/src:/app/src
@@ -338,38 +321,7 @@ services:
           memory: 4G
           cpus: '1.0'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8885/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # ========================================================================
-  # Shared Database
-  # ========================================================================
-  ash-postgres:
-    image: postgres:15-alpine
-    container_name: ash-postgres
-    restart: unless-stopped
-    networks:
-      ash-network:
-        ipv4_address: 172.20.0.20
-    ports:
-      - 5432:5432
-    environment:
-      - GLOBAL_POSTGRES_DB=${GLOBAL_POSTGRES_DB:-ash}
-      - GLOBAL_POSTGRES_USER=${GLOBAL_POSTGRES_USER:-ash}
-      - GLOBAL_POSTGRES_PASSWORD=${GLOBAL_POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./ash-thrash/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./secrets:/run/secrets:ro
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '0.5'
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${GLOBAL_POSTGRES_USER:-ash} -d ${GLOBAL_POSTGRES_DB:-ash}"]
+      test: ["CMD", "curl", "-f", "http://localhost:8884/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -383,7 +335,7 @@ services:
     restart: unless-stopped
     networks:
       ash-network:
-        ipv4_address: 172.20.0.21
+        ipv4_address: 172.20.0.20
     ports:
       - 6379:6379
     command: redis-server --appendonly yes --requirepass ${GLOBAL_REDIS_PASSWORD}
@@ -409,7 +361,5 @@ networks:
         - subnet: 172.20.0.0/16
 
 volumes:
-  postgres_data:
-    driver: local
   redis_data:
     driver: local

@@ -229,7 +229,6 @@ DISCORD_BOT_PREFIX=!ash
 # Internal service URLs (container networking)
 NLP_SERVER_URL=http://ash-nlp:8881
 TESTING_SERVER_URL=http://ash-thrash:8884
-GLOBAL_DASH_API_URL=http://ash-dash:8883
 
 # Performance settings
 BOT_MAX_CONCURRENT_ANALYSIS=15
@@ -308,18 +307,12 @@ TARGET_ACCURACY=92.0
 MAX_FALSE_POSITIVE_RATE=4.0
 ACCURACY_ALERT_THRESHOLD=88.0
 
-# Test scheduling
-THRASH_COMPREHENSIVE_TEST_SCHEDULE=0 6 * * *  # Daily at 6 AM
-QUICK_TEST_SCHEDULE=*/30 * * * *       # Every 30 minutes
-PERFORMANCE_TEST_SCHEDULE=0 */6 * * *  # Every 6 hours
-
 # =============================================================================
 # Database Configuration
 # =============================================================================
 GLOBAL_POSTGRES_DB=ash_production
-GLOBAL_POSTGRES_USER=ash_user
+GLOBAL_POSTGRES_USER=ash
 GLOBAL_POSTGRES_PASSWORD=your_very_secure_database_password_here
-THRASH_DATABASE_URL=postgresql://ash_user:your_very_secure_database_password_here@postgres:5432/ash_production
 
 # Database performance (optimized for 64GB RAM)
 POSTGRES_MAX_CONNECTIONS=300
@@ -368,14 +361,7 @@ MAX_CONTEXT_LENGTH=2048
 # Logging Configuration
 # =============================================================================
 LOG_LEVEL=INFO
-THRASH_ENABLE_DETAILED_LOGGING=true
 LOG_RETENTION_DAYS=90
-
-# =============================================================================
-# Backup Configuration
-# =============================================================================
-DASH_BACKUP_RETENTION_DAYS=30
-BACKUP_LOCATION=/opt/ash/backups
 ```
 
 **3. SSL Certificate Setup:**

@@ -147,9 +147,6 @@ DISCORD_GUILD_ID=your_guild_id
 CLAUDE_API_KEY=your_claude_api_key
 GPU_MEMORY_FRACTION=0.8
 
-# Database
-GLOBAL_POSTGRES_PASSWORD=your_secure_database_password
-
 # Dashboard Security
 SESSION_SECRET=your_session_secret
 JWT_SECRET=your_jwt_secret
@@ -368,12 +365,6 @@ NLP_WORKERS=6
 NODE_ENV=production
 ENABLE_SSL=true
 SESSION_SECRET=your_session_secret
-
-# =============================================================================
-# Database Configuration
-# =============================================================================
-GLOBAL_POSTGRES_PASSWORD=your_database_password
-THRASH_DATABASE_URL=postgresql://ash_user:your_password@postgres:5432/ash_production
 
 # =============================================================================
 # Testing Configuration

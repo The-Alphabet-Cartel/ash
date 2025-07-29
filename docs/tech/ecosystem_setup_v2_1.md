@@ -242,7 +242,6 @@ DISCORD_BOT_PREFIX=!ash
 # Internal service URLs
 NLP_SERVER_URL=http://ash-nlp:8881
 TESTING_SERVER_URL=http://ash-thrash:8884
-GLOBAL_DASH_API_URL=http://ash-dash:8883
 
 # Bot Performance Settings
 BOT_MAX_CONCURRENT_ANALYSIS=10
@@ -318,8 +317,6 @@ TARGET_ACCURACY=92.0
 MAX_FALSE_POSITIVE_RATE=4.0
 
 # Testing Schedule
-THRASH_COMPREHENSIVE_TEST_SCHEDULE=0 6 * * *  # Daily at 6 AM
-QUICK_TEST_SCHEDULE=*/30 * * * *       # Every 30 minutes
 
 # =============================================================================
 # Database Configuration
@@ -327,7 +324,6 @@ QUICK_TEST_SCHEDULE=*/30 * * * *       # Every 30 minutes
 GLOBAL_POSTGRES_DB=ash_production
 GLOBAL_POSTGRES_USER=ash_user
 GLOBAL_POSTGRES_PASSWORD=your_very_secure_database_password_here
-THRASH_DATABASE_URL=postgresql://ash_user:your_very_secure_database_password_here@postgres:5432/ash_production
 
 # Database Performance
 POSTGRES_MAX_CONNECTIONS=200
@@ -456,7 +452,6 @@ services:
       - CLAUDE_MODEL=${CLAUDE_MODEL}
       - GPU_MEMORY_FRACTION=${GPU_MEMORY_FRACTION}
       - WORKERS=${NLP_WORKERS}
-      - THRASH_DATABASE_URL=${THRASH_DATABASE_URL}
       - LOG_LEVEL=${LOG_LEVEL}
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
@@ -501,7 +496,6 @@ services:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - DISCORD_GUILD_ID=${DISCORD_GUILD_ID}
       - NLP_SERVER_URL=http://ash-nlp:8881
-      - THRASH_DATABASE_URL=${THRASH_DATABASE_URL}
       - LOG_LEVEL=${LOG_LEVEL}
       - MAX_CONCURRENT_ANALYSIS=${BOT_MAX_CONCURRENT_ANALYSIS}
     volumes:
@@ -543,7 +537,6 @@ services:
       - ASH_BOT_API=http://ash-bot:8882
       - ASH_NLP_API=http://ash-nlp:8881
       - ASH_TESTING_API=http://ash-thrash:8884
-      - THRASH_DATABASE_URL=${THRASH_DATABASE_URL}
       - REDIS_URL=redis://redis:6379
       - SESSION_SECRET=${SESSION_SECRET}
       - ENABLE_SSL=${ENABLE_SSL}
@@ -588,7 +581,6 @@ services:
     environment:
       - NLP_SERVER_URL=http://ash-nlp:8881
       - TEST_ENVIRONMENT=${TEST_ENVIRONMENT}
-      - THRASH_DATABASE_URL=${THRASH_DATABASE_URL}
       - COMPREHENSIVE_TEST_ENABLED=${COMPREHENSIVE_TEST_ENABLED}
       - TEST_PHRASES_COUNT=${TEST_PHRASES_COUNT}
       - TARGET_ACCURACY=${TARGET_ACCURACY}

@@ -159,12 +159,10 @@ DISCORD_GUILD_ID=your_dev_guild_id
 # Internal service URLs (container networking)
 NLP_SERVER_URL=http://ash-nlp:8881
 TESTING_SERVER_URL=http://ash-thrash:8884
-GLOBAL_DASH_API_URL=http://ash-dash:8883
 
 # Development Settings
 LOG_LEVEL=DEBUG
 ENABLE_CRISIS_DETECTION=true
-THRASH_DEVELOPMENT_MODE=true
 
 # =============================================================================
 # NLP Server Configuration (ash-nlp)
@@ -213,13 +211,11 @@ TEST_PHRASES_COUNT=50  # Reduced from 350 for faster development
 GLOBAL_POSTGRES_DB=ash_development
 GLOBAL_POSTGRES_USER=ash_dev
 GLOBAL_POSTGRES_PASSWORD=ash_dev_password
-THRASH_DATABASE_URL=postgresql://ash_dev:ash_dev_password@postgres:5432/ash_development
 
 # =============================================================================
 # Development Tools
 # =============================================================================
 ENABLE_METRICS=true
-THRASH_ENABLE_PROFILING=true
 ENABLE_DEBUG_LOGGING=true
 ```
 
@@ -248,7 +244,6 @@ services:
   ash-bot:
     environment:
       - LOG_LEVEL=DEBUG
-      - THRASH_DEVELOPMENT_MODE=true
     volumes:
       - ./ash-bot/src:/app/src:cached
     ports:
@@ -386,7 +381,6 @@ docker-compose up -d postgres redis
 
 # Run your component locally with container dependencies
 cd ash-bot
-export THRASH_DATABASE_URL=postgresql://ash_dev:ash_dev_password@localhost:5432/ash_development
 python src/main.py
 ```
 
