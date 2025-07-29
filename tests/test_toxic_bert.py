@@ -36,24 +36,39 @@ class ToxicBertTester:
         
         self.model_name = "unitary/toxic-bert" 
         
-        # Load with device mapping for optimal GPU usage
+        # Load model with proper device handling (toxic-bert doesn't support device_map)
         try:
+            print("📦 Loading tokenizer...")
             self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-            self.model = AutoModelForSequenceClassification.from_pretrained(
-                self.model_name,
-                torch_dtype=torch.float16 if self.use_gpu else torch.float32,  # Use half precision on GPU
-                device_map="auto" if self.use_gpu else None
-            )
             
-            if not self.use_gpu:
+            print("🧠 Loading model...")
+            if self.use_gpu:
+                # Load with float16 for GPU efficiency
+                self.model = AutoModelForSequenceClassification.from_pretrained(
+                    self.model_name,
+                    torch_dtype=torch.float16
+                )
+                print("📱 Moving model to GPU...")
+                self.model = self.model.to(self.device)
+            else:
+                # Load with float32 for CPU
+                self.model = AutoModelForSequenceClassification.from_pretrained(
+                    self.model_name,
+                    torch_dtype=torch.float32
+                )
                 self.model = self.model.to(self.device)
                 
         except Exception as e:
-            print(f"❌ Error loading model: {e}")
-            print("💡 Trying fallback loading method...")
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-            self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name)
-            self.model = self.model.to(self.device)
+            print(f"❌ Error loading model with optimizations: {e}")
+            print("💡 Trying basic loading method...")
+            try:
+                self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+                self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name)
+                self.model = self.model.to(self.device)
+                print("✅ Model loaded with basic method")
+            except Exception as e2:
+                print(f"❌ Failed to load model: {e2}")
+                raise e2
         
         self.model.eval()  # Set to evaluation mode
         
