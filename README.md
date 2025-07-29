@@ -144,7 +144,7 @@ DISCORD_TOKEN=your_discord_bot_token
 DISCORD_GUILD_ID=your_guild_id
 
 # NLP Server
-CLAUDE_API_KEY=your_claude_api_key
+GLOBAL_CLAUDE_API_KEY=your_claude_api_key
 GPU_MEMORY_FRACTION=0.8
 
 # Dashboard Security
@@ -354,7 +354,7 @@ NLP_SERVER_URL=http://ash-nlp:8881
 # =============================================================================
 # NLP Server Configuration
 # =============================================================================
-CLAUDE_API_KEY=your_claude_api_key
+GLOBAL_CLAUDE_API_KEY=your_claude_api_key
 CLAUDE_MODEL=claude-3-sonnet-20240229
 GPU_MEMORY_FRACTION=0.8
 NLP_WORKERS=6

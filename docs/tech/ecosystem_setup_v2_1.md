@@ -251,7 +251,7 @@ BOT_ANALYSIS_TIMEOUT=20
 # =============================================================================
 # NLP Server Configuration (ash-nlp)
 # =============================================================================
-CLAUDE_API_KEY=your_claude_api_key_here
+GLOBAL_CLAUDE_API_KEY=your_claude_api_key_here
 CLAUDE_MODEL=claude-3-sonnet-20240229
 CLAUDE_MAX_TOKENS=4096
 CLAUDE_TEMPERATURE=0.1
@@ -448,7 +448,7 @@ services:
     container_name: ash-nlp
     restart: unless-stopped
     environment:
-      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - GLOBAL_CLAUDE_API_KEY=${GLOBAL_CLAUDE_API_KEY}
       - CLAUDE_MODEL=${CLAUDE_MODEL}
       - GPU_MEMORY_FRACTION=${GPU_MEMORY_FRACTION}
       - WORKERS=${NLP_WORKERS}

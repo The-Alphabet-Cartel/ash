@@ -238,7 +238,7 @@ BOT_ANALYSIS_TIMEOUT=25
 # =============================================================================
 # NLP Server Configuration
 # =============================================================================
-CLAUDE_API_KEY=your_production_claude_api_key
+GLOBAL_CLAUDE_API_KEY=your_production_claude_api_key
 CLAUDE_MODEL=claude-3-sonnet-20240229
 CLAUDE_MAX_TOKENS=4096
 CLAUDE_TEMPERATURE=0.1

@@ -167,7 +167,7 @@ ENABLE_CRISIS_DETECTION=true
 # =============================================================================
 # NLP Server Configuration (ash-nlp)
 # =============================================================================
-CLAUDE_API_KEY=your_claude_api_key_here
+GLOBAL_CLAUDE_API_KEY=your_claude_api_key_here
 CLAUDE_MODEL=claude-3-sonnet-20240229
 
 # GPU Configuration (adjust for your local GPU)
