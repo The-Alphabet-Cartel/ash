@@ -195,154 +195,154 @@ services:
   # ========================================================================
   # Analytics Dashboard (ash-dash)
   # ========================================================================
-  ash-dash:
-    build:
-      context: ./ash-dash
-      dockerfile: ./Dockerfile
-    image: ghcr.io/the-alphabet-cartel/ash-dash:organic
-    container_name: ash-dash
-    restart: unless-stopped
-    networks:
-      ash-network:
-        ipv4_address: 172.20.0.12
-    ports:
-      - 8883:8883
-    environment:
-      # SSL Configuration
-      - DASH_ENABLE_SSL=${DASH_ENABLE_SSL:-false}
-      - DASH_SSL_CERT_PATH=${DASH_SSL_CERT_PATH}
-      - DASH_SSL_KEY_PATH=${DASH_SSL_KEY_PATH}
-      
-      # Ash Bot API (Discord Bot with Crisis Detection)
-      - GLOBAL_DASH_API_PORT=${GLOBAL_DASH_API_PORT:-8883}
-      - GLOBAL_BOT_API_URL=${GLOBAL_BOT_API_URL}
-      - DASH_BOT_API_TIMEOUT=${DASH_BOT_API_TIMEOUT:-5000}
-      
-      # Ash NLP Server API (Machine Learning Analysis)
-      - GLOBAL_NLP_API_URL=${GLOBAL_NLP_API_URL}
-      - DASH_NLP_API_TIMEOUT=${DASH_NLP_API_TIMEOUT:-10000}
-      
-      # Cache Settings
-      - DASH_CACHE_TTL=${DASH_CACHE_TTL:-300}
-      
-      # Real-time Updates
-      - DASH_ENABLE_SOCKET_IO=${DASH_ENABLE_SOCKET_IO:-true}
-      - DASH_METRICS_UPDATE_INTERVAL=${DASH_METRICS_UPDATE_INTERVAL:-30000}
-
-      # LOGGING & MONITORING
-      - GLOBAL_LOG_LEVEL=${GLOBAL_LOG_LEVEL:-info}
-      - DASH_LOG_DIR=${DASH_LOG_DIR:-./logs}
-      - DASH_LOG_FILE=${DASH_LOG_FILE:-ash-dash.log}
-      
-      # DOCKER SECRETS CONFIGURATION
-      - GLOBAL_SESSION_TOKEN=${GLOBAL_SESSION_TOKEN}
-      
-      # Enable Access
-      - DASH_ENABLE_ACCESS_LOGS=${DASH_ENABLE_ACCESS_LOGS:-true}
-      
-      # Rate Limits
-      - DASH_RATE_LIMIT_WINDOW=${DASH_RATE_LIMIT_WINDOW:-900000}
-      - DASH_RATE_LIMIT_MAX=${DASH_RATE_LIMIT_MAX:-100}
-      - DASH_RATE_LIMIT_MESSAGE=${DASH_RATE_LIMIT_MESSAGE:-Too many requests, please try again later}
-    volumes:
-      - ./ash-dash/logs:/app/logs
-      - ./ash-dash/data:/app/data
-      - ./ash-dash/cache:/app/cache
-      - ./ash-dash/public:/app/public:ro
-      - ./ash-dash/dashboard:/app/dashboard:ro
-      - ./secrets:/run/secrets:ro
-    depends_on:
-      ash-bot:
-        condition: service_healthy
-      ash-nlp:
-        condition: service_healthy
-      ash-redis:
-        condition: service_started
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-          cpus: '1.0'
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8883/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+#  ash-dash:
+#    build:
+#      context: ./ash-dash
+#      dockerfile: ./Dockerfile
+#    image: ghcr.io/the-alphabet-cartel/ash-dash:organic
+#    container_name: ash-dash
+#    restart: unless-stopped
+#    networks:
+#      ash-network:
+#        ipv4_address: 172.20.0.12
+#    ports:
+#      - 8883:8883
+#    environment:
+#      # SSL Configuration
+#      - DASH_ENABLE_SSL=${DASH_ENABLE_SSL:-false}
+#      - DASH_SSL_CERT_PATH=${DASH_SSL_CERT_PATH}
+#      - DASH_SSL_KEY_PATH=${DASH_SSL_KEY_PATH}
+#      
+#      # Ash Bot API (Discord Bot with Crisis Detection)
+#      - GLOBAL_DASH_API_PORT=${GLOBAL_DASH_API_PORT:-8883}
+#      - GLOBAL_BOT_API_URL=${GLOBAL_BOT_API_URL}
+#      - DASH_BOT_API_TIMEOUT=${DASH_BOT_API_TIMEOUT:-5000}
+#      
+#      # Ash NLP Server API (Machine Learning Analysis)
+#      - GLOBAL_NLP_API_URL=${GLOBAL_NLP_API_URL}
+#      - DASH_NLP_API_TIMEOUT=${DASH_NLP_API_TIMEOUT:-10000}
+#      
+#      # Cache Settings
+#      - DASH_CACHE_TTL=${DASH_CACHE_TTL:-300}
+#      
+#      # Real-time Updates
+#      - DASH_ENABLE_SOCKET_IO=${DASH_ENABLE_SOCKET_IO:-true}
+#      - DASH_METRICS_UPDATE_INTERVAL=${DASH_METRICS_UPDATE_INTERVAL:-30000}
+#
+#      # LOGGING & MONITORING
+#      - GLOBAL_LOG_LEVEL=${GLOBAL_LOG_LEVEL:-info}
+#      - DASH_LOG_DIR=${DASH_LOG_DIR:-./logs}
+#      - DASH_LOG_FILE=${DASH_LOG_FILE:-ash-dash.log}
+#      
+#      # DOCKER SECRETS CONFIGURATION
+#      - GLOBAL_SESSION_TOKEN=${GLOBAL_SESSION_TOKEN}
+#      
+#      # Enable Access
+#      - DASH_ENABLE_ACCESS_LOGS=${DASH_ENABLE_ACCESS_LOGS:-true}
+#      
+#      # Rate Limits
+#      - DASH_RATE_LIMIT_WINDOW=${DASH_RATE_LIMIT_WINDOW:-900000}
+#      - DASH_RATE_LIMIT_MAX=${DASH_RATE_LIMIT_MAX:-100}
+#      - DASH_RATE_LIMIT_MESSAGE=${DASH_RATE_LIMIT_MESSAGE:-Too many requests, please try again later}
+#    volumes:
+#      - ./ash-dash/logs:/app/logs
+#      - ./ash-dash/data:/app/data
+#      - ./ash-dash/cache:/app/cache
+#      - ./ash-dash/public:/app/public:ro
+#      - ./ash-dash/dashboard:/app/dashboard:ro
+#      - ./secrets:/run/secrets:ro
+#    depends_on:
+#      ash-bot:
+#        condition: service_healthy
+#      ash-nlp:
+#        condition: service_healthy
+#      ash-redis:
+#        condition: service_started
+#    deploy:
+#      resources:
+#        limits:
+#          memory: 2G
+#          cpus: '1.0'
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:8883/health"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#      start_period: 30s
 
   # ========================================================================
   # Testing Suite (ash-thrash)
   # ========================================================================
-  ash-thrash:
-    build:
-      context: ./ash-thrash
-      dockerfile: ./docker/Dockerfile
-    image: ghcr.io/the-alphabet-cartel/ash-thrash:organic
-    container_name: ash-thrash
-    restart: unless-stopped
-    networks:
-      ash-network:
-        ipv4_address: 172.20.0.13
-    environment:
-      - GLOBAL_NLP_API_URL=${GLOBAL_NLP_API_URL}
-      - THRASH_MAX_CONCURRENT_TESTS=${THRASH_MAX_CONCURRENT_TESTS}
-    volumes:
-      - ./ash-thrash/config:/app/config
-      - ./ash-thrash/src:/app/src
-      - ./ash-thrash/logs:/app/logs
-      - ./ash-thrash/results:/app/results
-      - ./ash-thrash/reports:/app/reports
-      - ./secrets:/run/secrets:ro
-    depends_on:
-      ash-nlp:
-        condition: service_healthy
-      ash-dash:
-        condition: service_healthy
-      ash-redis:
-        condition: service_started
-    deploy:
-      resources:
-        limits:
-          memory: 4G
-          cpus: '2.0'
+#  ash-thrash:
+#    build:
+#      context: ./ash-thrash
+#      dockerfile: ./docker/Dockerfile
+#    image: ghcr.io/the-alphabet-cartel/ash-thrash:organic
+#    container_name: ash-thrash
+#    restart: unless-stopped
+#    networks:
+#      ash-network:
+#        ipv4_address: 172.20.0.13
+#    environment:
+#      - GLOBAL_NLP_API_URL=${GLOBAL_NLP_API_URL}
+#      - THRASH_MAX_CONCURRENT_TESTS=${THRASH_MAX_CONCURRENT_TESTS}
+#    volumes:
+#      - ./ash-thrash/config:/app/config
+#      - ./ash-thrash/src:/app/src
+#      - ./ash-thrash/logs:/app/logs
+#      - ./ash-thrash/results:/app/results
+#      - ./ash-thrash/reports:/app/reports
+#      - ./secrets:/run/secrets:ro
+#    depends_on:
+#      ash-nlp:
+#        condition: service_healthy
+#      ash-dash:
+#        condition: service_healthy
+#      ash-redis:
+#        condition: service_started
+#    deploy:
+#      resources:
+#        limits:
+#          memory: 4G
+#          cpus: '2.0'
 
-  ash-thrash-api:
-    build:
-      context: ./ash-thrash
-      dockerfile: ./docker/Dockerfile.api
-    image: ghcr.io/the-alphabet-cartel/ash-thrash-api:organic
-    container_name: ash-thrash-api
-    restart: unless-stopped
-    networks:
-      ash-network:
-        ipv4_address: 172.20.0.14
-    ports:
-      - 8884:8884
-    environment:
-      - GLOBAL_NLP_API_URL=${GLOBAL_NLP_API_URL}
-      - GLOBAL_THRASH_API_PORT=${GLOBAL_THRASH_API_PORT}
-      - GLOBAL_ENABLE_DEBUG_MODE=${GLOBAL_ENABLE_DEBUG_MODE}
-      - THRASH_API_HOST=${THRASH_API_HOST}
-    volumes:
-      - ./ash-thrash/config:/app/config
-      - ./ash-thrash/src:/app/src
-      - ./ash-thrash/results:/app/results
-      - ./secrets:/run/secrets:ro
-    depends_on:
-      ash-nlp:
-        condition: service_healthy
-      ash-redis:
-        condition: service_started
-    deploy:
-      resources:
-        limits:
-          memory: 4G
-          cpus: '1.0'
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8884/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+#  ash-thrash-api:
+#    build:
+#      context: ./ash-thrash
+#      dockerfile: ./docker/Dockerfile.api
+#    image: ghcr.io/the-alphabet-cartel/ash-thrash-api:organic
+#    container_name: ash-thrash-api
+#    restart: unless-stopped
+#    networks:
+#      ash-network:
+#        ipv4_address: 172.20.0.14
+#    ports:
+#      - 8884:8884
+#    environment:
+#      - GLOBAL_NLP_API_URL=${GLOBAL_NLP_API_URL}
+#      - GLOBAL_THRASH_API_PORT=${GLOBAL_THRASH_API_PORT}
+#      - GLOBAL_ENABLE_DEBUG_MODE=${GLOBAL_ENABLE_DEBUG_MODE}
+#      - THRASH_API_HOST=${THRASH_API_HOST}
+#    volumes:
+#      - ./ash-thrash/config:/app/config
+#      - ./ash-thrash/src:/app/src
+#      - ./ash-thrash/results:/app/results
+#      - ./secrets:/run/secrets:ro
+#    depends_on:
+#      ash-nlp:
+#        condition: service_healthy
+#      ash-redis:
+#        condition: service_started
+#    deploy:
+#      resources:
+#        limits:
+#          memory: 4G
+#          cpus: '1.0'
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:8884/health"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
 
   # ========================================================================
   # Redis Cache
