@@ -124,6 +124,18 @@ class MultiModelTester:
                 "description": "RoBERTa trained on suicide watch data"
             },
             
+            "suicide_prediction_phr": {
+                "model_name": "vibhorag101/roberta-base-suicide-prediction-phr",
+                "type": "classification",
+                "description": "RoBERTa-base fine-tuned for suicide prediction from phrases"
+            },
+            
+            "bert_suicide_detection": {
+                "model_name": "Akashpaul123/bert-suicide-detection",
+                "type": "classification",
+                "description": "BERT specifically trained for suicide detection"
+            },
+            
             # Semantic Similarity Models (for pattern matching)
             "sentence_transformer": {
                 "model_name": "all-MiniLM-L6-v2",
