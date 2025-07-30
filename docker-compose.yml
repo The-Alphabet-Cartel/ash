@@ -7,7 +7,10 @@ services:
   # Discord Bot (ash-bot)
   # ========================================================================
   ash-bot:
-    image: ghcr.io/the-alphabet-cartel/ash-bot:latest
+    build:
+      context: ./ash-bot
+      dockerfile: ./ash-bot/Dockerfile
+    image: ghcr.io/the-alphabet-cartel/ash-bot:organic
     container_name: ash-bot
     restart: unless-stopped
     networks:
@@ -84,6 +87,9 @@ services:
   # NLP Server (ash-nlp)
   # ========================================================================
   ash-nlp:
+    build:
+      context: ./ash-nlp
+      dockerfile: ./ash-nlp/Dockerfile
     image: ghcr.io/the-alphabet-cartel/ash-nlp:organic
     container_name: ash-nlp
     restart: unless-stopped
@@ -185,7 +191,10 @@ services:
   # Analytics Dashboard (ash-dash)
   # ========================================================================
   ash-dash:
-    image: ghcr.io/the-alphabet-cartel/ash-dash:latest
+    build:
+      context: ./ash-dash
+      dockerfile: ./ash-dash/Dockerfile
+    image: ghcr.io/the-alphabet-cartel/ash-dash:organic
     container_name: ash-dash
     restart: unless-stopped
     networks:
@@ -260,7 +269,10 @@ services:
   # Testing Suite (ash-thrash)
   # ========================================================================
   ash-thrash:
-    image: ghcr.io/the-alphabet-cartel/ash-thrash:latest
+    build:
+      context: ./ash-thrash
+      dockerfile: ./ash-thrash/docker/Dockerfile
+    image: ghcr.io/the-alphabet-cartel/ash-thrash:organic
     container_name: ash-thrash
     restart: unless-stopped
     networks:
@@ -290,7 +302,10 @@ services:
           cpus: '2.0'
 
   ash-thrash-api:
-    image: ghcr.io/the-alphabet-cartel/ash-thrash-api:latest
+    build:
+      context: ./ash-thrash
+      dockerfile: ./ash-thrash/docker/Dockerfile.api
+    image: ghcr.io/the-alphabet-cartel/ash-thrash-api:organic
     build:
       context: .
       dockerfile: docker/Dockerfile.api
