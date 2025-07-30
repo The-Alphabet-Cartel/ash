@@ -82,7 +82,7 @@ class MultiModelTester:
         self.tokenizers = {}
         self.pipelines = {}
         
-        # Define models to test
+        # Define models to test (verified to exist)
         self.model_configs = {
             # Mental Health Specific Models
             "mental_roberta": {
@@ -104,18 +104,24 @@ class MultiModelTester:
                 "description": "Current depression model (for comparison)"
             },
             
-            # Suicide-Specific Models
-            "suicide_detection": {
-                "model_name": "yanyankangkang/bert-base-uncased-suicidal-detection",
-                "type": "classification",
-                "description": "Specifically trained for suicide detection"
-            },
-            
             # Mental Health Classification
             "mental_health_classifier": {
-                "model_name": "dkolety/mental-health-data-distilbert",
+                "model_name": "mental/mental-bert-base-uncased",
                 "type": "classification", 
                 "description": "Mental health condition classifier"
+            },
+            
+            # Suicide Detection Models (real ones)
+            "suicide_detection_v1": {
+                "model_name": "gooohjy/suicidal-bert",
+                "type": "classification",
+                "description": "BERT fine-tuned for suicide detection"
+            },
+            
+            "suicide_detection_v2": {
+                "model_name": "shahrukhx01/suicide-watch-roberta",
+                "type": "classification",
+                "description": "RoBERTa trained on suicide watch data"
             },
             
             # Semantic Similarity Models (for pattern matching)
@@ -130,6 +136,20 @@ class MultiModelTester:
                 "model_name": "unitary/unbiased-toxic-roberta",
                 "type": "classification",
                 "description": "Unbiased toxic detection (may work better than toxic-bert)"
+            },
+            
+            # Additional Mental Health Models
+            "stress_detection": {
+                "model_name": "siebert/sentiment-roberta-large-english",
+                "type": "classification",
+                "description": "Advanced sentiment analysis for stress detection"
+            },
+            
+            # LGBTQIA+ Specific
+            "lgbtq_sentiment": {
+                "model_name": "cardiffnlp/twitter-roberta-base-sentiment-latest",
+                "type": "classification",
+                "description": "Twitter sentiment analysis (may catch community language)"
             }
         }
         
