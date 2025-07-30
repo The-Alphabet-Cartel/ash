@@ -306,9 +306,6 @@ services:
       context: ./ash-thrash
       dockerfile: ./ash-thrash/docker/Dockerfile.api
     image: ghcr.io/the-alphabet-cartel/ash-thrash-api:organic
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.api
     container_name: ash-thrash-api
     restart: unless-stopped
     networks:
