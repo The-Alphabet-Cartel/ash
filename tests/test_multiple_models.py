@@ -25,9 +25,13 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=RuntimeWarning, message="Mean of empty slice")
 warnings.filterwarnings("ignore", category=RuntimeWarning, message="invalid value encountered in divide")
 
-# Set up Hugging Face authentication (optional)
+# Set up Hugging Face authentication
 HF_TOKEN = "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"
 USE_AUTH_TOKEN = None  # Will be set during authentication attempt
+
+# Alternative authentication method
+import os
+os.environ["HUGGINGFACE_HUB_TOKEN"] = HF_TOKEN
 
 # Set up proper CUDA environment
 if torch.cuda.is_available():
@@ -43,17 +47,31 @@ class MultiModelTester:
         print("🔄 Initializing Multi-Model Crisis Detection Tester...")
         print(f"🖥️  Device: {self.device}")
         
-        # Authenticate with Hugging Face (optional)
+        # Authenticate with Hugging Face - try multiple methods
         global USE_AUTH_TOKEN
+        auth_success = False
+        
+        # Method 1: Environment variable (most reliable)
+        print("🔐 Setting up Hugging Face authentication...")
+        os.environ["HUGGINGFACE_HUB_TOKEN"] = HF_TOKEN.strip()
+        
+        # Method 2: Direct login
         try:
-            print("🔐 Attempting Hugging Face authentication...")
-            login(token=HF_TOKEN, add_to_git_credential=False)
-            USE_AUTH_TOKEN = HF_TOKEN
+            print("🔐 Attempting Hugging Face login...")
+            login(token=HF_TOKEN.strip(), add_to_git_credential=False)
+            auth_success = True
+            USE_AUTH_TOKEN = HF_TOKEN.strip()
             print("✅ Hugging Face authentication successful")
         except Exception as e:
-            print(f"⚠️  Hugging Face authentication failed: {e}")
-            print("⚠️  Continuing without authentication - public models only")
-            USE_AUTH_TOKEN = None
+            print(f"⚠️  Login method failed: {e}")
+        
+        # Method 3: Try without explicit login (using env var)
+        if not auth_success:
+            print("🔐 Trying environment variable authentication...")
+            USE_AUTH_TOKEN = True  # Use environment variable
+            print("✅ Using environment variable for authentication")
+        
+        print(f"🔑 Authentication status: {'Enabled' if USE_AUTH_TOKEN else 'Disabled'}")
         
         if self.use_gpu:
             gpu_name = torch.cuda.get_device_name(0)
@@ -145,22 +163,35 @@ class MultiModelTester:
         try:
             if model_type == "similarity":
                 # Sentence transformer model
-                model = SentenceTransformer(model_name, device=self.device, use_auth_token=USE_AUTH_TOKEN)
+                if USE_AUTH_TOKEN:
+                    model = SentenceTransformer(model_name, device=self.device)  # Will use env var
+                else:
+                    model = SentenceTransformer(model_name, device=self.device, use_auth_token=False)
                 self.models[model_key] = model
                 print(f"✅ Loaded sentence transformer: {model_key}")
                 
             elif model_type == "classification":
                 # Classification model with better precision handling
-                tokenizer = AutoTokenizer.from_pretrained(model_name, use_auth_token=USE_AUTH_TOKEN)
+                if USE_AUTH_TOKEN:
+                    tokenizer = AutoTokenizer.from_pretrained(model_name)  # Will use env var
+                else:
+                    tokenizer = AutoTokenizer.from_pretrained(model_name, use_auth_token=False)
                 
                 if self.use_gpu:
                     try:
                         # Try float16 first for speed
-                        model = AutoModelForSequenceClassification.from_pretrained(
-                            model_name, 
-                            torch_dtype=torch.float16,
-                            use_auth_token=USE_AUTH_TOKEN
-                        ).to(self.device)
+                        if USE_AUTH_TOKEN:
+                            model = AutoModelForSequenceClassification.from_pretrained(
+                                model_name, 
+                                torch_dtype=torch.float16
+                            ).to(self.device)
+                        else:
+                            model = AutoModelForSequenceClassification.from_pretrained(
+                                model_name, 
+                                torch_dtype=torch.float16,
+                                use_auth_token=False
+                            ).to(self.device)
+                        
                         # Test if float16 works with a dummy input
                         test_input = tokenizer("test", return_tensors="pt", padding=True, truncation=True)
                         test_input = {k: v.to(self.device) for k, v in test_input.items()}
@@ -170,17 +201,29 @@ class MultiModelTester:
                     except Exception as e:
                         print(f"⚠️  Float16 failed for {model_key}, falling back to float32: {e}")
                         # Fallback to float32
-                        model = AutoModelForSequenceClassification.from_pretrained(
-                            model_name, 
-                            torch_dtype=torch.float32,
-                            use_auth_token=USE_AUTH_TOKEN
-                        ).to(self.device)
+                        if USE_AUTH_TOKEN:
+                            model = AutoModelForSequenceClassification.from_pretrained(
+                                model_name, 
+                                torch_dtype=torch.float32
+                            ).to(self.device)
+                        else:
+                            model = AutoModelForSequenceClassification.from_pretrained(
+                                model_name, 
+                                torch_dtype=torch.float32,
+                                use_auth_token=False
+                            ).to(self.device)
                 else:
-                    model = AutoModelForSequenceClassification.from_pretrained(
-                        model_name,
-                        torch_dtype=torch.float32,
-                        use_auth_token=USE_AUTH_TOKEN
-                    )
+                    if USE_AUTH_TOKEN:
+                        model = AutoModelForSequenceClassification.from_pretrained(
+                            model_name,
+                            torch_dtype=torch.float32
+                        )
+                    else:
+                        model = AutoModelForSequenceClassification.from_pretrained(
+                            model_name,
+                            torch_dtype=torch.float32,
+                            use_auth_token=False
+                        )
                     model = model.to(self.device)
                 
                 model.eval()
