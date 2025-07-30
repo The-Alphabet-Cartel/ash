@@ -84,7 +84,7 @@ services:
   # NLP Server (ash-nlp)
   # ========================================================================
   ash-nlp:
-    image: ghcr.io/the-alphabet-cartel/ash-nlp:latest
+    image: ghcr.io/the-alphabet-cartel/ash-nlp:organic
     container_name: ash-nlp
     restart: unless-stopped
     networks:
