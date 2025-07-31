@@ -92,9 +92,9 @@ services:
   # NLP Server (ash-nlp)
   # ========================================================================
   ash-nlp:
-    build:
-      context: ./ash-nlp
-      dockerfile: ./Dockerfile
+#    build:
+#      context: ./ash-nlp
+#      dockerfile: ./Dockerfile
     image: ghcr.io/the-alphabet-cartel/ash-nlp:latest
     container_name: ash-nlp
     restart: unless-stopped
