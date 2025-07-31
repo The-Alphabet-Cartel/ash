@@ -19,6 +19,10 @@ services:
     ports:
       - 8882:8882
     environment:
+      # Local Timezone
+      - TZ=America/Los_Angeles
+      
+      # Secrets
       - BOT_DISCORD_TOKEN=${BOT_DISCORD_TOKEN}
       - GLOBAL_SESSION_TOKEN=${GLOBAL_SESSION_TOKEN}
       - GLOBAL_CLAUDE_API_KEY=${GLOBAL_CLAUDE_API_KEY}
@@ -104,7 +108,10 @@ services:
     ports:
       - 8881:8881
     environment:
-      # Point to secret files
+      # Local Timezone
+      - TZ=America/Los_Angeles
+      
+      # Secrets
       - GLOBAL_HUGGINGFACE_TOKEN=${GLOBAL_HUGGINGFACE_TOKEN}
       - GLOBAL_CLAUDE_API_KEY=${GLOBAL_CLAUDE_API_KEY}
 
@@ -256,6 +263,9 @@ services:
 #    ports:
 #      - 8883:8883
 #    environment:
+#      # Local Timezone
+#      - TZ=America/Los_Angeles
+#      
 #      # SSL Configuration
 #      - DASH_ENABLE_SSL=${DASH_ENABLE_SSL:-false}
 #      - DASH_SSL_CERT_PATH=${DASH_SSL_CERT_PATH}
@@ -332,6 +342,9 @@ services:
 #      ash-network:
 #        ipv4_address: 172.20.0.13
 #    environment:
+#      # Local Timezone
+#      - TZ=America/Los_Angeles
+#      
 #      - GLOBAL_NLP_API_URL=${GLOBAL_NLP_API_URL}
 #      - THRASH_MAX_CONCURRENT_TESTS=${THRASH_MAX_CONCURRENT_TESTS}
 #    volumes:
@@ -367,6 +380,9 @@ services:
 #    ports:
 #      - 8884:8884
 #    environment:
+#      # Local Timezone
+#      - TZ=America/Los_Angeles
+#      
 #      - GLOBAL_NLP_API_URL=${GLOBAL_NLP_API_URL}
 #      - GLOBAL_THRASH_API_PORT=${GLOBAL_THRASH_API_PORT}
 #      - GLOBAL_ENABLE_DEBUG_MODE=${GLOBAL_ENABLE_DEBUG_MODE}
