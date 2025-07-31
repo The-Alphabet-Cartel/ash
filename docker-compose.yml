@@ -10,7 +10,7 @@ services:
     build:
       context: ./ash-bot
       dockerfile: ./Dockerfile
-    image: ghcr.io/the-alphabet-cartel/ash-bot:organic
+    image: ghcr.io/the-alphabet-cartel/ash-bot:latest
     container_name: ash-bot
     restart: unless-stopped
     networks:
@@ -95,7 +95,7 @@ services:
     build:
       context: ./ash-nlp
       dockerfile: ./Dockerfile
-    image: ghcr.io/the-alphabet-cartel/ash-nlp:organic
+    image: ghcr.io/the-alphabet-cartel/ash-nlp:latest
     container_name: ash-nlp
     restart: unless-stopped
     networks:
@@ -247,7 +247,7 @@ services:
 #    build:
 #      context: ./ash-dash
 #      dockerfile: ./Dockerfile
-#    image: ghcr.io/the-alphabet-cartel/ash-dash:organic
+#    image: ghcr.io/the-alphabet-cartel/ash-dash:latest
 #    container_name: ash-dash
 #    restart: unless-stopped
 #    networks:
@@ -325,7 +325,7 @@ services:
 #    build:
 #      context: ./ash-thrash
 #      dockerfile: ./docker/Dockerfile
-#    image: ghcr.io/the-alphabet-cartel/ash-thrash:organic
+#    image: ghcr.io/the-alphabet-cartel/ash-thrash:latest
 #    container_name: ash-thrash
 #    restart: unless-stopped
 #    networks:
@@ -358,7 +358,7 @@ services:
 #    build:
 #      context: ./ash-thrash
 #      dockerfile: ./docker/Dockerfile.api
-#    image: ghcr.io/the-alphabet-cartel/ash-thrash-api:organic
+#    image: ghcr.io/the-alphabet-cartel/ash-thrash-api:latest
 #    container_name: ash-thrash-api
 #    restart: unless-stopped
 #    networks:
