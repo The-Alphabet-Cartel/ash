@@ -99,7 +99,7 @@ class MultiModelTester:
             },
             
             "depression_specific": {
-                "model_name": "rafalposwiata/deproberta-large-depression",
+                "model_name": "AnkitAI/deberta-v3-small-base-emotions-classifier",
                 "type": "classification",
                 "description": "Current depression model (for comparison)"
             },
