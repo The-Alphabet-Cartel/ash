@@ -124,7 +124,8 @@ services:
       
       # THREE-MODEL CONFIGURATION
       - NLP_DEPRESSION_MODEL=${NLP_DEPRESSION_MODEL:-rafalposwiata/deproberta-large-depression}
-      - NLP_SENTIMENT_MODEL=${NLP_SENTIMENT_MODEL:-cardiffnlp/twitter-roberta-base-sentiment-latest}
+      #- NLP_SENTIMENT_MODEL=${NLP_SENTIMENT_MODEL:-cardiffnlp/twitter-roberta-base-sentiment-latest}
+      - NLP_SENTIMENT_MODEL=${NLP_SENTIMENT_MODEL:-siebert/sentiment-roberta-large-english}
       - NLP_EMOTIONAL_DISTRESS_MODEL=${NLP_EMOTIONAL_DISTRESS_MODEL:-distilbert-base-uncased-finetuned-sst-2-english}
       - NLP_MODEL_CACHE_DIR=${NLP_MODEL_CACHE_DIR}
       
