@@ -348,8 +348,9 @@ services:
       - GLOBAL_NLP_API_URL=${GLOBAL_NLP_API_URL}
       - THRASH_MAX_CONCURRENT_TESTS=${THRASH_MAX_CONCURRENT_TESTS}
       - THRASH_ENABLE_SCHEDULED_TESTS=${THRASH_ENABLE_SCHEDULED_TESTS:-false}
+      - THRASH_QUICK_TEST_INTERVAL=${THRASH_QUICK_TEST_INTERVAL:-hourly}
       - THRASH_COMPREHENSIVE_TEST_INTERVAL=${THRASH_COMPREHENSIVE_TEST_INTERVAL:-daily}
-THRASH_QUICK_TEST_INTERVAL=hourly    volumes:
+    volumes:
       - ./ash-thrash/config:/app/config
       - ./ash-thrash/src:/app/src
       - ./ash-thrash/logs:/app/logs
