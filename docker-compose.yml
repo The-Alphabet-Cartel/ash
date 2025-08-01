@@ -7,9 +7,9 @@ services:
   # Discord Bot (ash-bot)
   # ========================================================================
   ash-bot:
-    build:
-      context: ./ash-bot
-      dockerfile: ./Dockerfile
+#    build:
+#      context: ./ash-bot
+#      dockerfile: ./Dockerfile
     image: ghcr.io/the-alphabet-cartel/ash-bot:latest
     container_name: ash-bot
     restart: unless-stopped
