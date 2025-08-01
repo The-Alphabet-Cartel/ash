@@ -7,9 +7,9 @@ services:
   # Discord Bot (ash-bot)
   # ========================================================================
   ash-bot:
-#    build:
-#      context: ./ash-bot
-#      dockerfile: ./Dockerfile
+    #build:
+      #context: ./ash-bot
+      #dockerfile: ./Dockerfile
     image: ghcr.io/the-alphabet-cartel/ash-bot:latest
     container_name: ash-bot
     restart: unless-stopped
@@ -96,9 +96,9 @@ services:
   # NLP Server (ash-nlp)
   # ========================================================================
   ash-nlp:
-#    build:
-#      context: ./ash-nlp
-#      dockerfile: ./Dockerfile
+    #build:
+      #context: ./ash-nlp
+      #dockerfile: ./Dockerfile
     image: ghcr.io/the-alphabet-cartel/ash-nlp:latest
     container_name: ash-nlp
     restart: unless-stopped
