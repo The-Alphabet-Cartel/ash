@@ -328,14 +328,6 @@ services:
 #      retries: 3
 #      start_period: 30s
 
-# =============================================================================
-# ASH-THRASH DOCKER COMPOSE CONFIGURATION
-# Repository: https://github.com/the-alphabet-cartel/ash-thrash
-# Discord: https://discord.gg/alphabetcartel
-# Website: http://alphabetcartel.org
-# =============================================================================
-
-services:
   # =========================================================================
   # Ash-Thrash API Server
   # =========================================================================
