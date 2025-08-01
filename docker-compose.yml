@@ -392,8 +392,6 @@ services:
     depends_on:
       ash-nlp:
         condition: service_healthy
-      ash-bot:
-        condition: service_healthy
       ash-redis:
         condition: service_started
     deploy:
@@ -442,8 +440,6 @@ services:
       - ./config:/app/config:ro
       - ./secrets:/run/secrets:ro
     depends_on:
-      ash-bot:
-        condition: service_healthy
       ash-nlp:
         condition: service_healthy
       ash-thrash-api:
