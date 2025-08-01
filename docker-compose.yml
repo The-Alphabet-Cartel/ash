@@ -328,92 +328,150 @@ services:
 #      retries: 3
 #      start_period: 30s
 
-  # ========================================================================
-  # Testing Suite (ash-thrash)
-  # ========================================================================
-  ash-thrash:
-    build:
-      context: ./ash-thrash
-      dockerfile: ./docker/Dockerfile
-    image: ghcr.io/the-alphabet-cartel/ash-thrash:latest
-    container_name: ash-thrash
-    restart: unless-stopped
-    networks:
-      ash-network:
-        ipv4_address: 172.20.0.13
-    environment:
-      # Local Timezone
-      - TZ=America/Los_Angeles
-      
-      - GLOBAL_NLP_API_URL=${GLOBAL_NLP_API_URL}
-      - THRASH_MAX_CONCURRENT_TESTS=${THRASH_MAX_CONCURRENT_TESTS}
-      - THRASH_ENABLE_SCHEDULED_TESTS=${THRASH_ENABLE_SCHEDULED_TESTS:-false}
-      - THRASH_QUICK_TEST_INTERVAL=${THRASH_QUICK_TEST_INTERVAL:-hourly}
-      - THRASH_COMPREHENSIVE_TEST_INTERVAL=${THRASH_COMPREHENSIVE_TEST_INTERVAL:-daily}
-    volumes:
-      - ./ash-thrash/config:/app/config
-      - ./ash-thrash/src:/app/src
-      - ./ash-thrash/logs:/app/logs
-      - ./ash-thrash/results:/app/results
-      - ./ash-thrash/reports:/app/reports
-      - ./secrets:/run/secrets:ro
-    depends_on:
-      ash-nlp:
-        condition: service_healthy
-      ash-bot:
-        condition: service_healthy
-      ash-redis:
-        condition: service_started
-    deploy:
-      resources:
-        limits:
-          memory: 4G
-          cpus: '2.0'
+# =============================================================================
+# ASH-THRASH DOCKER COMPOSE CONFIGURATION
+# Repository: https://github.com/the-alphabet-cartel/ash-thrash
+# Discord: https://discord.gg/alphabetcartel
+# Website: http://alphabetcartel.org
+# =============================================================================
 
+services:
+  # =========================================================================
+  # Ash-Thrash API Server
+  # =========================================================================
   ash-thrash-api:
     build:
-      context: ./ash-thrash
-      dockerfile: ./docker/Dockerfile.api
-    image: ghcr.io/the-alphabet-cartel/ash-thrash-api:latest
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/the-alphabet-cartel/ash-thrash:latest
     container_name: ash-thrash-api
     restart: unless-stopped
     networks:
       ash-network:
-        ipv4_address: 172.20.0.14
+        ipv4_address: 172.20.0.13
     ports:
       - 8884:8884
     environment:
-      # Local Timezone
-      - TZ=America/Los_Angeles
+      # Core Configuration
+      - GLOBAL_NLP_API_URL=${GLOBAL_NLP_API_URL:-http://10.20.30.253:8881}
+      - GLOBAL_THRASH_API_PORT=8884
+      - THRASH_API_HOST=0.0.0.0
       
-      - GLOBAL_NLP_API_URL=${GLOBAL_NLP_API_URL}
-      - GLOBAL_THRASH_API_PORT=${GLOBAL_THRASH_API_PORT}
-      - GLOBAL_ENABLE_DEBUG_MODE=${GLOBAL_ENABLE_DEBUG_MODE}
-      - THRASH_API_HOST=${THRASH_API_HOST}
+      # Testing Configuration
+      - THRASH_MAX_CONCURRENT_TESTS=${THRASH_MAX_CONCURRENT_TESTS:-3}
+      - THRASH_QUICK_TEST_SAMPLE_SIZE=${THRASH_QUICK_TEST_SAMPLE_SIZE:-50}
+      - THRASH_REQUEST_TIMEOUT=${THRASH_REQUEST_TIMEOUT:-30}
+      
+      # Discord Integration
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
+      - DISCORD_NOTIFICATIONS_ENABLED=${DISCORD_NOTIFICATIONS_ENABLED:-true}
+      - NOTIFY_ON_COMPREHENSIVE_TESTS=${NOTIFY_ON_COMPREHENSIVE_TESTS:-true}
+      - NOTIFY_ON_QUICK_TESTS=${NOTIFY_ON_QUICK_TESTS:-false}
+      
+      # Logging
+      - GLOBAL_LOG_LEVEL=${GLOBAL_LOG_LEVEL:-INFO}
+      - THRASH_LOG_FILE=ash-thrash.log
+      - GLOBAL_ENABLE_DEBUG_MODE=${GLOBAL_ENABLE_DEBUG_MODE:-false}
+      
+      # API Configuration
+      - THRASH_ENABLE_API_DOCS=${THRASH_ENABLE_API_DOCS:-true}
+      - THRASH_ENABLE_CORS=${THRASH_ENABLE_CORS:-true}
+      - THRASH_CORS_ORIGINS=${THRASH_CORS_ORIGINS:-*}
+      
+      # Tuning Suggestions
+      - THRASH_GENERATE_SUGGESTIONS=${THRASH_GENERATE_SUGGESTIONS:-true}
+      - THRASH_SUGGESTION_THRESHOLD=${THRASH_SUGGESTION_THRESHOLD:-10.0}
+      - THRASH_CRITICAL_THRESHOLD=${THRASH_CRITICAL_THRESHOLD:-20.0}
+      
+      # Performance
+      - THRASH_ENABLE_RESULT_CACHING=${THRASH_ENABLE_RESULT_CACHING:-true}
+      - THRASH_CACHE_TTL_SECONDS=${THRASH_CACHE_TTL_SECONDS:-300}
     volumes:
-      - ./ash-thrash/config:/app/config
-      - ./ash-thrash/src:/app/src
-      - ./ash-thrash/results:/app/results
+      # Results and logs persistence
+      - ./results:/app/results
+      - ./logs:/app/logs
+      - ./reports:/app/reports
+      
+      # Configuration (read-only)
+      - ./config:/app/config:ro
+      
+      # Secrets
       - ./secrets:/run/secrets:ro
     depends_on:
       ash-nlp:
         condition: service_healthy
       ash-bot:
         condition: service_healthy
-      ash-thrash:
-        condition: service_started
       ash-redis:
         condition: service_started
     deploy:
       resources:
         limits:
-          memory: 4G
+          memory: 2G
           cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8884/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 30s
+    labels:
+      - "traefik.enable=false"
+      - "ash.service=thrash-api"
+      - "ash.version=v3.0"
+
+  # =========================================================================
+  # Ash-Thrash CLI Runner (on-demand)
+  # =========================================================================
+  ash-thrash-cli:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/the-alphabet-cartel/ash-thrash:latest
+    container_name: ash-thrash-cli
+    networks:
+      ash-network:
+        ipv4_address: 172.20.0.14
+    
+    # Override default command for CLI operations
+    entrypoint: ["python", "cli.py"]
+    command: ["validate", "setup"]  # Default command
+    
+    environment:
+      - GLOBAL_NLP_API_URL=${GLOBAL_NLP_API_URL:-http://10.20.30.253:8881}
+      - GLOBAL_LOG_LEVEL=${GLOBAL_LOG_LEVEL:-INFO}
+      - THRASH_REQUEST_TIMEOUT=${THRASH_REQUEST_TIMEOUT:-30}
+    volumes:
+      - ./results:/app/results
+      - ./logs:/app/logs
+      - ./config:/app/config:ro
+      - ./secrets:/run/secrets:ro
+    depends_on:
+      ash-bot:
+        condition: service_healthy
+      ash-nlp:
+        condition: service_healthy
+      ash-thrash-api:
+        condition: service_healthy
+      ash-redis:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    profiles:
+      - cli
+      - testing
+    labels:
+      - "ash.service=thrash-cli"
+      - "ash.version=v3.0"
 
   # ========================================================================
   # Redis Cache
@@ -448,7 +506,14 @@ networks:
     ipam:
       config:
         - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
 
 volumes:
   redis_data:
+    driver: local
+  ash-thrash-results:
+    name: ash-thrash-results
+    driver: local
+  ash-thrash-logs:
+    name: ash-thrash-logs
     driver: local
