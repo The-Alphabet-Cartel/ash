@@ -244,87 +244,6 @@ services:
       retries: 3
       start_period: 60s
 
-  # ========================================================================
-  # Analytics Dashboard (ash-dash)
-  # ========================================================================
-#  ash-dash:
-#    build:
-#      context: ./ash-dash
-#      dockerfile: ./Dockerfile
-#    image: ghcr.io/the-alphabet-cartel/ash-dash:latest
-#    container_name: ash-dash
-#    restart: unless-stopped
-#    networks:
-#      ash-network:
-#        ipv4_address: 172.20.0.12
-#    ports:
-#      - 8883:8883
-#    environment:
-#      # Local Timezone
-#      - TZ=America/Los_Angeles
-#      
-#      # SSL Configuration
-#      - DASH_ENABLE_SSL=${DASH_ENABLE_SSL:-false}
-#      - DASH_SSL_CERT_PATH=${DASH_SSL_CERT_PATH}
-#      - DASH_SSL_KEY_PATH=${DASH_SSL_KEY_PATH}
-#      
-#      # Ash Bot API (Discord Bot with Crisis Detection)
-#      - GLOBAL_DASH_API_PORT=${GLOBAL_DASH_API_PORT:-8883}
-#      - GLOBAL_BOT_API_URL=${GLOBAL_BOT_API_URL}
-#      - DASH_BOT_API_TIMEOUT=${DASH_BOT_API_TIMEOUT:-5000}
-#      
-#      # Ash NLP Server API (Machine Learning Analysis)
-#      - GLOBAL_NLP_API_URL=${GLOBAL_NLP_API_URL}
-#      - DASH_NLP_API_TIMEOUT=${DASH_NLP_API_TIMEOUT:-10000}
-#      
-#      # Cache Settings
-#      - DASH_CACHE_TTL=${DASH_CACHE_TTL:-300}
-#      
-#      # Real-time Updates
-#      - DASH_ENABLE_SOCKET_IO=${DASH_ENABLE_SOCKET_IO:-true}
-#      - DASH_METRICS_UPDATE_INTERVAL=${DASH_METRICS_UPDATE_INTERVAL:-30000}
-#
-#      # LOGGING & MONITORING
-#      - GLOBAL_LOG_LEVEL=${GLOBAL_LOG_LEVEL:-info}
-#      - DASH_LOG_DIR=${DASH_LOG_DIR:-./logs}
-#      - DASH_LOG_FILE=${DASH_LOG_FILE:-ash-dash.log}
-#      
-#      # DOCKER SECRETS CONFIGURATION
-#      - GLOBAL_SESSION_TOKEN=${GLOBAL_SESSION_TOKEN}
-#      
-#      # Enable Access
-#      - DASH_ENABLE_ACCESS_LOGS=${DASH_ENABLE_ACCESS_LOGS:-true}
-#      
-#      # Rate Limits
-#      - DASH_RATE_LIMIT_WINDOW=${DASH_RATE_LIMIT_WINDOW:-900000}
-#      - DASH_RATE_LIMIT_MAX=${DASH_RATE_LIMIT_MAX:-100}
-#      - DASH_RATE_LIMIT_MESSAGE=${DASH_RATE_LIMIT_MESSAGE:-Too many requests, please try again later}
-#    volumes:
-#      - ./ash-dash/logs:/app/logs
-#      - ./ash-dash/data:/app/data
-#      - ./ash-dash/cache:/app/cache
-#      - ./ash-dash/public:/app/public:ro
-#      - ./ash-dash/dashboard:/app/dashboard:ro
-#      - ./secrets:/run/secrets:ro
-#    depends_on:
-#      ash-bot:
-#        condition: service_healthy
-#      ash-nlp:
-#        condition: service_healthy
-#      ash-redis:
-#        condition: service_started
-#    deploy:
-#      resources:
-#        limits:
-#          memory: 2G
-#          cpus: '1.0'
-#    healthcheck:
-#      test: ["CMD", "curl", "-f", "http://localhost:8883/health"]
-#      interval: 30s
-#      timeout: 10s
-#      retries: 3
-#      start_period: 30s
-
   # =========================================================================
   # Ash-Thrash API Server
   # =========================================================================
@@ -343,29 +262,35 @@ services:
     environment:
       # Core Configuration
       - GLOBAL_NLP_API_URL=${GLOBAL_NLP_API_URL:-http://10.20.30.253:8881}
-      - GLOBAL_THRASH_API_PORT=8884
-      - THRASH_API_HOST=0.0.0.0
+      - GLOBAL_THRASH_API_PORT=${GLOBAL_THRASH_API_PORT:-8884}
+      - GLOBAL_LOG_LEVEL=${GLOBAL_LOG_LEVEL:-INFO}
+      - GLOBAL_ENABLE_DEBUG_MODE=${GLOBAL_ENABLE_DEBUG_MODE:-false}
+      - GLOBAL_ENABLE_CORS=${GLOBAL_ENABLE_CORS:-true}
+      - GLOBAL_CORS_ORIGINS=${GBLOABL_CORS_ORIGINS:-*}
       
+      # API Configuration
+      - THRASH_API_HOST=${THRASH_API_HOST:-0.0.0.0}
+      - THRASH_ENABLE_API_DOCS=${THRASH_ENABLE_API_DOCS:-true}
+      - THRASH_API_RATE_LIMIT=${THRASH_API_RATE_LIMIT:-100}
+      - THRASH_ENABLE_API_AUTHENTICATION=${THRASH_ENABLE_API_AUTHENTICATION:-false}
+
       # Testing Configuration
       - THRASH_MAX_CONCURRENT_TESTS=${THRASH_MAX_CONCURRENT_TESTS:-3}
       - THRASH_QUICK_TEST_SAMPLE_SIZE=${THRASH_QUICK_TEST_SAMPLE_SIZE:-50}
       - THRASH_REQUEST_TIMEOUT=${THRASH_REQUEST_TIMEOUT:-30}
+      - THRASH_AUTO_CLEANUP_RESULTS=${THRASH_AUTO_CLEANUP_RESULTS:-true}
       
       # Discord Integration
-      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
-      - DISCORD_NOTIFICATIONS_ENABLED=${DISCORD_NOTIFICATIONS_ENABLED:-true}
-      - NOTIFY_ON_COMPREHENSIVE_TESTS=${NOTIFY_ON_COMPREHENSIVE_TESTS:-true}
-      - NOTIFY_ON_QUICK_TESTS=${NOTIFY_ON_QUICK_TESTS:-false}
+      - THRASH_DISCORD_WEBHOOK_URL=${THRASH_DISCORD_WEBHOOK_URL:-}
+      - THRASH_DISCORD_WEBHOOK_USERNAME=${THRASH_DISCORD_WEBHOOK_USERNAME:-Ash-Thrash}
+      - THRASH_DISCORD_NOTIFICATIONS_ENABLED=${THRASH_DISCORD_NOTIFICATIONS_ENABLED:-true}
+      - THRASH_NOTIFY_ON_CATEGORY_TESTS=${THRASH_NOTIFY_ON_CATEGORY_TESTS:-false}
+      - THRASH_NOTIFY_ON_FAILURES_ONLY=${THRASH_NOTIFY_ON_FAILURES_ONLY:-false}
+      - THRASH_NOTIFY_ON_COMPREHENSIVE_TESTS=${NOTIFY_ON_COMPREHENSIVE_TESTS:-true}
+      - THRASH_NOTIFY_ON_QUICK_TESTS=${NOTIFY_ON_QUICK_TESTS:-false}
       
       # Logging
-      - GLOBAL_LOG_LEVEL=${GLOBAL_LOG_LEVEL:-INFO}
       - THRASH_LOG_FILE=ash-thrash.log
-      - GLOBAL_ENABLE_DEBUG_MODE=${GLOBAL_ENABLE_DEBUG_MODE:-false}
-      
-      # API Configuration
-      - THRASH_ENABLE_API_DOCS=${THRASH_ENABLE_API_DOCS:-true}
-      - THRASH_ENABLE_CORS=${THRASH_ENABLE_CORS:-true}
-      - THRASH_CORS_ORIGINS=${THRASH_CORS_ORIGINS:-*}
       
       # Tuning Suggestions
       - THRASH_GENERATE_SUGGESTIONS=${THRASH_GENERATE_SUGGESTIONS:-true}
@@ -375,6 +300,35 @@ services:
       # Performance
       - THRASH_ENABLE_RESULT_CACHING=${THRASH_ENABLE_RESULT_CACHING:-true}
       - THRASH_CACHE_TTL_SECONDS=${THRASH_CACHE_TTL_SECONDS:-300}
+      - THRASH_REQUEST_TIMEOUT=${THRASH_REQUEST_TIMEOUT:-30}
+      - THRASH_CONNECTION_POOL_SIZE=${THRASH_CONNECTION_POOL_SIZE:-10}
+      
+      # Tuning Suggestions
+      - THRASH_GENERATE_SUGGESTIONS=${THRASH_GENERATE_SUGGESTIONS:-true}
+      - THRASH_SUGGESTION_THRESHOLD=${THRASH_SUGGESTION_THRESHOLD:-10.0}
+      - THRASH_CRITICAL_THRESHOLD=${THRASH_CRITICAL_THRESHOLD:-20.0}
+      
+      # Test Execution
+      - THRASH_RETRY_FAILED_TESTS=${THRASH_RETRY_FAILED_TESTS:-true}
+      - THRASH_MAX_RETRIES=${THRASH_MAX_RETRIES:-3}
+      - THRASH_RETRY_DELAY_SECONDS=${THRASH_RETRY_DELAY_SECONDS:-5}
+      
+      # API Response Caching
+      - THRASH_ENABLE_RESULT_CACHING=${THRASH_ENABLE_RESULT_CACHING:-true}
+      - THRASH_CACHE_TTL_SECONDS=${THRASH_CACHE_TTL_SECONDS:-300}
+      
+      # Health Check Settings
+      - THRASH_HEALTH_CHECK_INTERVAL=${THRASH_HEALTH_CHECK_INTERVAL:-30}
+      - THRASH_NLP_HEALTH_CHECK_TIMEOUT=${THRASH_NLP_HEALTH_CHECK_TIMEOUT:-5}
+      
+      # Development Mode
+      - THRASH_DEVELOPMENT_MODE=${THRASH_DEVELOPMENT_MODE:-false}
+      - THRASH_ENABLE_API_DOCS=${THRASH_ENABLE_API_DOCS:-true}
+      
+      # Test Data Validation
+      - THRASH_VALIDATE_DATA_ON_STARTUP=${THRASH_VALIDATE_DATA_ON_STARTUP:-true}
+      - THRASH_STRICT_VALIDATION=${THRASH_STRICT_VALIDATION:-true}
+
     volumes:
       # Results and logs persistence
       - ./results:/app/results
@@ -457,6 +411,87 @@ services:
     labels:
       - "ash.service=thrash-cli"
       - "ash.version=v3.0"
+
+  # ========================================================================
+  # Analytics Dashboard (ash-dash)
+  # ========================================================================
+#  ash-dash:
+#    build:
+#      context: ./ash-dash
+#      dockerfile: ./Dockerfile
+#    image: ghcr.io/the-alphabet-cartel/ash-dash:latest
+#    container_name: ash-dash
+#    restart: unless-stopped
+#    networks:
+#      ash-network:
+#        ipv4_address: 172.20.0.12
+#    ports:
+#      - 8883:8883
+#    environment:
+#      # Local Timezone
+#      - TZ=America/Los_Angeles
+#      
+#      # SSL Configuration
+#      - DASH_ENABLE_SSL=${DASH_ENABLE_SSL:-false}
+#      - DASH_SSL_CERT_PATH=${DASH_SSL_CERT_PATH}
+#      - DASH_SSL_KEY_PATH=${DASH_SSL_KEY_PATH}
+#      
+#      # Ash Bot API (Discord Bot with Crisis Detection)
+#      - GLOBAL_DASH_API_PORT=${GLOBAL_DASH_API_PORT:-8883}
+#      - GLOBAL_BOT_API_URL=${GLOBAL_BOT_API_URL}
+#      - DASH_BOT_API_TIMEOUT=${DASH_BOT_API_TIMEOUT:-5000}
+#      
+#      # Ash NLP Server API (Machine Learning Analysis)
+#      - GLOBAL_NLP_API_URL=${GLOBAL_NLP_API_URL}
+#      - DASH_NLP_API_TIMEOUT=${DASH_NLP_API_TIMEOUT:-10000}
+#      
+#      # Cache Settings
+#      - DASH_CACHE_TTL=${DASH_CACHE_TTL:-300}
+#      
+#      # Real-time Updates
+#      - DASH_ENABLE_SOCKET_IO=${DASH_ENABLE_SOCKET_IO:-true}
+#      - DASH_METRICS_UPDATE_INTERVAL=${DASH_METRICS_UPDATE_INTERVAL:-30000}
+#
+#      # LOGGING & MONITORING
+#      - GLOBAL_LOG_LEVEL=${GLOBAL_LOG_LEVEL:-info}
+#      - DASH_LOG_DIR=${DASH_LOG_DIR:-./logs}
+#      - DASH_LOG_FILE=${DASH_LOG_FILE:-ash-dash.log}
+#      
+#      # DOCKER SECRETS CONFIGURATION
+#      - GLOBAL_SESSION_TOKEN=${GLOBAL_SESSION_TOKEN}
+#      
+#      # Enable Access
+#      - DASH_ENABLE_ACCESS_LOGS=${DASH_ENABLE_ACCESS_LOGS:-true}
+#      
+#      # Rate Limits
+#      - DASH_RATE_LIMIT_WINDOW=${DASH_RATE_LIMIT_WINDOW:-900000}
+#      - DASH_RATE_LIMIT_MAX=${DASH_RATE_LIMIT_MAX:-100}
+#      - DASH_RATE_LIMIT_MESSAGE=${DASH_RATE_LIMIT_MESSAGE:-Too many requests, please try again later}
+#    volumes:
+#      - ./ash-dash/logs:/app/logs
+#      - ./ash-dash/data:/app/data
+#      - ./ash-dash/cache:/app/cache
+#      - ./ash-dash/public:/app/public:ro
+#      - ./ash-dash/dashboard:/app/dashboard:ro
+#      - ./secrets:/run/secrets:ro
+#    depends_on:
+#      ash-bot:
+#        condition: service_healthy
+#      ash-nlp:
+#        condition: service_healthy
+#      ash-redis:
+#        condition: service_started
+#    deploy:
+#      resources:
+#        limits:
+#          memory: 2G
+#          cpus: '1.0'
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:8883/health"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#      start_period: 30s
 
   # ========================================================================
   # Redis Cache
