@@ -372,7 +372,7 @@ services:
       context: ./ash-thrash
       dockerfile: ./Dockerfile
     image: ghcr.io/the-alphabet-cartel/ash-thrash:latest
-    container_name: ash-thrash-cli
+    container_name: ash-thrash
     networks:
       ash-network:
         ipv4_address: 172.20.0.14
