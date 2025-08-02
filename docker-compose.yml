@@ -91,6 +91,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    labels:
+      - "ash.service=bot"
+      - "ash.version=v3.0"
 
   # ========================================================================
   # NLP Server (ash-nlp)
@@ -242,6 +245,9 @@ services:
       timeout: 15s
       retries: 3
       start_period: 60s
+    labels:
+      - "ash.service=nlp"
+      - "ash.version=v3.0"
 
   # =========================================================================
   # Ash-Thrash API Server
@@ -411,7 +417,7 @@ services:
           memory: 256M
           cpus: '0.25'
     labels:
-      - "ash.service=thrash-cli"
+      - "ash.service=thrash"
       - "ash.version=v3.0"
 
   # ========================================================================
