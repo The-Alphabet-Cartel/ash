@@ -248,9 +248,9 @@ services:
   # Ash-Thrash API Server
   # =========================================================================
   ash-thrash-api:
-    build:
-      context: ./ash-thrash
-      dockerfile: ./Dockerfile
+    #build:
+      #context: ./ash-thrash
+      #dockerfile: ./Dockerfile
     image: ghcr.io/the-alphabet-cartel/ash-thrash:latest
     container_name: ash-thrash-api
     restart: unless-stopped
@@ -368,9 +368,9 @@ services:
   # Ash-Thrash CLI Runner (on-demand)
   # =========================================================================
   ash-thrash:
-    build:
-      context: ./ash-thrash
-      dockerfile: ./Dockerfile
+    #build:
+      #context: ./ash-thrash
+      #dockerfile: ./Dockerfile
     image: ghcr.io/the-alphabet-cartel/ash-thrash:latest
     container_name: ash-thrash
     networks:
