@@ -334,9 +334,6 @@ services:
       - ./logs:/app/logs
       - ./reports:/app/reports
       
-      # Configuration (read-only)
-      - ./config:/app/config:ro
-      
       # Secrets
       - ./secrets:/run/secrets:ro
     depends_on:
