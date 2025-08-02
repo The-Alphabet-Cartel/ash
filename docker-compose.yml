@@ -165,6 +165,17 @@ services:
       - NLP_LOGS_DIR=${NLP_LOGS_DIR}
       - NLP_LEARNING_DATA_DIR=${NLP_LEARNING_DATA_DIR}
       
+      # Zero-Shot Labels
+      ## Options: current, enhanced_crisis, clinical_focused, conversational, safety_first
+      - NLP_ZERO_SHOT_LABEL_SET=${NLP_ZERO_SHOT_LABEL_SET:-enhanced_crisis}
+      - NLP_ENABLE_LABEL_SET_SWITCHING=${NLP_ENABLE_LABEL_SET_SWITCHING:-true}
+      ## Zero-Shot Label Testing
+      - NLP_INCLUDE_RAW_LABELS=${NLP_INCLUDE_RAW_LABELS:-true}
+      ## Log label mapping decisions for analysis
+      - NLP_LOG_LABEL_MAPPINGS=${NLP_LOG_LABEL_MAPPINGS:-true}
+      ## Enable label performance tracking
+      - NLP_TRACK_LABEL_PERFORMANCE=${NLP_TRACK_LABEL_PERFORMANCE:-true}
+
       # UPDATED: Individual model thresholds (if you use them)
       - NLP_HIGH_CRISIS_THRESHOLD=${NLP_HIGH_CRISIS_THRESHOLD:-0.45}
       - NLP_MEDIUM_CRISIS_THRESHOLD=${NLP_MEDIUM_CRISIS_THRESHOLD:-0.25}
