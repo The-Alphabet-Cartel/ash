@@ -330,9 +330,12 @@ services:
 
     volumes:
       # Results and logs persistence
-      - ./results:/app/results
-      - ./logs:/app/logs
-      - ./reports:/app/reports
+      - ./ash-thrash/results:/app/results
+      - ./ash-thrash/logs:/app/logs
+      - ./ash-thrash/reports:/app/reports
+      
+      # Configuration (read-only)
+      - ./ash-thrash/config:/app/config:ro
       
       # Secrets
       - ./secrets:/run/secrets:ro
@@ -382,9 +385,9 @@ services:
       - GLOBAL_LOG_LEVEL=${GLOBAL_LOG_LEVEL:-INFO}
       - THRASH_REQUEST_TIMEOUT=${THRASH_REQUEST_TIMEOUT:-30}
     volumes:
-      - ./results:/app/results
-      - ./logs:/app/logs
-      - ./config:/app/config:ro
+      - ./ash-thrash/results:/app/results
+      - ./ash-thrash/logs:/app/logs
+      - ./ash-thrash/config:/app/config:ro
       - ./secrets:/run/secrets:ro
     depends_on:
       ash-nlp:
