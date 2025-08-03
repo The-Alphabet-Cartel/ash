@@ -132,6 +132,11 @@ services:
       - NLP_MIN_CONFIDENCE_ADJUSTMENT=${NLP_MIN_CONFIDENCE_ADJUSTMENT:-0.05}
       - NLP_MAX_CONFIDENCE_ADJUSTMENT=${NLP_MAX_CONFIDENCE_ADJUSTMENT:-0.30}
       
+      # Additional Model Manager Settings
+      - NLP_USE_FAST_TOKENIZER=${NLP_USE_FAST_TOKENIZER:-true}
+      - NLP_TRUST_REMOTE_CODE=${NLP_TRUST_REMOTE_CODE:-false}
+      - NLP_MODEL_REVISION=${NLP_MODEL_REVISION:-main}
+
       # Model Configuration
       - NLP_DEPRESSION_MODEL=${NLP_DEPRESSION_MODEL:-MoritzLaurer/deberta-v3-base-zeroshot-v2.0}
       - NLP_SENTIMENT_MODEL=${NLP_SENTIMENT_MODEL:-Lowerated/lm6-deberta-v3-topic-sentiment}
