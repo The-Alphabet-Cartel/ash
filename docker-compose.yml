@@ -139,8 +139,8 @@ services:
 
       # Model Configuration
       - NLP_DEPRESSION_MODEL=${NLP_DEPRESSION_MODEL:-MoritzLaurer/deberta-v3-base-zeroshot-v2.0}
-      - NLP_SENTIMENT_MODEL=${NLP_SENTIMENT_MODEL:-Lowerated/lm6-deberta-v3-topic-sentiment}
-      - NLP_EMOTIONAL_DISTRESS_MODEL=${NLP_EMOTIONAL_DISTRESS_MODEL:-facebook/bart-large-mnli}
+      - NLP_SENTIMENT_MODEL=${NLP_SENTIMENT_MODEL:-MoritzLaurer/mDeBERTa-v3-base-mnli-xnli}
+      - NLP_EMOTIONAL_DISTRESS_MODEL=${NLP_EMOTIONAL_DISTRESS_MODEL:-Lowerated/lm6-deberta-v3-topic-sentiment}
       - NLP_MODEL_CACHE_DIR=${NLP_MODEL_CACHE_DIR}
       
       # Hardware Configuration
