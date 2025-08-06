@@ -229,6 +229,12 @@ services:
       # Security
       - GLOBAL_ALLOWED_IPS=${GLOBAL_ALLOWED_IPS}
       - GLOBAL_ENABLE_CORS=${GLOBAL_ENABLE_CORS}
+
+      # EXPERIMENTAL FEATURES
+      - NLP_ENABLE_ENSEMBLE_ANALYSIS=${NLP_ENABLE_ENSEMBLE_ANALYSIS:-true}
+      - NLP_ENABLE_GAP_DETECTION=${NLP_ENABLE_GAP_DETECTION:-true}
+      - NLP_ENABLE_CONFIDENCE_SPREADING=${NLP_ENABLE_CONFIDENCE_SPREADING:-true}
+      - NLP_LOG_MODEL_DISAGREEMENTS=${NLP_LOG_MODEL_DISAGREEMENTS:-true}
       
       # Phase 3a - Crisis Pattern Configuration
       - NLP_CONFIG_ENABLE_CRISIS_PATTERNS=${NLP_CONFIG_ENABLE_CRISIS_PATTERNS:-true}
@@ -239,11 +245,78 @@ services:
       - NLP_CONFIG_BURDEN_WEIGHT_MULTIPLIER=${NLP_CONFIG_BURDEN_WEIGHT_MULTIPLIER:-1.2}
       - NLP_CONFIG_ENHANCED_CRISIS_WEIGHT=${NLP_CONFIG_ENHANCED_CRISIS_WEIGHT:-1.2}
 
-      # EXPERIMENTAL FEATURES
-      - NLP_ENABLE_ENSEMBLE_ANALYSIS=${NLP_ENABLE_ENSEMBLE_ANALYSIS:-true}
-      - NLP_ENABLE_GAP_DETECTION=${NLP_ENABLE_GAP_DETECTION:-true}
-      - NLP_ENABLE_CONFIDENCE_SPREADING=${NLP_ENABLE_CONFIDENCE_SPREADING:-true}
-      - NLP_LOG_MODEL_DISAGREEMENTS=${NLP_LOG_MODEL_DISAGREEMENTS:-true}
+      # Phase 3b - Analysis Parameters Configuration
+      # ============== CRISIS THRESHOLDS ==========================================
+      # Core crisis level mapping thresholds for analysis algorithms
+      - NLP_ANALYSIS_CRISIS_THRESHOLD_HIGH=${NLP_ANALYSIS_CRISIS_THRESHOLD_HIGH:-0.55}    # Reduced from 0.50 - matches systematic approach
+      - NLP_ANALYSIS_CRISIS_THRESHOLD_MEDIUM=${NLP_ANALYSIS_CRISIS_THRESHOLD_MEDIUM:-0.28}  # Reduced from 0.22 - more selective for medium alerts
+      - NLP_ANALYSIS_CRISIS_THRESHOLD_LOW=${NLP_ANALYSIS_CRISIS_THRESHOLD_LOW:-0.16}     # Reduced from 0.12 - avoids very mild expressions
+      
+      # ============== PHRASE EXTRACTION PARAMETERS ===============================
+      # Parameters for crisis phrase extraction from messages
+      - NLP_ANALYSIS_MIN_PHRASE_LENGTH=${NLP_ANALYSIS_MIN_PHRASE_LENGTH:-2}           # Minimum length for extracted phrases
+      - NLP_ANALYSIS_MAX_PHRASE_LENGTH=${NLP_ANALYSIS_MAX_PHRASE_LENGTH:-6}           # Maximum length for extracted phrases
+      - NLP_ANALYSIS_PHRASE_CRISIS_FOCUS=${NLP_ANALYSIS_PHRASE_CRISIS_FOCUS:-true}      # Focus on crisis-related phrases
+      - NLP_ANALYSIS_PHRASE_COMMUNITY_SPECIFIC=${NLP_ANALYSIS_PHRASE_COMMUNITY_SPECIFIC:-true} # Use community-specific patterns
+      - NLP_ANALYSIS_PHRASE_MIN_CONFIDENCE=${NLP_ANALYSIS_PHRASE_MIN_CONFIDENCE:-0.3}     # Minimum confidence for phrase extraction
+      - NLP_ANALYSIS_PHRASE_MAX_RESULTS=${NLP_ANALYSIS_PHRASE_MAX_RESULTS:-20}         # Maximum number of phrases to return
+      
+      # ============== PATTERN LEARNING PARAMETERS ================================
+      # Parameters for learning distinctive crisis patterns from community messages
+      - NLP_ANALYSIS_PATTERN_MIN_CRISIS_MESSAGES=${NLP_ANALYSIS_PATTERN_MIN_CRISIS_MESSAGES:-10}      # Minimum crisis messages for pattern learning
+      - NLP_ANALYSIS_PATTERN_MAX_PHRASES_TO_ANALYZE=${NLP_ANALYSIS_PATTERN_MAX_PHRASES_TO_ANALYZE:-200}  # Maximum phrases to analyze
+      - NLP_ANALYSIS_PATTERN_MIN_DISTINCTIVENESS_RATIO=${NLP_ANALYSIS_PATTERN_MIN_DISTINCTIVENESS_RATIO:-2.0} # Minimum distinctiveness ratio
+      - NLP_ANALYSIS_PATTERN_MIN_FREQUENCY=${NLP_ANALYSIS_PATTERN_MIN_FREQUENCY:-3}             # Minimum frequency for pattern detection
+      - NLP_ANALYSIS_PATTERN_HIGH_CONFIDENCE=${NLP_ANALYSIS_PATTERN_HIGH_CONFIDENCE:-0.7}         # High confidence threshold for patterns
+      - NLP_ANALYSIS_PATTERN_MEDIUM_CONFIDENCE=${NLP_ANALYSIS_PATTERN_MEDIUM_CONFIDENCE:-0.4}       # Medium confidence threshold for patterns
+      - NLP_ANALYSIS_PATTERN_LOW_CONFIDENCE=${NLP_ANALYSIS_PATTERN_LOW_CONFIDENCE:-0.1}          # Low confidence threshold for patterns
+      
+      # ============== SEMANTIC ANALYSIS PARAMETERS ===============================
+      # Parameters for semantic analysis and context understanding
+      - NLP_ANALYSIS_SEMANTIC_CONTEXT_WINDOW=${NLP_ANALYSIS_SEMANTIC_CONTEXT_WINDOW:-3}           # Words around community terms
+      - NLP_ANALYSIS_SEMANTIC_HIGH_RELEVANCE_BOOST=${NLP_ANALYSIS_SEMANTIC_HIGH_RELEVANCE_BOOST:-0.1}   # Boost for high relevance context
+      - NLP_ANALYSIS_SEMANTIC_MEDIUM_RELEVANCE_BOOST=${NLP_ANALYSIS_SEMANTIC_MEDIUM_RELEVANCE_BOOST:-0.05} # Boost for medium relevance context
+      - NLP_ANALYSIS_SEMANTIC_FAMILY_REJECTION_BOOST=${NLP_ANALYSIS_SEMANTIC_FAMILY_REJECTION_BOOST:-0.15} # Boost for family rejection indicators
+      - NLP_ANALYSIS_SEMANTIC_DISCRIMINATION_FEAR_BOOST=${NLP_ANALYSIS_SEMANTIC_DISCRIMINATION_FEAR_BOOST:-0.15} # Boost for discrimination fear
+      - NLP_ANALYSIS_SEMANTIC_SUPPORT_SEEKING_BOOST=${NLP_ANALYSIS_SEMANTIC_SUPPORT_SEEKING_BOOST:--0.05}    # Reduces crisis level (positive context)
+      
+      # ============== ADVANCED ANALYSIS PARAMETERS ===============================
+      # Advanced analysis parameters for fine-tuning algorithm behavior
+      - NLP_ANALYSIS_PATTERN_CONFIDENCE_BOOST=${NLP_ANALYSIS_PATTERN_CONFIDENCE_BOOST:-0.05}       # Additional confidence boost from patterns
+      - NLP_ANALYSIS_MODEL_CONFIDENCE_BOOST=${NLP_ANALYSIS_MODEL_CONFIDENCE_BOOST:-0.0}          # Additional confidence boost from models
+      - NLP_ANALYSIS_CONTEXT_SIGNAL_WEIGHT=${NLP_ANALYSIS_CONTEXT_SIGNAL_WEIGHT:-1.0}           # Weight for context signals
+      - NLP_ANALYSIS_TEMPORAL_URGENCY_MULTIPLIER=${NLP_ANALYSIS_TEMPORAL_URGENCY_MULTIPLIER:-1.2}     # Multiplier for temporal urgency
+      - NLP_ANALYSIS_COMMUNITY_AWARENESS_BOOST=${NLP_ANALYSIS_COMMUNITY_AWARENESS_BOOST:-0.1}       # Boost for community-aware analysis
+      
+      # ============== INTEGRATION SETTINGS =======================================
+      # Settings for integrating analysis components
+      - NLP_ANALYSIS_ENABLE_PATTERN_ANALYSIS=${NLP_ANALYSIS_ENABLE_PATTERN_ANALYSIS:-true}        # Enable pattern-based analysis
+      - NLP_ANALYSIS_ENABLE_SEMANTIC_ANALYSIS=${NLP_ANALYSIS_ENABLE_SEMANTIC_ANALYSIS:-true}       # Enable semantic analysis
+      - NLP_ANALYSIS_ENABLE_PHRASE_EXTRACTION=${NLP_ANALYSIS_ENABLE_PHRASE_EXTRACTION:-true}       # Enable phrase extraction
+      - NLP_ANALYSIS_ENABLE_PATTERN_LEARNING=${NLP_ANALYSIS_ENABLE_PATTERN_LEARNING:-true}        # Enable pattern learning
+      - NLP_ANALYSIS_INTEGRATION_MODE=${NLP_ANALYSIS_INTEGRATION_MODE:-full}               # Integration mode: minimal/standard/enhanced/full
+      
+      # ============== PERFORMANCE SETTINGS =======================================
+      # Performance-related parameters for analysis algorithms
+      - NLP_ANALYSIS_TIMEOUT_MS=${NLP_ANALYSIS_TIMEOUT_MS:-5000}                     # Analysis timeout in milliseconds
+      - NLP_ANALYSIS_MAX_CONCURRENT=${NLP_ANALYSIS_MAX_CONCURRENT:-10}                   # Maximum concurrent analyses
+      - NLP_ANALYSIS_ENABLE_CACHING=${NLP_ANALYSIS_ENABLE_CACHING:-true}                 # Enable analysis result caching
+      - NLP_ANALYSIS_CACHE_TTL_SECONDS=${NLP_ANALYSIS_CACHE_TTL_SECONDS:-300}               # Cache TTL in seconds
+      - NLP_ANALYSIS_ENABLE_PARALLEL_PROCESSING=${NLP_ANALYSIS_ENABLE_PARALLEL_PROCESSING:-true}     # Enable parallel processing
+      
+      # ============== DEBUGGING SETTINGS =========================================
+      # Parameters for debugging and development
+      - NLP_ANALYSIS_ENABLE_DETAILED_LOGGING=${NLP_ANALYSIS_ENABLE_DETAILED_LOGGING:-true}       # Enable detailed logging
+      - NLP_ANALYSIS_LOG_ANALYSIS_STEPS=${NLP_ANALYSIS_LOG_ANALYSIS_STEPS:-false}            # Log individual analysis steps
+      - NLP_ANALYSIS_INCLUDE_REASONING=${NLP_ANALYSIS_INCLUDE_REASONING:-true}              # Include reasoning in responses
+      - NLP_ANALYSIS_ENABLE_PERFORMANCE_METRICS=${NLP_ANALYSIS_ENABLE_PERFORMANCE_METRICS:-true}     # Enable performance metrics
+      
+      # ============== EXPERIMENTAL FEATURES ======================================
+      # Feature flags for experimental analysis features
+      - NLP_ANALYSIS_EXPERIMENTAL_ADVANCED_CONTEXT=${NLP_ANALYSIS_EXPERIMENTAL_ADVANCED_CONTEXT:-false}    # Advanced context analysis
+      - NLP_ANALYSIS_EXPERIMENTAL_COMMUNITY_VOCAB=${NLP_ANALYSIS_EXPERIMENTAL_COMMUNITY_VOCAB:-true}     # Community vocabulary boost
+      - NLP_ANALYSIS_EXPERIMENTAL_TEMPORAL_PATTERNS=${NLP_ANALYSIS_EXPERIMENTAL_TEMPORAL_PATTERNS:-true}   # Temporal pattern detection
+      - NLP_ANALYSIS_EXPERIMENTAL_MULTI_LANGUAGE=${NLP_ANALYSIS_EXPERIMENTAL_MULTI_LANGUAGE:-false}      # Multi-language support
     volumes:
       - ./ash-nlp/data:/app/data
       - ./ash-nlp/models/cache:/app/models/cache
