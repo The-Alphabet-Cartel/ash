@@ -18,8 +18,8 @@ services:
         ipv4_address: 172.20.0.10
     ports:
       - 8882:8882
-    environment:
-      - TZ=America/Los_Angeles
+    env_file:
+      - .env
     volumes:
       - ./ash-bot/logs:/app/logs
       - ./ash-bot/data:/app/data
@@ -59,8 +59,8 @@ services:
         ipv4_address: 172.20.0.11
     ports:
       - 8881:8881
-    environment:
-      - TZ=America/Los_Angeles
+    env_file:
+      - .env
     volumes:
       - ./ash-nlp/data:/app/data
       - ./ash-nlp/models/cache:/app/models/cache
@@ -107,8 +107,8 @@ services:
       - 8884:8884
     # Override default command to start the API server
     command: ["python", "-m", "uvicorn", "src.ash_thrash_api:app", "--host", "0.0.0.0", "--port", "8884"]
-    environment:
-      - TZ=America/Los_Angeles
+    env_file:
+      - .env
     volumes:
       # Results and logs persistence
       - ./ash-thrash/results:/app/results
@@ -157,13 +157,13 @@ services:
     networks:
       ash-network:
         ipv4_address: 172.20.0.14
+    env_file:
+      - .env
     
     # Keep the container running with a long-lived command
     # This allows you to exec into it for CLI operations
     command: ["tail", "-f", "/dev/null"]
     
-    environment:
-      - TZ=America/Los_Angeles
     volumes:
       - ./ash-thrash/results:/app/results
       - ./ash-thrash/logs:/app/logs
@@ -204,8 +204,8 @@ services:
 #        ipv4_address: 172.20.0.12
 #    ports:
 #      - 8883:8883
-#    environment:
-#      - TZ=America/Los_Angeles
+#    env_file:
+#      - .env
 #    volumes:
 #      - ./ash-dash/logs:/app/logs
 #      - ./ash-dash/data:/app/data
