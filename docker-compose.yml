@@ -70,26 +70,16 @@ services:
     depends_on:
       ash-redis:
         condition: service_started
-
-    # Use gunicorn for production multi-worker deployment
-    command: ["gunicorn", "-c", "gunicorn_config.py", "main:app"]
-    # Alternative development command (comment out above and uncomment below):
-    # command: ["python", "dev_server.py"]
-
-    shm_size: 1gb
     deploy:
       resources:
         limits:
-          memory: 20G
-          cpus: '6.0'
-        reservations:
           memory: 12G
           cpus: '4.0'
+        reservations:
           devices:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8881/health"]
       interval: 30s
