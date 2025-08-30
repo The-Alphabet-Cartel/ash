@@ -91,103 +91,40 @@ services:
       - "ash.version=v3.0"
 
   # =========================================================================
-  # Ash-Thrash API Server
-  # =========================================================================
-  ash-thrash-api:
-    #build:
-      #context: ./ash-thrash
-      #dockerfile: ./Dockerfile
-    image: ghcr.io/the-alphabet-cartel/ash-thrash:latest
-    container_name: ash-thrash-api
-    restart: unless-stopped
-    networks:
-      ash-network:
-        ipv4_address: 172.20.0.13
-    ports:
-      - 8884:8884
-    # Override default command to start the API server
-    command: ["python", "-m", "uvicorn", "src.ash_thrash_api:app", "--host", "0.0.0.0", "--port", "8884"]
-    env_file:
-      - .env
-    volumes:
-      # Results and logs persistence
-      - ./ash-thrash/results:/app/results
-      - ./ash-thrash/logs:/app/logs
-      - ./ash-thrash/reports:/app/reports
-      
-      # Configuration (read-only)
-      - ./ash-thrash/config:/app/config:ro
-      
-      # Secrets
-      - ./secrets:/run/secrets:ro
-    depends_on:
-      ash-nlp:
-        condition: service_healthy
-      ash-redis:
-        condition: service_started
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-          cpus: '1.0'
-        reservations:
-          memory: 512M
-          cpus: '0.5'
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8884/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    labels:
-      - "traefik.enable=false"
-      - "ash.service=thrash-api"
-      - "ash.version=v3.0"
-
-  # =========================================================================
-  # Ash-Thrash Service
+  # Ash-Thrash
   # =========================================================================
   ash-thrash:
-    #build:
-      #context: ./ash-thrash
-      #dockerfile: ./Dockerfile
+    build:
+      context: .
     image: ghcr.io/the-alphabet-cartel/ash-thrash:latest
     container_name: ash-thrash
     restart: unless-stopped
     networks:
       ash-network:
         ipv4_address: 172.20.0.14
-    env_file:
-      - .env
     
     # Keep the container running with a long-lived command
     # This allows you to exec into it for CLI operations
     command: ["tail", "-f", "/dev/null"]
     
+    environment:
+      - TZ=America/Los_Angeles
     volumes:
       - ./ash-thrash/results:/app/results
       - ./ash-thrash/logs:/app/logs
       - ./ash-thrash/reports:/app/reports
-      - ./ash-thrash/config:/app/config:ro
-      - ./secrets:/run/secrets:ro
+      #- ./secrets:/run/secrets:ro
     depends_on:
       ash-nlp:
         condition: service_healthy
-      ash-thrash-api:
-        condition: service_healthy
-      ash-redis:
-        condition: service_started
     deploy:
       resources:
         limits:
           memory: 1G
-          cpus: '0.5'
+          cpus: '2'
         reservations:
           memory: 256M
-          cpus: '0.25'
-    labels:
-      - "ash.service=thrash"
-      - "ash.version=v3.0"
+          cpus: '1'
 
   # ========================================================================
   # Analytics Dashboard (ash-dash)
@@ -271,6 +208,9 @@ networks:
 
 volumes:
   redis_data:
+    driver: local
+  ash-thrash-reports:
+    name: ash-thrash-reports
     driver: local
   ash-thrash-results:
     name: ash-thrash-results
