@@ -95,7 +95,8 @@ services:
   # =========================================================================
   ash-thrash:
     build:
-      context: .
+      context: ./ash-thrash
+      dockerfile: ./Dockerfile
     image: ghcr.io/the-alphabet-cartel/ash-thrash:latest
     container_name: ash-thrash
     restart: unless-stopped
