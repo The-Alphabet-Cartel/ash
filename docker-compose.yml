@@ -205,12 +205,3 @@ networks:
 volumes:
   redis_data:
     driver: local
-  ash-thrash-reports:
-    name: ash-thrash-reports
-    driver: local
-  ash-thrash-results:
-    name: ash-thrash-results
-    driver: local
-  ash-thrash-logs:
-    name: ash-thrash-logs
-    driver: local
