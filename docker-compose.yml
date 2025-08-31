@@ -103,18 +103,13 @@ services:
     networks:
       ash-network:
         ipv4_address: 172.20.0.14
-    
-    # Keep the container running with a long-lived command
-    # This allows you to exec into it for CLI operations
-    command: ["tail", "-f", "/dev/null"]
-    
     env_file:
       - .env
     volumes:
       - ./ash-thrash/results:/app/results
       - ./ash-thrash/logs:/app/logs
       - ./ash-thrash/reports:/app/reports
-      #- ./secrets:/run/secrets:ro
+      - ./secrets:/run/secrets:ro
     depends_on:
       ash-nlp:
         condition: service_healthy
