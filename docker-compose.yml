@@ -66,6 +66,7 @@ services:
       - ./ash-nlp/models/cache:/app/models/cache
       - ./ash-nlp/logs:/app/logs
       - ./ash-nlp/learning_data:/app/learning_data
+      - ./ash-nlp/optimization/results:/app/optimization/results
       - ./secrets:/run/secrets:ro
     depends_on:
       ash-redis:
