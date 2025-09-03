@@ -6,44 +6,44 @@ services:
   # ========================================================================
   # Discord Bot (ash-bot)
   # ========================================================================
-  ash-bot:
+#  ash-bot:
     #build:
       #context: ./ash-bot
       #dockerfile: ./Dockerfile
-    image: ghcr.io/the-alphabet-cartel/ash-bot:latest
-    container_name: ash-bot
-    restart: unless-stopped
-    networks:
-      ash-network:
-        ipv4_address: 172.20.0.10
-    ports:
-      - 8882:8882
-    env_file:
-      - .env
-    volumes:
-      - ./ash-bot/logs:/app/logs
-      - ./ash-bot/data:/app/data
-      - ./secrets:/run/secrets:ro
-    depends_on:
-      ash-nlp:
-        condition: service_healthy
-      ash-redis:
-        condition: service_started
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '0.5'
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8882/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    labels:
-      - "ash.service=bot"
-      - "ash.version=v3.0"
-
+#    image: ghcr.io/the-alphabet-cartel/ash-bot:latest
+#    container_name: ash-bot
+#    restart: unless-stopped
+#    networks:
+#      ash-network:
+#        ipv4_address: 172.20.0.10
+#    ports:
+#      - 8882:8882
+#    env_file:
+#      - .env
+#    volumes:
+#      - ./ash-bot/logs:/app/logs
+#      - ./ash-bot/data:/app/data
+#      - ./secrets:/run/secrets:ro
+#    depends_on:
+#      ash-nlp:
+#        condition: service_healthy
+#      ash-redis:
+#        condition: service_started
+#    deploy:
+#      resources:
+#        limits:
+#          memory: 1G
+#          cpus: '0.5'
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:8882/health"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#      start_period: 40s
+#    labels:
+#      - "ash.service=bot"
+#      - "ash.version=v3.0"
+#
   # ========================================================================
   # NLP Server (ash-nlp)
   # ========================================================================
