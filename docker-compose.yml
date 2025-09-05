@@ -6,44 +6,44 @@ services:
   # ========================================================================
   # Discord Bot (ash-bot)
   # ========================================================================
-#  ash-bot:
-    #build:
-      #context: ./ash-bot
-      #dockerfile: ./Dockerfile
-#    image: ghcr.io/the-alphabet-cartel/ash-bot:latest
-#    container_name: ash-bot
-#    restart: unless-stopped
-#    networks:
-#      ash-network:
-#        ipv4_address: 172.20.0.10
-#    ports:
-#      - 8882:8882
-#    env_file:
-#      - .env
-#    volumes:
-#      - ./ash-bot/logs:/app/logs
-#      - ./ash-bot/data:/app/data
-#      - ./secrets:/run/secrets:ro
-#    depends_on:
-#      ash-nlp:
-#        condition: service_healthy
-#      ash-redis:
-#        condition: service_started
-#    deploy:
-#      resources:
-#        limits:
-#          memory: 1G
-#          cpus: '0.5'
-#    healthcheck:
-#      test: ["CMD", "curl", "-f", "http://localhost:8882/health"]
-#      interval: 30s
-#      timeout: 10s
-#      retries: 3
-#      start_period: 40s
-#    labels:
-#      - "ash.service=bot"
-#      - "ash.version=v3.0"
-#
+  ash-bot:
+    build:
+      context: ./ash-bot
+      dockerfile: ./Dockerfile
+    image: ghcr.io/the-alphabet-cartel/ash-bot:latest
+    container_name: ash-bot
+    restart: unless-stopped
+    networks:
+      ash-network:
+        ipv4_address: 172.20.0.10
+    ports:
+      - 8882:8882
+    env_file:
+      - .env
+    volumes:
+      - ./ash-bot/data:/app/data
+      - ./ash-bot/logs:/app/logs
+      - ./secrets:/run/secrets:ro
+    depends_on:
+      ash-nlp:
+        condition: service_healthy
+      ash-redis:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8882/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "ash.service=bot"
+      - "ash.version=v3.1"
+
   # ========================================================================
   # NLP Server (ash-nlp)
   # ========================================================================
@@ -63,8 +63,8 @@ services:
       - .env
     volumes:
       - ./ash-nlp/data:/app/data
-      - ./ash-nlp/models/cache:/app/models/cache
       - ./ash-nlp/logs:/app/logs
+      - ./ash-nlp/models/cache:/app/models/cache
       - ./ash-nlp/learning_data:/app/learning_data
       - ./ash-nlp/optimization/results:/app/optimization/results
       - ./secrets:/run/secrets:ro
@@ -89,7 +89,7 @@ services:
       start_period: 120s
     labels:
       - "ash.service=nlp"
-      - "ash.version=v3.0"
+      - "ash.version=v3.1"
 
   # =========================================================================
   # Ash-Thrash
@@ -107,9 +107,9 @@ services:
     env_file:
       - .env
     volumes:
-      - ./ash-thrash/results:/app/results
       - ./ash-thrash/logs:/app/logs
       - ./ash-thrash/reports:/app/reports
+      - ./ash-thrash/results:/app/results
       - ./secrets:/run/secrets:ro
     depends_on:
       ash-nlp:
@@ -122,6 +122,9 @@ services:
         reservations:
           memory: 256M
           cpus: '1'
+    labels:
+      - "ash.service=thrash"
+      - "ash.version=v3.1"
 
   # ========================================================================
   # Analytics Dashboard (ash-dash)
@@ -165,6 +168,9 @@ services:
 #      timeout: 10s
 #      retries: 3
 #      start_period: 30s
+#    labels:
+#      - "ash.service=dash"
+#      - "ash.version=v3.1"
 
   # ========================================================================
   # Redis Cache
