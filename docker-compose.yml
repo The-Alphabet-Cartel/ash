@@ -62,11 +62,10 @@ services:
     env_file:
       - .env
     volumes:
+      - ./ash-nlp/backups:/app/backups
+      - ./ash-nlp/cache:/app/cache
       - ./ash-nlp/data:/app/data
       - ./ash-nlp/logs:/app/logs
-      - ./ash-nlp/models/cache:/app/models/cache
-      - ./ash-nlp/learning_data:/app/learning_data
-      - ./ash-nlp/optimization/results:/app/optimization/results
       - ./secrets:/run/secrets:ro
     depends_on:
       ash-redis:
