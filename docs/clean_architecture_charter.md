@@ -104,14 +104,14 @@ Community: The Alphabet Cartel - https://discord.gg/alphabetcartel | https://alp
 #### **Success Example**:
 ```bash
 # ❌ WRONG: Creating new undefined variables
-${NLP_CRISIS_AMPLIFIER_BASE_WEIGHT}     # New variable
-${NLP_POSITIVE_REDUCER_BASE_WEIGHT}     # New variable
+${ASH_CRISIS_AMPLIFIER_BASE_WEIGHT}     # New variable
+${ASH_POSITIVE_REDUCER_BASE_WEIGHT}     # New variable
 
 # ✅ RIGHT: Reusing existing variables with conversion
-NLP_ANALYSIS_CONTEXT_BOOST_WEIGHT=1.5   # Existing variable
+ASH_ANALYSIS_CONTEXT_BOOST_WEIGHT=1.5   # Existing variable
 # Convert: crisis_base_weight = context_boost_weight * 0.1 = 0.15
 
-NLP_CONFIG_CRISIS_CONTEXT_BOOST_MULTIPLIER=1.0  # Existing variable  
+ASH_CONFIG_CRISIS_CONTEXT_BOOST_MULTIPLIER=1.0  # Existing variable  
 # Use directly for scaling calculations
 ```
 
@@ -245,7 +245,8 @@ except Exception as e:
       "*setting_name": {
         "type": "integer | boolean | list | float | string",
         "range": [min, max],
-        "allowed_values": ["*value1*", "*value2*", "*value3*", ...]
+        "allowed_values": ["*value1*", "*value2*", "*value3*", ...],
+        "required": true | false
       }
     }
   },
@@ -268,9 +269,9 @@ except Exception as e:
 
   "crisis_thresholds": {
     "description": "Core crisis level mapping thresholds for analysis algorithms",
-    "high": "${NLP_ANALYSIS_CRISIS_THRESHOLD_HIGH}",
-    "medium": "${NLP_ANALYSIS_CRISIS_THRESHOLD_MEDIUM}",
-    "low": "${NLP_ANALYSIS_CRISIS_THRESHOLD_LOW}",
+    "high": "${ASH_ANALYSIS_CRISIS_THRESHOLD_HIGH}",
+    "medium": "${ASH_ANALYSIS_CRISIS_THRESHOLD_MEDIUM}",
+    "low": "${ASH_ANALYSIS_CRISIS_THRESHOLD_LOW}",
     "defaults": {
       "high": 0.55,
       "medium": 0.28,
