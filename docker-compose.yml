@@ -15,9 +15,9 @@ services:
     restart: unless-stopped
     networks:
       ash-network:
-        ipv4_address: 172.20.0.10
+        ipv4_address: 172.20.0.11
     ports:
-      - 8882:8882
+      - 30881:30881
     env_file:
       - .env
     volumes:
@@ -33,7 +33,7 @@ services:
       resources:
         limits:
           memory: 1G
-          cpus: '0.5'
+          cpus: "0.5"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8882/health"]
       interval: 30s
@@ -56,9 +56,9 @@ services:
     restart: unless-stopped
     networks:
       ash-network:
-        ipv4_address: 172.20.0.11
+        ipv4_address: 172.20.0.12
     ports:
-      - 8881:8881
+      - 30880:30880
     env_file:
       - .env
     volumes:
@@ -74,7 +74,7 @@ services:
       resources:
         limits:
           memory: 12G
-          cpus: '4.0'
+          cpus: "4.0"
         reservations:
           devices:
             - driver: nvidia
@@ -102,7 +102,7 @@ services:
     restart: unless-stopped
     networks:
       ash-network:
-        ipv4_address: 172.20.0.14
+        ipv4_address: 172.20.0.13
     env_file:
       - .env
     volumes:
@@ -117,10 +117,10 @@ services:
       resources:
         limits:
           memory: 1G
-          cpus: '2'
+          cpus: "2"
         reservations:
           memory: 256M
-          cpus: '1'
+          cpus: "1"
     labels:
       - "ash.service=thrash"
       - "ash.version=v3.1"
@@ -128,48 +128,48 @@ services:
   # ========================================================================
   # Analytics Dashboard (ash-dash)
   # ========================================================================
-#  ash-dash:
-#    build:
-#      context: ./ash-dash
-#      dockerfile: ./Dockerfile
-#    image: ghcr.io/the-alphabet-cartel/ash-dash:latest
-#    container_name: ash-dash
-#    restart: unless-stopped
-#    networks:
-#      ash-network:
-#        ipv4_address: 172.20.0.12
-#    ports:
-#      - 8883:8883
-#    env_file:
-#      - .env
-#    volumes:
-#      - ./ash-dash/logs:/app/logs
-#      - ./ash-dash/data:/app/data
-#      - ./ash-dash/cache:/app/cache
-#      - ./ash-dash/public:/app/public:ro
-#      - ./ash-dash/dashboard:/app/dashboard:ro
-#      - ./secrets:/run/secrets:ro
-#    depends_on:
-#      ash-bot:
-#        condition: service_healthy
-#      ash-nlp:
-#        condition: service_healthy
-#      ash-redis:
-#        condition: service_started
-#    deploy:
-#      resources:
-#        limits:
-#          memory: 2G
-#          cpus: '1.0'
-#    healthcheck:
-#      test: ["CMD", "curl", "-f", "http://localhost:8883/health"]
-#      interval: 30s
-#      timeout: 10s
-#      retries: 3
-#      start_period: 30s
-#    labels:
-#      - "ash.service=dash"
-#      - "ash.version=v3.1"
+  #  ash-dash:
+  #    build:
+  #      context: ./ash-dash
+  #      dockerfile: ./Dockerfile
+  #    image: ghcr.io/the-alphabet-cartel/ash-dash:latest
+  #    container_name: ash-dash
+  #    restart: unless-stopped
+  #    networks:
+  #      ash-network:
+  #        ipv4_address: 172.20.0.14
+  #    ports:
+  #      - 30882:30882
+  #    env_file:
+  #      - .env
+  #    volumes:
+  #      - ./ash-dash/logs:/app/logs
+  #      - ./ash-dash/data:/app/data
+  #      - ./ash-dash/cache:/app/cache
+  #      - ./ash-dash/public:/app/public:ro
+  #      - ./ash-dash/dashboard:/app/dashboard:ro
+  #      - ./secrets:/run/secrets:ro
+  #    depends_on:
+  #      ash-bot:
+  #        condition: service_healthy
+  #      ash-nlp:
+  #        condition: service_healthy
+  #      ash-redis:
+  #        condition: service_started
+  #    deploy:
+  #      resources:
+  #        limits:
+  #          memory: 2G
+  #          cpus: '1.0'
+  #    healthcheck:
+  #      test: ["CMD", "curl", "-f", "http://localhost:8883/health"]
+  #      interval: 30s
+  #      timeout: 10s
+  #      retries: 3
+  #      start_period: 30s
+  #    labels:
+  #      - "ash.service=dash"
+  #      - "ash.version=v3.1"
 
   # ========================================================================
   # Redis Cache
@@ -193,7 +193,7 @@ services:
       resources:
         limits:
           memory: 512M
-          cpus: '0.25'
+          cpus: "0.25"
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 30s
