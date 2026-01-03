@@ -53,7 +53,8 @@ services:
 
     # Network
     networks:
-      - ash-network
+      ash-network:
+        ipv4_address: 172.20.0.10
 
     # GPU Support (requires NVIDIA Container Toolkit)
     deploy:
@@ -107,70 +108,266 @@ services:
       - "com.alphabetcartel.version=5.0.0"
       - "com.alphabetcartel.description=Crisis Detection Backend"
 
-#  # ===========================================================================
-#  # Ash-Bot Service
-#  # ===========================================================================
-#  ash-bot:
-#    image: ghcr.io/the-alphabet-cartel/ash-bot:latest
-#    container_name: ash-bot
-#    #build:
-#    #  context: ./ash-bot/
-#    #  dockerfile: Dockerfile
-#    #  target: runtime
-#    #  args:
-#    #    APP_USER: bot
-#    #    APP_UID: 1001
-#    #    APP_GID: 1001
-#
-#    # Restart policy
-#    restart: unless-stopped
-#
-#    # Network
-#    networks:
-#      - ash-network
-#
-#    # Environment variables
-#    env_file:
-#      - .env
-#
-#    # Volume mounts
-#    volumes:
-#      # Logs (optional)
-#      - ./ash-bot/logs:/app/logs
-#
-#    # Depends On
-#    depends_on:
-#      ash-nlp:
-#        condition: service_healthy
-#
-#    # Docker Secrets
-#    secrets:
-#      - claude_api_key
-#      - discord_bot_token
-#      - discord_alert_webhook
-#      - redis
-#
-#    # Health check
-#    healthcheck:
-#      #test:
-#      interval: 30s
-#      timeout: 10s
-#      retries: 3
-#      start_period: 120s
-#
-#    # Logging configuration
-#    logging:
-#      driver: "json-file"
-#      options:
-#        max-size: "50m"
-#        max-file: "5"
-#
-#    # Labels for organization
-#    labels:
-#      - "com.alphabetcartel.service=ash-bot"
-#      - "com.alphabetcartel.version=5.0.0"
-#      - "com.alphabetcartel.description=Crisis Detection Discord Bot"
-
+  #  # ===========================================================================
+  #  # Ash-Bot Service
+  #  # ===========================================================================
+  #  ash-bot:
+  #    image: ghcr.io/the-alphabet-cartel/ash-bot:latest
+  #    container_name: ash-bot
+  #    #build:
+  #    #  context: ./ash-bot/
+  #    #  dockerfile: Dockerfile
+  #    #  target: runtime
+  #    #  args:
+  #    #    APP_USER: bot
+  #    #    APP_UID: 1001
+  #    #    APP_GID: 1001
+  #
+  #    # Restart policy
+  #    restart: unless-stopped
+  #
+  #    # Network
+  #    networks:
+  #      ash-network:
+  #        ipv4_address: 172.20.0.20
+  #
+  #    # Environment variables
+  #    env_file:
+  #      - .env
+  #
+  #    # Volume mounts
+  #    volumes:
+  #      # Logs (optional)
+  #      - ./ash-bot/logs:/app/logs
+  #
+  #    # Depends On
+  #    depends_on:
+  #      ash-nlp:
+  #        condition: service_healthy
+  #      ash-redis:
+  #        condition: service_healthy
+  #
+  #    # Docker Secrets
+  #    secrets:
+  #      - claude_api_key
+  #      - discord_bot_token
+  #      - discord_alert_webhook
+  #
+  #    # Health check
+  #    healthcheck:
+  #      #test:
+  #      interval: 30s
+  #      timeout: 10s
+  #      retries: 3
+  #      start_period: 120s
+  #
+  #    # Logging configuration
+  #    logging:
+  #      driver: "json-file"
+  #      options:
+  #        max-size: "50m"
+  #        max-file: "5"
+  #
+  #    # Labels for organization
+  #    labels:
+  #      - "com.alphabetcartel.service=ash-bot"
+  #      - "com.alphabetcartel.version=5.0.0"
+  #      - "com.alphabetcartel.description=Crisis Detection Discord Bot"
+  #
+  #  # ===========================================================================
+  #  # Ash-Dash Service
+  #  # ===========================================================================
+  #  ash-dash:
+  #    image: ghcr.io/the-alphabet-cartel/ash-dash:latest
+  #    container_name: ash-dash
+  #    #build:
+  #    #  context: ./ash-dash/
+  #    #  dockerfile: Dockerfile
+  #    #  target: runtime
+  #    #  args:
+  #    #    APP_USER: dash
+  #    #    APP_UID: 1001
+  #    #    APP_GID: 1001
+  #
+  #    # Restart policy
+  #    restart: unless-stopped
+  #
+  #    # Network
+  #    networks:
+  #      ash-network:
+  #        ipv4_address: 172.20.0.30
+  #
+  #    # Environment variables
+  #    env_file:
+  #      - .env
+  #
+  #    # Port mapping
+  #    ports:
+  #      - "30881:30881"
+  #
+  #    # Volume mounts
+  #    volumes:
+  #      # Logs (optional)
+  #      - ./ash-dash/logs:/app/logs
+  #
+  #    # Depends On
+  #    depends_on:
+  #      ash-nlp:
+  #        condition: service_healthy
+  #      ash-bot:
+  #        condition: service_healthy
+  #      ash-redis:
+  #        condition: service_healthy
+  #
+  #    # Docker Secrets
+  #    secrets:
+  #      - discord_alert_webhook
+  #
+  #    # Health check
+  #    healthcheck:
+  #      #test:
+  #      interval: 30s
+  #      timeout: 10s
+  #      retries: 3
+  #      start_period: 120s
+  #
+  #    # Logging configuration
+  #    logging:
+  #      driver: "json-file"
+  #      options:
+  #        max-size: "50m"
+  #        max-file: "5"
+  #
+  #    # Labels for organization
+  #    labels:
+  #      - "com.alphabetcartel.service=ash-dash"
+  #      - "com.alphabetcartel.version=5.0.0"
+  #      - "com.alphabetcartel.description=Crisis Detection Dashboard"
+  #
+  #  # ===========================================================================
+  #  # Ash-Thrash Service
+  #  # ===========================================================================
+  #  ash-thrash:
+  #    image: ghcr.io/the-alphabet-cartel/ash-thrash:latest
+  #    container_name: ash-thrash
+  #    #build:
+  #    #  context: ./ash-thrash/
+  #    #  dockerfile: Dockerfile
+  #    #  target: runtime
+  #    #  args:
+  #    #    APP_USER: thrash
+  #    #    APP_UID: 1001
+  #    #    APP_GID: 1001
+  #
+  #    # Restart policy
+  #    restart: unless-stopped
+  #
+  #    # Network
+  #    networks:
+  #      ash-network:
+  #        ipv4_address: 172.20.0.40
+  #
+  #    # Environment variables
+  #    env_file:
+  #      - .env
+  #
+  #    # Volume mounts
+  #    volumes:
+  #      # Logs (optional)
+  #      - ./ash-thrash/logs:/app/logs
+  #
+  #    # Depends On
+  #    depends_on:
+  #      ash-nlp:
+  #        condition: service_healthy
+  #      ash-bot:
+  #        condition: service_healthy
+  #      ash-dash:
+  #        condition: service_healthy
+  #      ash-redis:
+  #        condition: service_healthy
+  #
+  #    # Docker Secrets
+  #    secrets:
+  #      - discord_alert_webhook
+  #
+  #    # Health check
+  #    healthcheck:
+  #      #test:
+  #      interval: 30s
+  #      timeout: 10s
+  #      retries: 3
+  #      start_period: 120s
+  #
+  #    # Logging configuration
+  #    logging:
+  #      driver: "json-file"
+  #      options:
+  #        max-size: "50m"
+  #        max-file: "5"
+  #
+  #    # Labels for organization
+  #    labels:
+  #      - "com.alphabetcartel.service=ash-dash"
+  #      - "com.alphabetcartel.version=5.0.0"
+  #      - "com.alphabetcartel.description=Crisis Detection Dashboard"
+  #
+  #  # ========================================================================
+  #  # Ash-Redis Cache
+  #  # ========================================================================
+  #  ash-redis:
+  #    image: redis:7-alpine
+  #    container_name: ash-redis
+  #
+  #    # Resource Limits
+  #    deploy:
+  #      resources:
+  #        limits:
+  #          memory: 512M
+  #          cpus: "0.25"
+  #
+  #    # Restart policy
+  #    restart: unless-stopped
+  #
+  #    # Network
+  #    networks:
+  #      ash-network:
+  #        ipv4_address: 172.20.0.50
+  #
+  #    # Environment variables
+  #    env_file:
+  #      - .env
+  #
+  #    # Port mapping
+  #    ports:
+  #      - 6379:6379
+  #
+  #    # Volume mounts
+  #    volumes:
+  #      - redis_data:/data
+  #      - ./secrets:/run/secrets:ro
+  #
+  #    # Docker Secrets
+  #    secrets:
+  #      - redis
+  #
+  #    command:
+  #      [
+  #        "CMD",
+  #        "redis-server",
+  #        "--appendonly",
+  #        "yes",
+  #        "--requirepass",
+  #        "${GLOBAL_REDIS_PASSWORD}",
+  #      ]
+  #
+  #    # Healthcheck
+  #    healthcheck:
+  #      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+  #      interval: 30s
+  #      timeout: 10s
+  #      retries: 3
+  #
 # =============================================================================
 # Secrets
 # =============================================================================
@@ -189,7 +386,12 @@ secrets:
 # =============================================================================
 # Volumes
 # =============================================================================
-
+#volumes:
+#  # Redis Data Persistence
+#  redis_data:
+#    name: redis_data
+#    driver: local
+#
 # =============================================================================
 # Networks
 # =============================================================================
