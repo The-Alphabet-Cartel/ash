@@ -70,8 +70,10 @@ services:
 
     # Volume mounts
     volumes:
-      # Model cache (persistent)
-      - ./ash-nlp/models-cache:/app/models
+      # Model cache (persistent) - models download at startup, not build time
+      # First startup: 5-15 min (downloads ~3GB of models)
+      # Subsequent: ~30 sec (uses cached models)
+      - ./ash-nlp/models-cache:/app/models-cache
       # Logs (optional)
       - ./ash-nlp/logs:/app/logs
 
@@ -112,7 +114,7 @@ services:
 #    image: ghcr.io/the-alphabet-cartel/ash-bot:latest
 #    container_name: ash-bot
 #    #build:
-#    #  context: .
+#    #  context: ./ash-bot/
 #    #  dockerfile: Dockerfile
 #    #  target: runtime
 #    #  args:
