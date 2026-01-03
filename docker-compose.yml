@@ -1,213 +1,195 @@
-# Master Docker Compose for Ash Ecosystem
+# ============================================================================
+# Ash v5.0 Docker Compose Configuration
+# ============================================================================
+# FILE VERSION: v5.0
+# LAST MODIFIED: 2026-01-02
 # Repository: https://github.com/the-alphabet-cartel/ash
-# Discord: https://discord.gg/alphabetcartel
-# Website: http://alphabetcartel.org
-services:
-  # ========================================================================
-  # Discord Bot (ash-bot)
-  # ========================================================================
-  ash-bot:
-    build:
-      context: ./ash-bot
-      dockerfile: ./Dockerfile
-    image: ghcr.io/the-alphabet-cartel/ash-bot:latest
-    container_name: ash-bot
-    restart: unless-stopped
-    networks:
-      ash-network:
-        ipv4_address: 172.20.0.11
-    ports:
-      - 30881:30881
-    env_file:
-      - .env
-    volumes:
-      - ./ash-bot/data:/app/data
-      - ./ash-bot/logs:/app/logs
-      - ./secrets:/run/secrets:ro
-    depends_on:
-      ash-nlp:
-        condition: service_healthy
-      ash-redis:
-        condition: service_started
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: "0.5"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8882/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    labels:
-      - "ash.service=bot"
-      - "ash.version=v3.1"
+# Community: The Alphabet Cartel - https://discord.gg/alphabetcartel
+# ============================================================================
+#
+# USAGE:
+#   # Start services
+#   docker-compose up -d
+#
+#   # View logs
+#   docker-compose logs -f ash
+#
+#   # Stop services
+#   docker-compose down
+#
+#   # Rebuild and start
+#   docker-compose up -d --build
+#
+# SECRETS:
+#   Secrets are stored in ./secrets/ directory:
+#   - ./secrets/huggingface - HuggingFace API token
+#   - ./secrets/discord_alert_webhook - Discord webhook for alerts (optional)
+#
+# REQUIREMENTS:
+#   - Docker Engine 24.0+
+#   - Docker Compose v2.20+
+#   - NVIDIA Container Toolkit (for GPU support)
+#
+# ============================================================================
 
-  # ========================================================================
-  # NLP Server (ash-nlp)
-  # ========================================================================
+services:
+  # ===========================================================================
+  # Ash-NLP Service
+  # ===========================================================================
   ash-nlp:
-    build:
-      context: ./ash-nlp
-      dockerfile: ./Dockerfile
     image: ghcr.io/the-alphabet-cartel/ash-nlp:latest
     container_name: ash-nlp
+    #build:
+    #  context: ./ash-nlp/
+    #  dockerfile: Dockerfile
+    #  target: runtime
+    #  args:
+    #    APP_USER: nlp
+    #    APP_UID: 1001
+    #    APP_GID: 1001
+
+    # Restart policy
     restart: unless-stopped
+
+    # Network
     networks:
-      ash-network:
-        ipv4_address: 172.20.0.12
-    ports:
-      - 30880:30880
-    env_file:
-      - .env
-    volumes:
-      - ./ash-nlp/backups:/app/backups
-      - ./ash-nlp/cache:/app/cache
-      - ./ash-nlp/data:/app/data
-      - ./ash-nlp/logs:/app/logs
-      - ./secrets:/run/secrets:ro
-    depends_on:
-      ash-redis:
-        condition: service_started
+      - ash-network
+
+    # GPU Support (requires NVIDIA Container Toolkit)
     deploy:
       resources:
-        limits:
-          memory: 12G
-          cpus: "4.0"
         reservations:
           devices:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8881/health"]
-      interval: 30s
-      timeout: 15s
-      retries: 3
-      start_period: 120s
-    labels:
-      - "ash.service=nlp"
-      - "ash.version=v3.1"
 
-  # =========================================================================
-  # Ash-Thrash
-  # =========================================================================
-  ash-thrash:
-    build:
-      context: ./ash-thrash
-      dockerfile: ./Dockerfile
-    image: ghcr.io/the-alphabet-cartel/ash-thrash:latest
-    container_name: ash-thrash
-    restart: unless-stopped
-    networks:
-      ash-network:
-        ipv4_address: 172.20.0.13
+    # Environment variables
     env_file:
       - .env
+
+    # Volume mounts
     volumes:
-      - ./ash-thrash/logs:/app/logs
-      - ./ash-thrash/reports:/app/reports
-      - ./ash-thrash/results:/app/results
-      - ./secrets:/run/secrets:ro
-    depends_on:
-      ash-nlp:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: "2"
-        reservations:
-          memory: 256M
-          cpus: "1"
-    labels:
-      - "ash.service=thrash"
-      - "ash.version=v3.1"
+      # Model cache (persistent)
+      - ash-nlp-models:/app/models
+      # Logs (optional)
+      - ./ash-nlp/logs:/app/logs
 
-  # ========================================================================
-  # Analytics Dashboard (ash-dash)
-  # ========================================================================
-  #  ash-dash:
-  #    build:
-  #      context: ./ash-dash
-  #      dockerfile: ./Dockerfile
-  #    image: ghcr.io/the-alphabet-cartel/ash-dash:latest
-  #    container_name: ash-dash
-  #    restart: unless-stopped
-  #    networks:
-  #      ash-network:
-  #        ipv4_address: 172.20.0.14
-  #    ports:
-  #      - 30882:30882
-  #    env_file:
-  #      - .env
-  #    volumes:
-  #      - ./ash-dash/logs:/app/logs
-  #      - ./ash-dash/data:/app/data
-  #      - ./ash-dash/cache:/app/cache
-  #      - ./ash-dash/public:/app/public:ro
-  #      - ./ash-dash/dashboard:/app/dashboard:ro
-  #      - ./secrets:/run/secrets:ro
-  #    depends_on:
-  #      ash-bot:
-  #        condition: service_healthy
-  #      ash-nlp:
-  #        condition: service_healthy
-  #      ash-redis:
-  #        condition: service_started
-  #    deploy:
-  #      resources:
-  #        limits:
-  #          memory: 2G
-  #          cpus: '1.0'
-  #    healthcheck:
-  #      test: ["CMD", "curl", "-f", "http://localhost:8883/health"]
-  #      interval: 30s
-  #      timeout: 10s
-  #      retries: 3
-  #      start_period: 30s
-  #    labels:
-  #      - "ash.service=dash"
-  #      - "ash.version=v3.1"
-
-  # ========================================================================
-  # Redis Cache
-  # ========================================================================
-  ash-redis:
-    image: redis:7-alpine
-    container_name: ash-redis
-    restart: unless-stopped
-    networks:
-      ash-network:
-        ipv4_address: 172.20.0.20
+    # Port mapping
     ports:
-      - 6379:6379
-    environment:
-      - TZ=America/Los_Angeles
-    command: redis-server --appendonly yes --requirepass ${GLOBAL_REDIS_PASSWORD}
-    volumes:
-      - redis_data:/data
-      - ./secrets:/run/secrets:ro
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: "0.25"
+      - "30880:30880"
+
+    # Docker Secrets
+    secrets:
+      - huggingface
+      - discord_alert_webhook
+
+    # Health check
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ["CMD", "curl", "-f", "http://localhost:30880/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 120s
 
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+    # Labels for organization
+    labels:
+      - "com.alphabetcartel.service=ash-nlp"
+      - "com.alphabetcartel.version=5.0.0"
+      - "com.alphabetcartel.description=Crisis Detection Backend"
+
+  # ===========================================================================
+  # Ash-Bot Service
+  # ===========================================================================
+  ash-bot:
+    image: ghcr.io/the-alphabet-cartel/ash-bot:latest
+    container_name: ash-bot
+    #build:
+    #  context: .
+    #  dockerfile: Dockerfile
+    #  target: runtime
+    #  args:
+    #    APP_USER: bot
+    #    APP_UID: 1001
+    #    APP_GID: 1001
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Network
+    networks:
+      - ash-network
+
+    # Environment variables
+    env_file:
+      - .env
+
+    # Volume mounts
+    volumes:
+      # Logs (optional)
+      - ./logs:/app/logs
+
+    # Docker Secrets
+    secrets:
+      - claude_api_key
+      - discord_bot_token
+      - discord_alert_webhook
+      - redis
+
+    # Health check
+    healthcheck:
+      test:
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+    # Labels for organization
+    labels:
+      - "com.alphabetcartel.service=ash-bot"
+      - "com.alphabetcartel.version=5.0.0"
+      - "com.alphabetcartel.description=Crisis Detection Discord Bot"
+
+# =============================================================================
+# Secrets
+# =============================================================================
+secrets:
+  claude_api_key:
+    file: ./secrets/claude_api_key
+  discord_bot_token:
+    file: ./secrets/discord_bot_token
+  discord_alert_webhook:
+    file: ./secrets/discord_alert_webhook
+  redis:
+    file: ./secrets/redis
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  # Persistent model cache
+  ash-nlp-models:
+    name: ash-nlp-models
+    driver: local
+
+# =============================================================================
+# Networks
+# =============================================================================
 networks:
   ash-network:
+    name: ash-network
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
-          gateway: 172.20.0.1
-
-volumes:
-  redis_data:
-    driver: local
