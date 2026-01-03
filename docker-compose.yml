@@ -170,10 +170,10 @@ services:
 secrets:
   claude_api_key:
     file: ./secrets/claude_api_key
-  discord_bot_token:
-    file: ./secrets/discord_bot_token
   discord_alert_webhook:
     file: ./secrets/discord_alert_webhook
+  discord_bot_token:
+    file: ./secrets/discord_bot_token
   huggingface:
     file: ./secrets/huggingface
   redis:
