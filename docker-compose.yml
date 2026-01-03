@@ -83,8 +83,8 @@ services:
 
     # Docker Secrets
     secrets:
-      - huggingface
-      - discord_alert_webhook
+      - discord_alert_token
+      - huggingface_token
 
     # Health check
     healthcheck:
@@ -147,9 +147,10 @@ services:
   #
   #    # Docker Secrets
   #    secrets:
-  #      - claude_api_key
+  #      - claude_api_token
   #      - discord_bot_token
-  #      - discord_alert_webhook
+  #      - discord_alert_token
+  #      - redis_token
   #
   #    # Health check
   #    healthcheck:
@@ -218,7 +219,7 @@ services:
   #
   #    # Docker Secrets
   #    secrets:
-  #      - discord_alert_webhook
+  #      - discord_alert_token
   #
   #    # Health check
   #    healthcheck:
@@ -285,7 +286,7 @@ services:
   #
   #    # Docker Secrets
   #    secrets:
-  #      - discord_alert_webhook
+  #      - discord_alert_token
   #
   #    # Health check
   #    healthcheck:
@@ -367,16 +368,18 @@ services:
 # Secrets
 # =============================================================================
 secrets:
-  claude_api_key:
-    file: ./secrets/claude_api_key
-  discord_alert_webhook:
-    file: ./secrets/discord_alert_webhook
+  claude_api_token:
+    file: ./secrets/claude_api_token
+  discord_alert_token:
+    file: ./secrets/discord_alert_token
   discord_bot_token:
     file: ./secrets/discord_bot_token
-  huggingface:
-    file: ./secrets/huggingface
-  redis:
-    file: ./secrets/redis
+  huggingface_token:
+    file: ./secrets/huggingface_token
+  redis_token:
+    file: ./secrets/redis_token
+  webhook_token:
+    file: ./secrets/webhook_token
 
 # =============================================================================
 # Volumes
