@@ -134,7 +134,7 @@ services:
     # Volume mounts
     volumes:
       # Logs (optional)
-      - ./logs:/app/logs
+      - ./ash-bot/logs:/app/logs
 
     # Docker Secrets
     secrets:
