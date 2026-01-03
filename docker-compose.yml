@@ -53,8 +53,7 @@ services:
 
     # Network
     networks:
-      ash-network:
-        ipv4_address: 10.20.60.10
+      - ash-network
 
     # GPU Support (requires NVIDIA Container Toolkit)
     deploy:
@@ -128,8 +127,7 @@ services:
   #
   #    # Network
   #    networks:
-  #      ash-network:
-  #        ipv4_address: 10.20.60.20
+  #      - ash-network
   #
   #    # Environment variables
   #    env_file:
@@ -194,8 +192,7 @@ services:
   #
   #    # Network
   #    networks:
-  #      ash-network:
-  #        ipv4_address: 10.20.60.30
+  #      - ash-network
   #
   #    # Environment variables
   #    env_file:
@@ -264,8 +261,7 @@ services:
   #
   #    # Network
   #    networks:
-  #      ash-network:
-  #        ipv4_address: 10.20.60.40
+  #      - ash-network
   #
   #    # Environment variables
   #    env_file:
@@ -331,8 +327,7 @@ services:
   #
   #    # Network
   #    networks:
-  #      ash-network:
-  #        ipv4_address: 10.20.60.50
+  #      - ash-network
   #
   #    # Environment variables
   #    env_file:
@@ -399,6 +394,3 @@ networks:
   ash-network:
     name: ash-network
     driver: bridge
-    ipam:
-      config:
-        - subnet: 10.20.60.0/24
