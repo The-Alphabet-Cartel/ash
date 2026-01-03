@@ -71,7 +71,7 @@ services:
     # Volume mounts
     volumes:
       # Model cache (persistent)
-      - ash-nlp-models:/app/models
+      - ./ash-nlp/models-cache:/app/models
       # Logs (optional)
       - ./ash-nlp/logs:/app/logs
 
@@ -105,64 +105,69 @@ services:
       - "com.alphabetcartel.version=5.0.0"
       - "com.alphabetcartel.description=Crisis Detection Backend"
 
-  # ===========================================================================
-  # Ash-Bot Service
-  # ===========================================================================
-  ash-bot:
-    image: ghcr.io/the-alphabet-cartel/ash-bot:latest
-    container_name: ash-bot
-    #build:
-    #  context: .
-    #  dockerfile: Dockerfile
-    #  target: runtime
-    #  args:
-    #    APP_USER: bot
-    #    APP_UID: 1001
-    #    APP_GID: 1001
-
-    # Restart policy
-    restart: unless-stopped
-
-    # Network
-    networks:
-      - ash-network
-
-    # Environment variables
-    env_file:
-      - .env
-
-    # Volume mounts
-    volumes:
-      # Logs (optional)
-      - ./ash-bot/logs:/app/logs
-
-    # Docker Secrets
-    secrets:
-      - claude_api_key
-      - discord_bot_token
-      - discord_alert_webhook
-      - redis
-
-    # Health check
-    healthcheck:
-      #test:
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 120s
-
-    # Logging configuration
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
-
-    # Labels for organization
-    labels:
-      - "com.alphabetcartel.service=ash-bot"
-      - "com.alphabetcartel.version=5.0.0"
-      - "com.alphabetcartel.description=Crisis Detection Discord Bot"
+#  # ===========================================================================
+#  # Ash-Bot Service
+#  # ===========================================================================
+#  ash-bot:
+#    image: ghcr.io/the-alphabet-cartel/ash-bot:latest
+#    container_name: ash-bot
+#    #build:
+#    #  context: .
+#    #  dockerfile: Dockerfile
+#    #  target: runtime
+#    #  args:
+#    #    APP_USER: bot
+#    #    APP_UID: 1001
+#    #    APP_GID: 1001
+#
+#    # Restart policy
+#    restart: unless-stopped
+#
+#    # Network
+#    networks:
+#      - ash-network
+#
+#    # Environment variables
+#    env_file:
+#      - .env
+#
+#    # Volume mounts
+#    volumes:
+#      # Logs (optional)
+#      - ./ash-bot/logs:/app/logs
+#
+#    # Depends On
+#    depends_on:
+#      ash-nlp:
+#        condition: service_healthy
+#
+#    # Docker Secrets
+#    secrets:
+#      - claude_api_key
+#      - discord_bot_token
+#      - discord_alert_webhook
+#      - redis
+#
+#    # Health check
+#    healthcheck:
+#      #test:
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#      start_period: 120s
+#
+#    # Logging configuration
+#    logging:
+#      driver: "json-file"
+#      options:
+#        max-size: "50m"
+#        max-file: "5"
+#
+#    # Labels for organization
+#    labels:
+#      - "com.alphabetcartel.service=ash-bot"
+#      - "com.alphabetcartel.version=5.0.0"
+#      - "com.alphabetcartel.description=Crisis Detection Discord Bot"
 
 # =============================================================================
 # Secrets
@@ -182,11 +187,6 @@ secrets:
 # =============================================================================
 # Volumes
 # =============================================================================
-volumes:
-  # Persistent model cache
-  ash-nlp-models:
-    name: ash-nlp-models
-    driver: local
 
 # =============================================================================
 # Networks
