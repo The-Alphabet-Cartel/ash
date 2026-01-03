@@ -397,3 +397,4 @@ networks:
   ash-network:
     name: ash-network
     driver: bridge
+    external: true
