@@ -125,9 +125,9 @@ services:
   ash-bot:
     image: ghcr.io/the-alphabet-cartel/ash-bot:latest
     container_name: ash-bot
-    build:
-      context: .
-      dockerfile: Dockerfile
+    #build:
+    #  context: ./ash-bot/
+    #  dockerfile: Dockerfile
     <<: *common
 
     # Resource limits (production)
