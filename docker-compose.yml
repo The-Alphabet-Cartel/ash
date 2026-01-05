@@ -58,10 +58,10 @@ services:
   ash-nlp:
     image: ghcr.io/the-alphabet-cartel/ash-nlp:latest
     container_name: ash-nlp
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: runtime
+    #build:
+    #  context: ./ash-nlp/
+    #  dockerfile: Dockerfile
+    #  target: runtime
     <<: *common
 
     # GPU Support (requires NVIDIA Container Toolkit)
@@ -84,9 +84,9 @@ services:
       # Model cache (persistent) - models download at startup, not build time
       # First startup: 5-15 min (downloads ~3GB of models)
       # Subsequent: ~30 sec (uses cached models)
-      - ./models-cache:/app/models-cache
+      - ./ash-nlp/models-cache:/app/models-cache
       # Logs (optional)
-      - ./logs:/app/logs
+      - ./ash-nlp/logs:/app/logs
 
     # Port mapping
     ports:
@@ -145,7 +145,7 @@ services:
 
     # Volume mounts
     volumes:
-      - ./logs:/app/logs
+      - ./ash-bot/logs:/app/logs
 
     # Docker Secrets
     secrets:
