@@ -1,21 +1,21 @@
-# Clean Architecture Charter - Ash-Bot
+# Clean Architecture Charter - Ash
 
 ## Sacred Principles - NEVER TO BE VIOLATED
 
 **Version**: v5.1  
 **Last Modified**: 2026-01-03  
-**Repository**: https://github.com/the-alphabet-cartel/ash-bot  
+**Repository**: https://github.com/the-alphabet-cartel/ash
 **Community**: [The Alphabet Cartel](https://discord.gg/alphabetcartel) | [alphabetcartel.org](https://alphabetcartel.org)
 
 ---
 
 # 🎯 CORE SYSTEM VISION (Never to be violated):
 
-## **Ash-Bot is a CRISIS DETECTION Discord Bot that**:
-1. **FIRST**: Monitors all messages within our discord server and sends them to our NLP server for semantic classification.
-2. **SECONDARY**: If the NLP server detects a crisis, the bot alerts the appropriate staff members within the Crisis Response Team (CRT) using "pings" (@crisis_response) to the CRT role within the crisis-response channel utilizing discord's embeds feature to show crisis details based on the NLP determined severity of the crisis.
-3. **TERTIARY**: Tracks historical patterns and messages and sends them to our NLP server for semantic classification to determine if there is a pattern of escalation over time.
-4. **PURPOSE**: To detect crisis messages in Discord community communications.
+## **Ash Is A Discord Crisis Detection Ecosystem**:
+1. **Listen**   → Maintain vigilant presence across all community spaces
+2. **Detect**   → Identify mental health crisis patterns through comprehensive analysis
+3. **Connect**  → Bridge community members to timely support and intervention
+4. **Protect**  → Safeguard our LGBTQIA+ chosen family through early crisis response
 
 ## 🏛️ **IMMUTABLE ARCHITECTURE RULES**
 
@@ -116,6 +116,33 @@ Repository: https://github.com/the-alphabet-cartel/ash-bot
 """
 ```
 
+#### **Ash-DASH Specific Header:**
+
+```python
+"""
+============================================================================
+Ash-DASH: Discord Crisis Detection Dashboard
+The Alphabet Cartel - https://discord.gg/alphabetcartel | alphabetcartel.org
+============================================================================
+
+MISSION - NEVER TO BE VIOLATED:
+    Reveal   → Surface crisis alerts and user escalation patterns in real-time
+    Enable   → Equip Crisis Response Teams with tools for swift intervention
+    Clarify  → Translate detection data into actionable intelligence
+    Protect  → Safeguard our LGBTQIA+ community through vigilant oversight
+
+============================================================================
+{File Description}
+----------------------------------------------------------------------------
+FILE VERSION: v5.0-1-1.0-1
+LAST MODIFIED: 2026-01-03
+PHASE: Phase 1 - {Phase Description}
+CLEAN ARCHITECTURE: Compliant
+Repository: https://github.com/the-alphabet-cartel/ash-dash
+============================================================================
+"""
+```
+
 #### **Ash-NLP Specific Header:**
 
 ```python
@@ -139,6 +166,33 @@ LAST MODIFIED: 2026-01-03
 PHASE: Phase 1 - {Phase Description}
 CLEAN ARCHITECTURE: Compliant
 Repository: https://github.com/the-alphabet-cartel/ash-nlp
+============================================================================
+"""
+```
+
+#### **Ash-Thrash Specific Header:**
+
+```python
+"""
+============================================================================
+Ash-Thrash: Discord Crisis Detection Testing Suite
+The Alphabet Cartel - https://discord.gg/alphabetcartel | alphabetcartel.org
+============================================================================
+
+MISSION - NEVER TO BE VIOLATED:
+    Validate  → Verify crisis detection accuracy through live Ash-NLP integration testing
+    Challenge → Stress test the system with edge cases and adversarial scenarios
+    Guard     → Prevent regressions that could compromise detection reliability
+    Protect   → Safeguard our LGBTQIA+ community through rigorous quality assurance
+
+============================================================================
+{File Description}
+----------------------------------------------------------------------------
+FILE VERSION: v5.0-1-1.0-1
+LAST MODIFIED: 2026-01-03
+PHASE: Phase 1 - {Phase Description}
+CLEAN ARCHITECTURE: Compliant
+Repository: https://github.com/the-alphabet-cartel/ash-thrash
 ============================================================================
 """
 ```
