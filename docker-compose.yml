@@ -85,7 +85,7 @@ services:
       # First startup: 5-15 min (downloads ~3GB of models)
       # Subsequent: ~30 sec (uses cached models)
       - ./ash-nlp/models-cache:/app/models-cache
-      # Logs (optional)
+      # Logs
       - ./ash-nlp/logs:/app/logs
 
     # Port mapping
@@ -111,9 +111,9 @@ services:
 
     # Labels for organization
     labels:
-      - "com.alphabetcartel.service=ash-nlp"
-      - "com.alphabetcartel.version=5.0.0"
-      - "com.alphabetcartel.description=Crisis Detection Backend"
+      - "org.alphabetcartel.service=ash-nlp"
+      - "org.alphabetcartel.version=5.0.0"
+      - "org.alphabetcartel.description=Crisis Detection Backend"
 
   # ===========================================================================
   # Ash-Bot Service
@@ -139,13 +139,16 @@ services:
     env_file:
       - .env
 
+    # Volume Mounts
+    volumes:
+      # Logs
+      - ./ash-bot/logs:/app/logs
+      # Testing (Development only)
+      - ./ash-bot/tests:/app/tests
+
     # Port mapping for health checks (Ash ecosystem: 30881)
     ports:
       - "30881:30881"
-
-    # Volume mounts
-    volumes:
-      - ./ash-bot/logs:/app/logs
 
     # Docker Secrets
     secrets:
@@ -168,9 +171,9 @@ services:
 
     # Labels for organization
     labels:
-      - "com.alphabetcartel.service=ash-bot"
-      - "com.alphabetcartel.version=5.0.0"
-      - "com.alphabetcartel.description=Crisis Detection Discord Bot"
+      - "org.alphabetcartel.service=ash-bot"
+      - "org.alphabetcartel.version=5.0.0"
+      - "org.alphabetcartel.description=Crisis Detection Discord Bot"
 
     # Dependencies
     depends_on:
@@ -186,54 +189,43 @@ services:
   #    image: ghcr.io/the-alphabet-cartel/ash-dash:latest
   #    container_name: ash-dash
   #    #build:
-  #    #  context: ./ash-dash/
+  #    #  context: .
   #    #  dockerfile: Dockerfile
-  #    #  target: runtime
-  #    #  args:
-  #    #    APP_USER: dash
-  #    #    APP_UID: 1001
-  #    #    APP_GID: 1001
+  #    <<: *common
   #
-  #    # Restart policy
-  #    restart: unless-stopped
-  #
-  #    # Network
-  #    networks:
-  #      - ash-network
+  #    # Resource limits (production)
+  #    deploy:
+  #      resources:
+  #        limits:
+  #          memory: 512M
+  #          cpus: "0.5"
   #
   #    # Environment variables
+  #    environment:
+  #      <<: *env
   #    env_file:
   #      - .env
   #
-  #    # Port mapping
-  #    ports:
-  #      - "30881:30881"
-  #
-  #    # Volume mounts
+  #    # Volume Mounts
   #    volumes:
-  #      # Logs (optional)
-  #      - ./ash-dash/logs:/app/logs
+  #      # Logs
+  #      - ./logs:/app/logs
+  #      # Testing (Development only)
+  #      - ./ash-dash/tests:/app/tests
   #
-  #    # Depends On
-  #    depends_on:
-  #      ash-nlp:
-  #        condition: service_healthy
-  #      ash-bot:
-  #        condition: service_healthy
-  #      ash-redis:
-  #        condition: service_healthy
+  #    # Port mapping for health checks (Ash ecosystem: 30882)
+  #    ports:
+  #      - "30882:30882"
   #
   #    # Docker Secrets
   #    secrets:
   #      - discord_alert_token
+  #      #- redis_token
   #
-  #    # Health check
+  #    # Health check - uses HTTP endpoint from health server
   #    healthcheck:
-  #      #test:
-  #      interval: 30s
-  #      timeout: 10s
-  #      retries: 3
-  #      start_period: 120s
+  #      <<: *health
+  #      test: ["CMD", "curl", "-f", "http://localhost:30882/health"]
   #
   #    # Logging configuration
   #    logging:
@@ -244,10 +236,19 @@ services:
   #
   #    # Labels for organization
   #    labels:
-  #      - "com.alphabetcartel.service=ash-dash"
-  #      - "com.alphabetcartel.version=5.0.0"
-  #      - "com.alphabetcartel.description=Crisis Detection Dashboard"
-
+  #      - "org.alphabetcartel.service=ash-dash"
+  #      - "org.alphabetcartel.version=5.0.0"
+  #      - "org.alphabetcartel.description=Ash Crisis Detection Dashboard"
+  #
+  #    # Depends On
+  #    depends_on:
+  #      ash-nlp:
+  #        condition: service_healthy
+  #      ash-bot:
+  #        condition: service_healthy
+  #      ash-redis:
+  #        condition: service_healthy
+  #
   # ===========================================================================
   # Ash-Thrash Service
   # ===========================================================================
@@ -255,29 +256,56 @@ services:
   #    image: ghcr.io/the-alphabet-cartel/ash-thrash:latest
   #    container_name: ash-thrash
   #    #build:
-  #    #  context: ./ash-thrash/
+  #    #  context: .
   #    #  dockerfile: Dockerfile
-  #    #  target: runtime
-  #    #  args:
-  #    #    APP_USER: thrash
-  #    #    APP_UID: 1001
-  #    #    APP_GID: 1001
+  #    <<: *common
   #
-  #    # Restart policy
-  #    restart: unless-stopped
-  #
-  #    # Network
-  #    networks:
-  #      - ash-network
+  #    # Resource limits (production)
+  #    deploy:
+  #      resources:
+  #        limits:
+  #          memory: 512M
+  #          cpus: "0.5"
   #
   #    # Environment variables
+  #    environment:
+  #      <<: *env
   #    env_file:
   #      - .env
   #
-  #    # Volume mounts
+  #    # Volume Mounts
   #    volumes:
-  #      # Logs (optional)
-  #      - ./ash-thrash/logs:/app/logs
+  #      # Logs
+  #      - ./logs:/app/logs
+  #      # Testing (Development only)
+  #      - ./ash-thrash/tests:/app/tests
+  #
+  #    # Port mapping for health checks (Ash ecosystem: 30883)
+  #    ports:
+  #      - "30883:30883"
+  #
+  #    # Docker Secrets
+  #    secrets:
+  #      - discord_alert_token
+  #      #- redis_token
+  #
+  #    # Health check - uses HTTP endpoint from health server
+  #    healthcheck:
+  #      <<: *health
+  #      test: ["CMD", "curl", "-f", "http://localhost:30883/health"]
+  #
+  #    # Logging configuration
+  #    logging:
+  #      driver: "json-file"
+  #      options:
+  #        max-size: "50m"
+  #        max-file: "5"
+  #
+  #    # Labels for organization
+  #    labels:
+  #      - "org.alphabetcartel.service=ash-thrash"
+  #      - "org.alphabetcartel.version=5.0.0"
+  #      - "org.alphabetcartel.description=Ash Crisis Detection Performance Testing"
   #
   #    # Depends On
   #    depends_on:
@@ -290,31 +318,6 @@ services:
   #      ash-redis:
   #        condition: service_healthy
   #
-  #    # Docker Secrets
-  #    secrets:
-  #      - discord_alert_token
-  #
-  #    # Health check
-  #    healthcheck:
-  #      #test:
-  #      interval: 30s
-  #      timeout: 10s
-  #      retries: 3
-  #      start_period: 120s
-  #
-  #    # Logging configuration
-  #    logging:
-  #      driver: "json-file"
-  #      options:
-  #        max-size: "50m"
-  #        max-file: "5"
-  #
-  #    # Labels for organization
-  #    labels:
-  #      - "com.alphabetcartel.service=ash-thrash"
-  #      - "com.alphabetcartel.version=5.0.0"
-  #      - "com.alphabetcartel.description=Crisis Detection Testing Suite"
-
   # ===========================================================================
   # Ash-Redis Cache
   # ===========================================================================
@@ -361,8 +364,8 @@ services:
 
     # Labels
     labels:
-      - "com.alphabetcartel.service=ash-redis"
-      - "com.alphabetcartel.description=Redis cache for Ash-Bot"
+      - "org.alphabetcartel.service=ash-redis"
+      - "org.alphabetcartel.description=Redis cache for Ash-Bot"
 
 # =============================================================================
 # Secrets
