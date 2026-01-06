@@ -144,7 +144,7 @@ services:
       # Logs
       - ./ash-bot/logs:/app/logs
       # Testing (Development only)
-      - ./ash-bot/tests:/app/tests
+      - /storage/nas/git/ash/ash-bot/tests:/app/tests
 
     # Port mapping for health checks (Ash ecosystem: 30881)
     ports:
