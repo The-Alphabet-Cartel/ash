@@ -379,6 +379,8 @@ secrets:
     file: ./secrets/discord_bot_token
   huggingface_token:
     file: ./secrets/huggingface_token
+  posthog_token:
+    file: ./secrets/posthog_token
   redis_token:
     file: ./secrets/redis_token
   webhook_token:
