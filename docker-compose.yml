@@ -12,7 +12,7 @@
 #   docker-compose up -d
 #
 #   # View logs
-#   docker-compose logs -f ash
+#   docker-compose logs -f {moduleName}
 #
 #   # Stop services
 #   docker-compose down
