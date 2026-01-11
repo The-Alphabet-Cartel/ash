@@ -459,6 +459,10 @@ volumes:
   redis_data:
     name: redis_data
     driver: local
+  #Postgres Data Persistence
+  ash-dash-db-data:
+    name: ash-dash-db-data
+    driver: local
 
 # =============================================================================
 # Networks
