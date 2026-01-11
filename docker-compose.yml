@@ -183,72 +183,82 @@ services:
         condition: service_healthy
 
   # ===========================================================================
-  # Ash-Dash Service
+  # Ash-Dash Service - Crisis Detection Dashboard (FastAPI + Vue.js)
   # ===========================================================================
-  #  ash-dash:
-  #    image: ghcr.io/the-alphabet-cartel/ash-dash:latest
-  #    container_name: ash-dash
-  #    #build:
-  #    #  context: .
-  #    #  dockerfile: Dockerfile
-  #    <<: *common
-  #
-  #    # Resource limits (production)
-  #    deploy:
-  #      resources:
-  #        limits:
-  #          memory: 512M
-  #          cpus: "0.5"
-  #
-  #    # Environment variables
-  #    environment:
-  #      <<: *env
-  #    env_file:
-  #      - .env
-  #
-  #    # Volume Mounts
-  #    volumes:
-  #      # Logs
-  #      - ./logs:/app/logs
-  #      # Testing (Development only)
-  #      - ./ash-dash/tests:/app/tests
-  #
-  #    # Port mapping for health checks (Ash ecosystem: 30882)
-  #    ports:
-  #      - "30882:30882"
-  #
-  #    # Docker Secrets
-  #    secrets:
-  #      - discord_alert_token
-  #      #- redis_token
-  #
-  #    # Health check - uses HTTP endpoint from health server
-  #    healthcheck:
-  #      <<: *health
-  #      test: ["CMD", "curl", "-f", "http://localhost:30882/health"]
-  #
-  #    # Logging configuration
-  #    logging:
-  #      driver: "json-file"
-  #      options:
-  #        max-size: "50m"
-  #        max-file: "5"
-  #
-  #    # Labels for organization
-  #    labels:
-  #      - "org.alphabetcartel.service=ash-dash"
-  #      - "org.alphabetcartel.version=5.0.0"
-  #      - "org.alphabetcartel.description=Ash Crisis Detection Dashboard"
-  #
-  #    # Depends On
-  #    depends_on:
-  #      ash-nlp:
-  #        condition: service_healthy
-  #      ash-bot:
-  #        condition: service_healthy
-  #      ash-redis:
-  #        condition: service_healthy
-  #
+  ash-dash:
+    image: ghcr.io/the-alphabet-cartel/ash-dash:latest
+    container_name: ash-dash
+    #build:
+    #  context: .
+    #  dockerfile: Dockerfile
+    <<: *common
+
+    # Resource limits (production)
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
+    # Environment variables
+    environment:
+      <<: *env
+      # Database connection is built programmatically from:
+      # - .env file (host, port, database, user)
+      # - Docker secrets (password from postgres_token)
+    env_file:
+      - .env
+
+    # Volume Mounts
+    volumes:
+      # Wiki Documents
+      - ./ash-dash/docs/wiki:/app/docs/wiki
+      # Logs directory
+      - ./ash-dash/logs:/app/logs
+
+    # Port mapping (Ash-Dash: 30883)
+    ports:
+      - "30883:30883"
+
+    # Docker Secrets
+    secrets:
+      - archive_master_key
+      - discord_alert_token
+      - minio_root_user
+      - minio_root_password
+      - oidc_client_secret
+      - postgres_token
+      - redis_token
+
+    # Health check - uses HTTP endpoint
+    healthcheck:
+      <<: *health
+      test: ["CMD", "curl", "-f", "http://localhost:30883/health"]
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+    # Labels for organization
+    labels:
+      - "org.alphabetcartel.service=ash-dash"
+      - "org.alphabetcartel.version=5.0.0"
+      - "org.alphabetcartel.description=Ash Crisis Detection Dashboard"
+
+    # Dependencies - wait for database to be healthy
+    depends_on:
+      ash-nlp:
+        condition: service_healthy
+      ash-bot:
+        condition: service_healthy
+      ash-dash-db:
+        condition: service_healthy
+      ash-redis:
+        condition: service_healthy
+
   # ===========================================================================
   # Ash-Thrash Service
   # ===========================================================================
@@ -317,7 +327,7 @@ services:
   #        condition: service_healthy
   #      ash-redis:
   #        condition: service_healthy
-  #
+
   # ===========================================================================
   # Ash-Redis Cache
   # ===========================================================================
@@ -367,10 +377,59 @@ services:
       - "org.alphabetcartel.service=ash-redis"
       - "org.alphabetcartel.description=Redis cache for Ash-Bot"
 
+  # ===========================================================================
+  # PostgreSQL Database - Ash-Dash Data Store
+  # ===========================================================================
+  ash-dash-db:
+    image: postgres:16-alpine
+    container_name: ash-dash-db
+    <<: *common
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+
+    # Environment variables
+    environment:
+      <<: *env
+      POSTGRES_USER: ash
+      POSTGRES_DB: ashdash
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_token
+
+    # Volume Mounts
+    volumes:
+      - ash-dash-db-data:/var/lib/postgresql/data
+
+    # Docker Secrets
+    secrets:
+      - postgres_token
+
+    # Health check
+    healthcheck:
+      <<: *health
+      test: ["CMD-SHELL", "pg_isready -U ash -d ashdash"]
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Labels
+    labels:
+      - "org.alphabetcartel.service=ash-dash-db"
+      - "org.alphabetcartel.description=Ash-Dash PostgreSQL Database"
+
 # =============================================================================
 # Secrets
 # =============================================================================
 secrets:
+  archive_master_key:
+    file: ./secrets/archive_master_key
   claude_api_token:
     file: ./secrets/claude_api_token
   discord_alert_token:
@@ -379,12 +438,18 @@ secrets:
     file: ./secrets/discord_bot_token
   huggingface_token:
     file: ./secrets/huggingface_token
-  posthog_token:
-    file: ./secrets/posthog_token
+  minio_root_password:
+    file: ./secrets/minio_root_password
+  minio_root_user:
+    file: ./secrets/minio_root_user
+  oidc_client_secret:
+    file: ./secrets/oidc_client_secret
+  postgres_token:
+    file: ./secrets/postgres_token
   redis_token:
     file: ./secrets/redis_token
-  webhook_token:
-    file: ./secrets/webhook_token
+  #webhook_token:
+  #file: ./secrets/webhook_token
 
 # =============================================================================
 # Volumes
