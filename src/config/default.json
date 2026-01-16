@@ -1,0 +1,182 @@
+{
+  "_metadata": {
+    "file_version": "v5.0-1-1.2-1",
+    "last_modified": "2026-01-15",
+    "clean_architecture": "Compliant",
+    "description": "Ash Ecosystem Health API Configuration"
+  },
+
+  "server": {
+    "description": "API server configuration settings",
+    "host": "${ASH_HOST}",
+    "port": "${ASH_PORT}",
+    "environment": "${ASH_ENVIRONMENT}",
+    "defaults": {
+      "host": "0.0.0.0",
+      "port": 30887,
+      "environment": "production"
+    },
+    "validation": {
+      "host": {
+        "type": "string",
+        "required": true
+      },
+      "port": {
+        "type": "integer",
+        "range": [1, 65535],
+        "required": true
+      },
+      "environment": {
+        "type": "string",
+        "allowed_values": ["production", "testing", "development"],
+        "required": true
+      }
+    }
+  },
+
+  "logging": {
+    "description": "Logging configuration settings",
+    "level": "${ASH_LOG_LEVEL}",
+    "format": "${ASH_LOG_FORMAT}",
+    "file": "${ASH_LOG_FILE}",
+    "console": "${ASH_LOG_CONSOLE}",
+    "defaults": {
+      "level": "INFO",
+      "format": "human",
+      "file": "/app/logs/ash.log",
+      "console": true
+    },
+    "validation": {
+      "level": {
+        "type": "string",
+        "allowed_values": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        "required": true
+      },
+      "format": {
+        "type": "string",
+        "allowed_values": ["json", "human"],
+        "required": true
+      },
+      "file": {
+        "type": "string",
+        "required": true
+      },
+      "console": {
+        "type": "boolean",
+        "required": true
+      }
+    }
+  },
+
+  "ecosystem": {
+    "description": "Ecosystem health monitoring configuration",
+    "check_timeout_ms": "${ASH_CHECK_TIMEOUT_MS}",
+    "defaults": {
+      "check_timeout_ms": 5000
+    },
+    "validation": {
+      "check_timeout_ms": {
+        "type": "integer",
+        "range": [1000, 30000],
+        "required": true
+      }
+    }
+  },
+
+  "components": {
+    "description": "Ash ecosystem component health endpoints",
+    "ash_bot": {
+      "name": "Ash-Bot",
+      "health_url": "${ASH_COMPONENT_BOT_URL}",
+      "enabled": "${ASH_COMPONENT_BOT_ENABLED}",
+      "defaults": {
+        "health_url": "http://ash-bot:30881/health/detailed",
+        "enabled": true
+      }
+    },
+    "ash_nlp": {
+      "name": "Ash-NLP",
+      "health_url": "${ASH_COMPONENT_NLP_URL}",
+      "enabled": "${ASH_COMPONENT_NLP_ENABLED}",
+      "defaults": {
+        "health_url": "http://ash-nlp:30880/health",
+        "enabled": true
+      }
+    },
+    "ash_dash": {
+      "name": "Ash-Dash",
+      "health_url": "${ASH_COMPONENT_DASH_URL}",
+      "enabled": "${ASH_COMPONENT_DASH_ENABLED}",
+      "defaults": {
+        "health_url": "http://ash-dash:30883/health/detailed",
+        "enabled": true
+      }
+    },
+    "ash_vault": {
+      "name": "Ash-Vault",
+      "health_url": "${ASH_COMPONENT_VAULT_URL}",
+      "enabled": "${ASH_COMPONENT_VAULT_ENABLED}",
+      "defaults": {
+        "health_url": "http://10.20.30.202:30886/status",
+        "enabled": true
+      }
+    },
+    "ash_thrash": {
+      "name": "Ash-Thrash",
+      "health_url": "${ASH_COMPONENT_THRASH_URL}",
+      "enabled": "${ASH_COMPONENT_THRASH_ENABLED}",
+      "defaults": {
+        "health_url": "http://ash-thrash:30888/health",
+        "enabled": false
+      }
+    }
+  },
+
+  "connections": {
+    "description": "Inter-component connectivity checks",
+    "checks": [
+      {
+        "name": "ash-bot -> ash-nlp",
+        "description": "Bot can reach NLP for crisis classification",
+        "source": "ash_bot",
+        "target": "ash_nlp",
+        "critical": true
+      },
+      {
+        "name": "ash-dash -> ash-vault",
+        "description": "Dashboard can reach archive storage",
+        "source": "ash_dash",
+        "target": "ash_vault",
+        "critical": false
+      },
+      {
+        "name": "ash-dash -> ash-bot",
+        "description": "Dashboard can reach bot health endpoint",
+        "source": "ash_dash",
+        "target": "ash_bot",
+        "critical": false
+      },
+      {
+        "name": "ash-dash -> ash-nlp",
+        "description": "Dashboard can reach NLP health endpoint",
+        "source": "ash_dash",
+        "target": "ash_nlp",
+        "critical": false
+      }
+    ]
+  },
+
+  "alerting": {
+    "description": "Discord webhook alerting configuration",
+    "enabled": "${ASH_ALERTING_ENABLED}",
+    "defaults": {
+      "enabled": true
+    },
+    "validation": {
+      "enabled": {
+        "type": "boolean",
+        "required": true
+      }
+    }
+  }
+}

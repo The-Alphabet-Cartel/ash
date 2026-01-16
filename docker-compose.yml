@@ -1,8 +1,8 @@
 # ============================================================================
 # Ash v5.0 Docker Compose Configuration
 # ============================================================================
-# FILE VERSION: v5.0
-# LAST MODIFIED: 2026-01-02
+# FILE VERSION: v5.0.2
+# LAST MODIFIED: 2026-01-15
 # Repository: https://github.com/the-alphabet-cartel/ash
 # Community: The Alphabet Cartel - https://discord.gg/alphabetcartel
 # ============================================================================
@@ -52,6 +52,70 @@ x-health: &health
   start_interval: 10s
 
 services:
+  # ===========================================================================
+  # Ash Service - Ecosystem Health API
+  # ===========================================================================
+  ash:
+    image: ghcr.io/the-alphabet-cartel/ash:latest
+    container_name: ash
+    build:
+      context: .
+      dockerfile: Dockerfile
+    <<: *common
+
+    # Resource limits (production)
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+
+    # Environment variables
+    environment:
+      <<: *env
+    env_file:
+      - .env
+
+    # Volume Mounts
+    volumes:
+      # Logs directory
+      - ./logs:/app/logs
+
+    # Port mapping (Ash: 30887)
+    ports:
+      - "30887:30887"
+
+    # Docker Secrets
+    secrets:
+      - discord_alert_token
+
+    # Health check - uses HTTP endpoint
+    healthcheck:
+      <<: *health
+      test: ["CMD", "curl", "-f", "http://localhost:30887/health"]
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+    # Labels for organization
+    labels:
+      - "net.alphabetcartel.service=ash"
+      - "net.alphabetcartel.version=5.0.0"
+      - "net.alphabetcartel.description=Ash Ecosystem Health API"
+
+    # Dependencies - wait for other services to be healthy
+    #depends_on:
+    #ash-nlp:
+    #condition: service_healthy
+    #ash-bot:
+    #condition: service_healthy
+    #ash-dash:
+    #condition: service_healthy
+
   # ===========================================================================
   # Ash-NLP Service
   # ===========================================================================
@@ -111,9 +175,9 @@ services:
 
     # Labels for organization
     labels:
-      - "org.alphabetcartel.service=ash-nlp"
-      - "org.alphabetcartel.version=5.0.0"
-      - "org.alphabetcartel.description=Crisis Detection Backend"
+      - "net.alphabetcartel.service=ash-nlp"
+      - "net.alphabetcartel.version=5.0.0"
+      - "net.alphabetcartel.description=Crisis Detection Backend"
 
   # ===========================================================================
   # Ash-Bot Service
@@ -171,9 +235,9 @@ services:
 
     # Labels for organization
     labels:
-      - "org.alphabetcartel.service=ash-bot"
-      - "org.alphabetcartel.version=5.0.0"
-      - "org.alphabetcartel.description=Crisis Detection Discord Bot"
+      - "net.alphabetcartel.service=ash-bot"
+      - "net.alphabetcartel.version=5.0.0"
+      - "net.alphabetcartel.description=Crisis Detection Discord Bot"
 
     # Dependencies
     depends_on:
@@ -244,9 +308,9 @@ services:
 
     # Labels for organization
     labels:
-      - "org.alphabetcartel.service=ash-dash"
-      - "org.alphabetcartel.version=5.0.0"
-      - "org.alphabetcartel.description=Ash Crisis Detection Dashboard"
+      - "net.alphabetcartel.service=ash-dash"
+      - "net.alphabetcartel.version=5.0.0"
+      - "net.alphabetcartel.description=Ash Crisis Detection Dashboard"
 
     # Dependencies - wait for database to be healthy
     depends_on:
@@ -313,9 +377,9 @@ services:
   #
   #    # Labels for organization
   #    labels:
-  #      - "org.alphabetcartel.service=ash-thrash"
-  #      - "org.alphabetcartel.version=5.0.0"
-  #      - "org.alphabetcartel.description=Ash Crisis Detection Performance Testing"
+  #      - "net.alphabetcartel.service=ash-thrash"
+  #      - "net.alphabetcartel.version=5.0.0"
+  #      - "net.alphabetcartel.description=Ash Crisis Detection Performance Testing"
   #
   #    # Depends On
   #    depends_on:
@@ -374,8 +438,8 @@ services:
 
     # Labels
     labels:
-      - "org.alphabetcartel.service=ash-redis"
-      - "org.alphabetcartel.description=Redis cache for Ash-Bot"
+      - "net.alphabetcartel.service=ash-redis"
+      - "net.alphabetcartel.description=Redis cache for Ash-Bot"
 
   # ===========================================================================
   # PostgreSQL Database - Ash-Dash Data Store
@@ -421,8 +485,8 @@ services:
 
     # Labels
     labels:
-      - "org.alphabetcartel.service=ash-dash-db"
-      - "org.alphabetcartel.description=Ash-Dash PostgreSQL Database"
+      - "net.alphabetcartel.service=ash-dash-db"
+      - "net.alphabetcartel.description=Ash-Dash PostgreSQL Database"
 
 # =============================================================================
 # Secrets
