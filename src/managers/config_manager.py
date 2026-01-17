@@ -13,9 +13,9 @@ MISSION - NEVER TO BE VIOLATED:
 ============================================================================
 Unified Configuration Manager - JSON Config with Environment Overrides
 ----------------------------------------------------------------------------
-FILE VERSION: v5.0-1-1.2-1
-LAST MODIFIED: 2026-01-15
-PHASE: Phase 1 - Ecosystem Health API
+FILE VERSION: v5.0-4-1.0-1
+LAST MODIFIED: 2026-01-17
+PHASE: Phase 4 - Alerting Integration
 CLEAN ARCHITECTURE: Compliant
 Repository: https://github.com/the-alphabet-cartel/ash
 ============================================================================
@@ -353,6 +353,31 @@ class ConfigManager:
     def alerting_enabled(self) -> bool:
         """Get whether alerting is enabled."""
         return self.get("alerting.enabled", True)
+
+    @property
+    def alerting_check_interval_seconds(self) -> int:
+        """Get the alerting check interval in seconds."""
+        return self.get("alerting.check_interval_seconds", 60)
+
+    @property
+    def alerting_cooldown_seconds(self) -> int:
+        """Get the alerting cooldown in seconds (minimum time between alerts for same entity)."""
+        return self.get("alerting.cooldown_seconds", 300)
+
+    @property
+    def alerting_on_degraded(self) -> bool:
+        """Get whether to alert when components become degraded."""
+        return self.get("alerting.alert_on_degraded", True)
+
+    @property
+    def alerting_on_recovery(self) -> bool:
+        """Get whether to alert when components recover."""
+        return self.get("alerting.alert_on_recovery", True)
+
+    @property
+    def alerting_on_connection_issues(self) -> bool:
+        """Get whether to alert on inter-component connection issues."""
+        return self.get("alerting.alert_on_connection_issues", True)
 
 
 # =============================================================================

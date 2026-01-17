@@ -18,13 +18,18 @@ This directory contains sensitive credentials used by Ash. These files are:
 
 | File | Description | Required | Module(s) |
 |------|-------------|----------|-----------|
+| `ash_discord_alert_token` | Discord Webhook for Ash (Core) Health Alerts | ✅ Required | Ash (Core) |
 | `claude_api_token` | Claude API Token | ✅ Required | Ash-Bot |
-| `discord_alert_token` | Discord Webhook Alert Token | ✅ Required | Ash-Bot, Ash-Dash, Ash-NLP, Ash-Thrash |
+| `discord_alert_token` | Discord Webhook Alert Token (Legacy - shared) | Optional | Ash-Bot, Ash-Dash, Ash-NLP, Ash-Thrash |
 | `discord_bot_token` | Discord Bot Token | ✅ Required | Ash-Bot |
 | `huggingface_token` | HuggingFace API Token | ✅ Required | Ash-NLP |
 | `postgres_token` | Postgres Token | ✅ Required | Ash-Dash |
 | `redis_token` | Redis Token | ✅ Required | Ash-Bot, Ash-Dash, Ash-Thrash |
 | `webhook_token` | Webhook Token | Future Use - Optional | None |
+
+> **Note**: We are transitioning to per-module Discord alert webhooks for better routing.
+> Future modules will use: `ash_bot_discord_alert_token`, `ash_nlp_discord_alert_token`, etc.
+> See the [Enhancement Documentation](../docs/v5.0/enhancements.md) for migration plans.
 
 ---
 
@@ -51,9 +56,28 @@ chmod 600 secrets/claude_api_token
 
 **Note**: The Claude API key enables the Ash AI conversational support feature. Without it, the "Talk to Ash" button will not appear on alerts.
 
-### 3. Add Discord Alert Webhook (Required for System Alerts)
+### 3. Add Ash Discord Alert Webhook (Required for Ash Health Alerts)
 
-For system alerts (bot failures, startup notifications):
+For ecosystem health alerts from Ash (Core):
+
+1. In Discord: Server Settings → Integrations → Webhooks → New Webhook
+2. Name it something like "Ash Health Alerts"
+3. Select the channel for health alerts (e.g., #ash-health-alerts)
+4. Copy the webhook URL
+5. Create the secret:
+
+```bash
+# Create the webhook secret for Ash (Core)
+echo "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN" > secrets/ash_discord_alert_token
+
+# Set secure permissions
+chown nas:nas secrets/ash_discord_alert_token
+chmod 600 secrets/ash_discord_alert_token
+```
+
+### 4. Add Discord Alert Webhook (Legacy - Optional)
+
+For system alerts (shared across modules - being phased out):
 
 1. In Discord: Server Settings → Integrations → Webhooks → New Webhook
 2. Copy the webhook URL
@@ -68,7 +92,7 @@ chown nas:nas secrets/discord_alert_token
 chmod 600 secrets/discord_alert_token
 ```
 
-### 4. Add Discord Bot Token (Required for Ash-Bot)
+### 5. Add Discord Bot Token (Required for Ash-Bot)
 
 Get your token from: [Discord Bot Token](https://discord.com/developers/applications)
 
@@ -81,7 +105,7 @@ chown nas:nas secrets/discord_bot_token
 chmod 600 secrets/discord_bot_token
 ```
 
-### 5. Add HuggingFace API Token (Required for Ash-NLP)
+### 6. Add HuggingFace API Token (Required for Ash-NLP)
 
 Get your token from: [HuggingFace API Token](https://huggingface.co/settings/tokens)
 
@@ -94,7 +118,7 @@ chown nas:nas secrets/huggingface_token
 chmod 600 secrets/huggingface_token
 ```
 
-### 6. Add Postgres Password Token (Required for Ash-Dash)
+### 7. Add Postgres Password Token (Required for Ash-Dash)
 
 ```bash
 # Create your random password
@@ -108,7 +132,7 @@ chown nas:nas secrets/postgres_token
 chmod 600 secrets/postgres_token
 ```
 
-### 7. Add Redis Password Token (Required for Ash-Bot, Ash-Dash, and Ash-Thrash)
+### 8. Add Redis Password Token (Required for Ash-Bot, Ash-Dash, and Ash-Thrash)
 
 ```bash
 # Create your random password
@@ -122,7 +146,7 @@ chown nas:nas secrets/redis_token
 chmod 600 secrets/redis_token
 ```
 
-### 8. Add Webhook (Incoming) Password Token (Future Use - Optional)
+### 9. Add Webhook (Incoming) Password Token (Future Use - Optional)
 
 ```bash
 # Create your random password
@@ -136,7 +160,7 @@ chown nas:nas secrets/webhook_token
 chmod 600 secrets/webhook_token
 ```
 
-### 9. Verify Setup
+### 10. Verify Setup
 
 ```bash
 # Check files exist and have content
@@ -144,6 +168,7 @@ ls -la secrets/
 
 # Verify permissions (should be 600 or -rw-------)
 # Verify no trailing whitespace
+cat -A secrets/ash_discord_alert_token
 cat -A secrets/claude_api_token
 cat -A secrets/discord_alert_token
 cat -A secrets/discord_bot_token

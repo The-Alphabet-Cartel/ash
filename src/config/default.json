@@ -1,7 +1,7 @@
 {
   "_metadata": {
-    "file_version": "v5.0-1-1.2-1",
-    "last_modified": "2026-01-15",
+    "file_version": "v5.0-4-1.0-1",
+    "last_modified": "2026-01-17",
     "clean_architecture": "Compliant",
     "description": "Ash Ecosystem Health API Configuration"
   },
@@ -167,15 +167,47 @@
   },
 
   "alerting": {
-    "description": "Discord webhook alerting configuration",
+    "description": "Discord webhook alerting configuration for ecosystem health changes",
     "enabled": "${ASH_ALERTING_ENABLED}",
+    "check_interval_seconds": "${ASH_ALERTING_INTERVAL}",
+    "cooldown_seconds": "${ASH_ALERTING_COOLDOWN}",
+    "alert_on_degraded": "${ASH_ALERTING_ON_DEGRADED}",
+    "alert_on_recovery": "${ASH_ALERTING_ON_RECOVERY}",
+    "alert_on_connection_issues": "${ASH_ALERTING_ON_CONNECTION}",
     "defaults": {
-      "enabled": true
+      "enabled": true,
+      "check_interval_seconds": 60,
+      "cooldown_seconds": 300,
+      "alert_on_degraded": true,
+      "alert_on_recovery": true,
+      "alert_on_connection_issues": true
     },
     "validation": {
       "enabled": {
         "type": "boolean",
         "required": true
+      },
+      "check_interval_seconds": {
+        "type": "integer",
+        "range": [30, 300],
+        "required": false
+      },
+      "cooldown_seconds": {
+        "type": "integer",
+        "range": [60, 3600],
+        "required": false
+      },
+      "alert_on_degraded": {
+        "type": "boolean",
+        "required": false
+      },
+      "alert_on_recovery": {
+        "type": "boolean",
+        "required": false
+      },
+      "alert_on_connection_issues": {
+        "type": "boolean",
+        "required": false
       }
     }
   }

@@ -1,8 +1,8 @@
 # ============================================================================
 # Ash v5.0 Docker Compose Configuration
 # ============================================================================
-# FILE VERSION: v5.0.2
-# LAST MODIFIED: 2026-01-15
+# FILE VERSION: v5.0.3
+# LAST MODIFIED: 2026-01-17
 # Repository: https://github.com/the-alphabet-cartel/ash
 # Community: The Alphabet Cartel - https://discord.gg/alphabetcartel
 # ============================================================================
@@ -87,7 +87,7 @@ services:
 
     # Docker Secrets
     secrets:
-      - discord_alert_token
+      - ash_discord_alert_token
 
     # Health check - uses HTTP endpoint
     healthcheck:
@@ -494,6 +494,8 @@ services:
 secrets:
   archive_master_key:
     file: ./secrets/archive_master_key
+  ash_discord_alert_token:
+    file: ./secrets/ash_discord_alert_token
   claude_api_token:
     file: ./secrets/claude_api_token
   discord_alert_token:
