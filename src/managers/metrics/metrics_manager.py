@@ -13,8 +13,8 @@ MISSION - NEVER TO BE VIOLATED:
 ============================================================================
 Metrics Manager - Historical Health Data Storage and Retrieval
 ----------------------------------------------------------------------------
-FILE VERSION: v5.0-5-2.0-1
-LAST MODIFIED: 2026-01-17
+FILE VERSION: v5.0-5-2.1-1
+LAST MODIFIED: 2026-01-18
 PHASE: Phase 5 - Metrics & History
 CLEAN ARCHITECTURE: Compliant
 Repository: https://github.com/the-alphabet-cartel/ash
@@ -355,8 +355,10 @@ class MetricsManager:
 
         Returns:
             The recorded Incident, or None if recording failed
+            Returns None for transitions TO healthy (these are resolutions, not incidents)
         """
-        # If transitioning TO healthy, resolve any open incidents
+        # If transitioning TO healthy, resolve any open incidents and return
+        # Recovery is the RESOLUTION of an incident, not a new incident itself
         if to_status == "healthy":
             # Calculate duration from the last transition
             entity_key = f"{entity_type}:{entity_name}"
@@ -370,8 +372,15 @@ class MetricsManager:
                     resolved_at=timestamp,
                     duration_seconds=duration,
                 )
+                self._log_info(
+                    f"✅ Resolved: {entity_name} recovered after {duration}s"
+                )
 
-        # Record the new incident
+            # Don't create an incident for recovery - it's already tracked
+            # via resolved_at on the original incident
+            return None
+
+        # Record the new incident (only for non-healthy transitions)
         incident = Incident(
             timestamp=timestamp,
             entity_type=entity_type,

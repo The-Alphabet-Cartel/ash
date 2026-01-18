@@ -13,8 +13,8 @@ MISSION - NEVER TO BE VIOLATED:
 ============================================================================
 Alert Manager - State Tracking and Transition Detection for Health Alerting
 ----------------------------------------------------------------------------
-FILE VERSION: v5.0-4-1.0-1
-LAST MODIFIED: 2026-01-17
+FILE VERSION: v5.0-4-1.1-1
+LAST MODIFIED: 2026-01-18
 PHASE: Phase 4 - Alerting Integration
 CLEAN ARCHITECTURE: Compliant
 Repository: https://github.com/the-alphabet-cartel/ash
@@ -401,12 +401,22 @@ class AlertManager:
         """
         Check if an alert should be sent based on cooldown.
 
+        Recovery alerts ALWAYS bypass cooldown - when something comes back up,
+        we want to know immediately regardless of when the last alert was sent.
+
         Args:
             transition: The transition to check
 
         Returns:
             True if alert should be sent, False if in cooldown
         """
+        # Recovery alerts ALWAYS bypass cooldown
+        if transition.is_recovery:
+            self._log.debug(
+                f"✅ Recovery alert for {transition.entity_name} bypasses cooldown"
+            )
+            return True
+
         entity_key = f"{transition.entity_type}:{transition.entity_name}"
         last_alert = self._state.last_alert_times.get(entity_key)
 

@@ -3,9 +3,9 @@
 # The Alphabet Cartel - https://discord.gg/alphabetcartel | alphabetcartel.org
 # ============================================================================
 #
-# FILE VERSION: v5.0-1-1.1-1
-# LAST MODIFIED: 2026-01-15
-# PHASE: Phase 1 - Ecosystem Health API
+# FILE VERSION: v5.0-5-1.0-1
+# LAST MODIFIED: 2026-01-18
+# PHASE: Phase 5 - Metrics & History
 # CLEAN ARCHITECTURE: Compliant
 # Repository: https://github.com/the-alphabet-cartel/ash
 #
@@ -30,6 +30,11 @@ httpx>=0.28.0,<1.0.0             # Async HTTP client for health checks
 # =============================================================================
 pydantic>=2.10.0,<3.0.0          # Data validation (FastAPI dependency)
 pydantic-settings>=2.6.0,<3.0.0  # Settings management with env support
+
+# =============================================================================
+# Database (Phase 5 - Metrics & History)
+# =============================================================================
+aiosqlite>=0.20.0,<1.0.0         # Async SQLite driver for metrics storage
 
 # =============================================================================
 # Utilities
