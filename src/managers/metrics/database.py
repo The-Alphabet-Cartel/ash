@@ -13,9 +13,9 @@ MISSION - NEVER TO BE VIOLATED:
 ============================================================================
 Metrics Database - SQLite Implementation with PostgreSQL Migration Support
 ----------------------------------------------------------------------------
-FILE VERSION: v5.0-5-1.0-1
-LAST MODIFIED: 2026-01-17
-PHASE: Phase 5 - Metrics & History
+FILE VERSION: v5.0-6-1.0-1
+LAST MODIFIED: 2026-01-18
+PHASE: Phase 6 - Logging Colorization
 CLEAN ARCHITECTURE: Compliant
 Repository: https://github.com/the-alphabet-cartel/ash
 
@@ -40,7 +40,7 @@ from datetime import datetime, date, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from src.managers.logging_manager import LoggingConfigManager
+from src.managers.logging_config_manager import LoggingConfigManager
 
 
 # =============================================================================

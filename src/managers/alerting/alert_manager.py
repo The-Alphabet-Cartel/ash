@@ -13,9 +13,9 @@ MISSION - NEVER TO BE VIOLATED:
 ============================================================================
 Alert Manager - State Tracking and Transition Detection for Health Alerting
 ----------------------------------------------------------------------------
-FILE VERSION: v5.0-4-1.1-1
+FILE VERSION: v5.0-6-1.0-1
 LAST MODIFIED: 2026-01-18
-PHASE: Phase 4 - Alerting Integration
+PHASE: Phase 6 - Logging Colorization
 CLEAN ARCHITECTURE: Compliant
 Repository: https://github.com/the-alphabet-cartel/ash
 ============================================================================
@@ -31,7 +31,7 @@ from src.managers.ecosystem.ecosystem_health_manager import (
     ComponentStatus,
     EcosystemHealth,
 )
-from src.managers.logging_manager import LoggingConfigManager
+from src.managers.logging_config_manager import LoggingConfigManager
 
 
 # =============================================================================

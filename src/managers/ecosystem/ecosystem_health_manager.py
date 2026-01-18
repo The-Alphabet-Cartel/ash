@@ -13,9 +13,9 @@ MISSION - NEVER TO BE VIOLATED:
 ============================================================================
 Ecosystem Health Manager - Aggregated Health Monitoring for Ash Components
 ----------------------------------------------------------------------------
-FILE VERSION: v5.0-1-1.3-2
-LAST MODIFIED: 2026-01-15
-PHASE: Phase 1 - Ecosystem Health API
+FILE VERSION: v5.0-6-1.0-1
+LAST MODIFIED: 2026-01-18
+PHASE: Phase 6 - Logging Colorization
 CLEAN ARCHITECTURE: Compliant
 Repository: https://github.com/the-alphabet-cartel/ash
 ============================================================================
@@ -31,7 +31,7 @@ from typing import Any, Dict, List, Optional
 import httpx
 
 from src.managers.config_manager import ConfigManager
-from src.managers.logging_manager import LoggingConfigManager
+from src.managers.logging_config_manager import LoggingConfigManager
 
 
 # =============================================================================

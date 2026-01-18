@@ -13,9 +13,9 @@ MISSION - NEVER TO BE VIOLATED:
 ============================================================================
 Discord Webhook - Send Rich Embed Alerts to Discord Channels
 ----------------------------------------------------------------------------
-FILE VERSION: v5.0-4-2.0-1
-LAST MODIFIED: 2026-01-17
-PHASE: Phase 4 - Alerting Integration
+FILE VERSION: v5.0-6-1.0-1
+LAST MODIFIED: 2026-01-18
+PHASE: Phase 6 - Logging Colorization
 CLEAN ARCHITECTURE: Compliant
 Repository: https://github.com/the-alphabet-cartel/ash
 ============================================================================
@@ -29,7 +29,7 @@ from typing import Any, Dict, Optional
 import httpx
 
 from src.managers.alerting.alert_manager import AlertType, StatusTransition
-from src.managers.logging_manager import LoggingConfigManager
+from src.managers.logging_config_manager import LoggingConfigManager
 
 
 # =============================================================================

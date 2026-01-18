@@ -13,9 +13,9 @@ MISSION - NEVER TO BE VIOLATED:
 ============================================================================
 Metrics Manager - Historical Health Data Storage and Retrieval
 ----------------------------------------------------------------------------
-FILE VERSION: v5.0-5-2.1-1
+FILE VERSION: v5.0-6-1.0-1
 LAST MODIFIED: 2026-01-18
-PHASE: Phase 5 - Metrics & History
+PHASE: Phase 6 - Logging Colorization
 CLEAN ARCHITECTURE: Compliant
 Repository: https://github.com/the-alphabet-cartel/ash
 
@@ -32,7 +32,7 @@ from datetime import datetime, date, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
 from src.managers.config_manager import ConfigManager
-from src.managers.logging_manager import LoggingConfigManager
+from src.managers.logging_config_manager import LoggingConfigManager
 from src.managers.ecosystem.ecosystem_health_manager import (
     EcosystemHealth,
     ComponentStatus,
