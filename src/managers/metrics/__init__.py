@@ -11,9 +11,9 @@ MISSION - NEVER TO BE VIOLATED:
     Protect  → Safeguard our LGBTQIA+ chosen family through early crisis response
 
 ============================================================================
-Routes Package - API Route Definitions
+Metrics Module - Historical Health Data Storage and Analysis
 ----------------------------------------------------------------------------
-FILE VERSION: v5.0-5-4.0-1
+FILE VERSION: v5.0-5-2.0-1
 LAST MODIFIED: 2026-01-17
 PHASE: Phase 5 - Metrics & History
 CLEAN ARCHITECTURE: Compliant
@@ -21,10 +21,44 @@ Repository: https://github.com/the-alphabet-cartel/ash
 ============================================================================
 """
 
-from src.api.routes.health import router as health_router
-from src.api.routes.metrics import router as metrics_router
+from src.managers.metrics.database import (
+    # Data classes
+    HealthSnapshot,
+    Incident,
+    DailyAggregate,
+    UptimeMetrics,
+    # Interface
+    MetricsDatabaseInterface,
+    # Implementation
+    SQLiteMetricsDatabase,
+    # Factory
+    create_metrics_database,
+    # Constants
+    CURRENT_SCHEMA_VERSION,
+)
+
+from src.managers.metrics.metrics_manager import (
+    MetricsManager,
+    create_metrics_manager,
+    EntityState,
+)
 
 __all__ = [
-    "health_router",
-    "metrics_router",
+    # Data classes
+    "HealthSnapshot",
+    "Incident",
+    "DailyAggregate",
+    "UptimeMetrics",
+    # Interface
+    "MetricsDatabaseInterface",
+    # Implementation
+    "SQLiteMetricsDatabase",
+    # Factory functions
+    "create_metrics_database",
+    "create_metrics_manager",
+    # Manager
+    "MetricsManager",
+    "EntityState",
+    # Constants
+    "CURRENT_SCHEMA_VERSION",
 ]

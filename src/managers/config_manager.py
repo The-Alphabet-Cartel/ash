@@ -13,9 +13,9 @@ MISSION - NEVER TO BE VIOLATED:
 ============================================================================
 Unified Configuration Manager - JSON Config with Environment Overrides
 ----------------------------------------------------------------------------
-FILE VERSION: v5.0-4-1.0-1
+FILE VERSION: v5.0-5-2.0-1
 LAST MODIFIED: 2026-01-17
-PHASE: Phase 4 - Alerting Integration
+PHASE: Phase 5 - Metrics & History
 CLEAN ARCHITECTURE: Compliant
 Repository: https://github.com/the-alphabet-cartel/ash
 ============================================================================
@@ -378,6 +378,39 @@ class ConfigManager:
     def alerting_on_connection_issues(self) -> bool:
         """Get whether to alert on inter-component connection issues."""
         return self.get("alerting.alert_on_connection_issues", True)
+
+    # =========================================================================
+    # Metrics Configuration (Phase 5)
+    # =========================================================================
+    @property
+    def metrics_enabled(self) -> bool:
+        """Get whether historical metrics collection is enabled."""
+        return self.get("metrics.enabled", True)
+
+    @property
+    def metrics_db_path(self) -> str:
+        """Get the SQLite database path for metrics storage."""
+        return self.get("metrics.db_path", "/app/data/metrics.db")
+
+    @property
+    def metrics_retention_snapshots_days(self) -> int:
+        """Get the retention period for raw health snapshots (days)."""
+        return self.get("metrics.retention_snapshots_days", 7)
+
+    @property
+    def metrics_retention_incidents_days(self) -> int:
+        """Get the retention period for incident records (days)."""
+        return self.get("metrics.retention_incidents_days", 90)
+
+    @property
+    def metrics_retention_aggregates_days(self) -> int:
+        """Get the retention period for daily aggregates (days)."""
+        return self.get("metrics.retention_aggregates_days", 365)
+
+    @property
+    def metrics_maintenance_hour(self) -> int:
+        """Get the hour (UTC) when daily maintenance should run."""
+        return self.get("metrics.maintenance_hour", 3)
 
 
 # =============================================================================

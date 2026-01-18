@@ -13,9 +13,9 @@ MISSION - NEVER TO BE VIOLATED:
 ============================================================================
 Main Application - FastAPI Entry Point for Ash Ecosystem Health API
 ----------------------------------------------------------------------------
-FILE VERSION: v5.0-4-3.0-1
+FILE VERSION: v5.0-5-3.0-1
 LAST MODIFIED: 2026-01-17
-PHASE: Phase 4 - Alerting Integration
+PHASE: Phase 5 - Metrics & History Integration
 CLEAN ARCHITECTURE: Compliant
 Repository: https://github.com/the-alphabet-cartel/ash
 ============================================================================
@@ -23,6 +23,7 @@ Repository: https://github.com/the-alphabet-cartel/ash
 
 import asyncio
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from typing import AsyncGenerator, Optional
 
 from fastapi import FastAPI
@@ -40,13 +41,18 @@ from src.managers.alerting import (
     create_discord_webhook_sender,
     DiscordWebhookSender,
 )
+from src.managers.metrics import (
+    MetricsManager,
+    create_metrics_manager,
+)
 from src.api.routes.health import router as health_router
+from src.api.routes.metrics import router as metrics_router
 
 
 # =============================================================================
 # Application Version
 # =============================================================================
-__version__ = "5.0.1"
+__version__ = "5.0.2"
 
 
 # =============================================================================
@@ -56,21 +62,25 @@ async def health_check_loop(
     health_manager: EcosystemHealthManager,
     alert_manager: AlertManager,
     webhook_sender: DiscordWebhookSender,
+    metrics_manager: Optional[MetricsManager] = None,
     interval_seconds: int = 60,
     logger: Optional[object] = None,
 ) -> None:
     """
-    Background task that periodically checks ecosystem health and sends alerts.
+    Background task that periodically checks ecosystem health, stores metrics,
+    and sends alerts.
 
     This loop:
         1. Performs initial health check to establish baseline (no alerts)
         2. Periodically checks health at configured interval
-        3. Detects status transitions and sends alerts
+        3. Stores snapshots and detects incidents (metrics - independent of alerting)
+        4. Detects status transitions and sends alerts
 
     Args:
         health_manager: EcosystemHealthManager instance
         alert_manager: AlertManager instance
         webhook_sender: DiscordWebhookSender instance
+        metrics_manager: Optional MetricsManager for historical tracking
         interval_seconds: Seconds between health checks
         logger: Optional logger instance
     """
@@ -102,6 +112,12 @@ async def health_check_loop(
         initial_health = await health_manager.check_ecosystem_health()
         alert_manager.set_initial_state(initial_health)
         log_info(f"✅ Baseline established: ecosystem={initial_health.status.value}")
+
+        # Store initial snapshot if metrics enabled
+        if metrics_manager:
+            await metrics_manager.store_snapshot(initial_health)
+            log_debug("📊 Initial snapshot stored")
+
     except Exception as e:
         log_error(f"❌ Failed to establish initial state: {e}")
         # Continue anyway - will try again on next iteration
@@ -120,7 +136,25 @@ async def health_check_loop(
             # Check ecosystem health
             current_health = await health_manager.check_ecosystem_health()
 
-            # Detect transitions
+            # =================================================================
+            # METRICS (Phase 5 - Independent of Alerting)
+            # =================================================================
+            if metrics_manager:
+                try:
+                    # Store snapshot (always)
+                    await metrics_manager.store_snapshot(current_health)
+
+                    # Detect and record incidents (always, regardless of alert config)
+                    # This is INDEPENDENT of AlertManager - ensures complete audit trail
+                    await metrics_manager.detect_and_record_incidents(current_health)
+
+                except Exception as e:
+                    log_warning(f"⚠️ Metrics recording error: {e}")
+                    # Continue with alerting - don't let metrics failures block alerts
+
+            # =================================================================
+            # ALERTING (Existing - Respects alert config)
+            # =================================================================
             transitions = alert_manager.detect_transitions(current_health)
 
             if not transitions:
@@ -160,6 +194,73 @@ async def health_check_loop(
             log_error(f"❌ Health check loop error: {e}")
             # Continue running - don't crash the loop on errors
             await asyncio.sleep(5)  # Brief pause before retrying
+
+
+# =============================================================================
+# Daily Maintenance Task
+# =============================================================================
+async def daily_maintenance_loop(
+    metrics_manager: MetricsManager,
+    maintenance_hour: int,
+    logger: Optional[object] = None,
+) -> None:
+    """
+    Background task that runs daily maintenance at a configured hour.
+
+    Performs:
+        - Daily aggregation of previous day's snapshots
+        - Cleanup of old data based on retention policy
+
+    Args:
+        metrics_manager: MetricsManager instance
+        maintenance_hour: Hour (UTC) to run maintenance (0-23)
+        logger: Optional logger instance
+    """
+    log = logger.get_logger("maintenance") if logger else None
+
+    def log_info(msg: str) -> None:
+        if log:
+            log.info(msg)
+
+    def log_error(msg: str) -> None:
+        if log:
+            log.error(msg)
+
+    log_info(f"🔧 Maintenance loop started (runs at {maintenance_hour:02d}:00 UTC)")
+
+    while True:
+        try:
+            # Calculate time until next maintenance window
+            now = datetime.now(timezone.utc)
+            target = now.replace(
+                hour=maintenance_hour, minute=0, second=0, microsecond=0
+            )
+
+            # If we've passed today's window, schedule for tomorrow
+            if now >= target:
+                target = target.replace(day=target.day + 1)
+
+            # Sleep until maintenance time
+            sleep_seconds = (target - now).total_seconds()
+            log_info(
+                f"💤 Next maintenance in {sleep_seconds / 3600:.1f} hours "
+                f"({target.isoformat()})"
+            )
+            await asyncio.sleep(sleep_seconds)
+
+            # Run maintenance
+            log_info("🔧 Running daily maintenance...")
+            await metrics_manager.daily_maintenance()
+            log_info("✅ Daily maintenance complete")
+
+        except asyncio.CancelledError:
+            log_info("🛑 Maintenance loop cancelled")
+            raise
+
+        except Exception as e:
+            log_error(f"❌ Maintenance error: {e}")
+            # Wait an hour before retrying
+            await asyncio.sleep(3600)
 
 
 # =============================================================================
@@ -215,6 +316,43 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     )
 
     # =========================================================================
+    # Initialize Metrics (Phase 5)
+    # =========================================================================
+    metrics_manager: Optional[MetricsManager] = None
+    maintenance_task: Optional[asyncio.Task] = None
+
+    if config_manager.metrics_enabled:
+        log.info("📊 Initializing Metrics System...")
+
+        try:
+            metrics_manager = create_metrics_manager(
+                config_manager=config_manager,
+                logger=logger,
+            )
+            await metrics_manager.initialize()
+            log.info(f"✅ Metrics database initialized at {config_manager.metrics_db_path}")
+
+            # Start maintenance task
+            maintenance_task = asyncio.create_task(
+                daily_maintenance_loop(
+                    metrics_manager=metrics_manager,
+                    maintenance_hour=config_manager.metrics_maintenance_hour,
+                    logger=logger,
+                )
+            )
+            log.info(
+                f"🔧 Maintenance task started (runs at "
+                f"{config_manager.metrics_maintenance_hour:02d}:00 UTC)"
+            )
+
+        except Exception as e:
+            log.error(f"❌ Failed to initialize metrics: {e}")
+            log.warning("⚠️ Continuing without metrics - health monitoring still active")
+            metrics_manager = None
+    else:
+        log.info("ℹ️ Metrics collection is disabled via configuration")
+
+    # =========================================================================
     # Initialize Alerting (Phase 4)
     # =========================================================================
     health_check_task: Optional[asyncio.Task] = None
@@ -242,6 +380,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                     health_manager=ecosystem_manager,
                     alert_manager=alert_manager,
                     webhook_sender=webhook_sender,
+                    metrics_manager=metrics_manager,  # Pass metrics manager
                     interval_seconds=config_manager.alerting_check_interval_seconds,
                     logger=logger,
                 )
@@ -264,10 +403,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.config_manager = config_manager
     app.state.logger = logger
     app.state.ecosystem_manager = ecosystem_manager
+    app.state.metrics_manager = metrics_manager
 
     log.info("=" * 70)
     log.info("✅ Ash Ecosystem Health API - Ready")
     log.info(f"🌐 Listening on {config_manager.server_host}:{config_manager.server_port}")
+    if metrics_manager:
+        log.info("📊 Metrics collection: ENABLED")
     log.info("=" * 70)
 
     # Yield control to the application
@@ -289,6 +431,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         except asyncio.CancelledError:
             pass
         log.info("✅ Health check loop stopped")
+
+    # Cancel maintenance task if running
+    if maintenance_task is not None:
+        log.info("🔧 Stopping maintenance task...")
+        maintenance_task.cancel()
+        try:
+            await maintenance_task
+        except asyncio.CancelledError:
+            pass
+        log.info("✅ Maintenance task stopped")
+
+    # Close metrics database
+    if metrics_manager is not None:
+        log.info("📊 Closing metrics database...")
+        await metrics_manager.close()
+        log.info("✅ Metrics database closed")
 
     log.info("✅ Shutdown complete")
 
@@ -340,6 +498,7 @@ def create_app() -> FastAPI:
     # Include Routers
     # =========================================================================
     app.include_router(health_router)
+    app.include_router(metrics_router)
 
     return app
 
