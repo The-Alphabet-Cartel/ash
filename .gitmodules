@@ -10,3 +10,6 @@
 [submodule "ash-thrash"]
 	path = ash-thrash
 	url = https://github.com/the-alphabet-cartel/ash-thrash.git
+[submodule "ash-vault"]
+	path = ash-vault
+	url = https://github.com/the-alphabet-cartel/ash-vault.git

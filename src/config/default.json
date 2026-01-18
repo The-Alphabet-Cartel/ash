@@ -1,0 +1,262 @@
+{
+  "_metadata": {
+    "file_version": "v5.0-5-2.0-1",
+    "last_modified": "2026-01-17",
+    "clean_architecture": "Compliant",
+    "description": "Ash Ecosystem Health API Configuration"
+  },
+
+  "server": {
+    "description": "API server configuration settings",
+    "host": "${ASH_HOST}",
+    "port": "${ASH_PORT}",
+    "environment": "${ASH_ENVIRONMENT}",
+    "defaults": {
+      "host": "0.0.0.0",
+      "port": 30887,
+      "environment": "production"
+    },
+    "validation": {
+      "host": {
+        "type": "string",
+        "required": true
+      },
+      "port": {
+        "type": "integer",
+        "range": [1, 65535],
+        "required": true
+      },
+      "environment": {
+        "type": "string",
+        "allowed_values": ["production", "testing", "development"],
+        "required": true
+      }
+    }
+  },
+
+  "logging": {
+    "description": "Logging configuration settings",
+    "level": "${ASH_LOG_LEVEL}",
+    "format": "${ASH_LOG_FORMAT}",
+    "file": "${ASH_LOG_FILE}",
+    "console": "${ASH_LOG_CONSOLE}",
+    "defaults": {
+      "level": "INFO",
+      "format": "human",
+      "file": "/app/logs/ash.log",
+      "console": true
+    },
+    "validation": {
+      "level": {
+        "type": "string",
+        "allowed_values": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        "required": true
+      },
+      "format": {
+        "type": "string",
+        "allowed_values": ["json", "human"],
+        "required": true
+      },
+      "file": {
+        "type": "string",
+        "required": true
+      },
+      "console": {
+        "type": "boolean",
+        "required": true
+      }
+    }
+  },
+
+  "ecosystem": {
+    "description": "Ecosystem health monitoring configuration",
+    "check_timeout_ms": "${ASH_CHECK_TIMEOUT_MS}",
+    "defaults": {
+      "check_timeout_ms": 5000
+    },
+    "validation": {
+      "check_timeout_ms": {
+        "type": "integer",
+        "range": [1000, 30000],
+        "required": true
+      }
+    }
+  },
+
+  "components": {
+    "description": "Ash ecosystem component health endpoints",
+    "ash_bot": {
+      "name": "Ash-Bot",
+      "health_url": "${ASH_COMPONENT_BOT_URL}",
+      "enabled": "${ASH_COMPONENT_BOT_ENABLED}",
+      "defaults": {
+        "health_url": "http://ash-bot:30881/health/detailed",
+        "enabled": true
+      }
+    },
+    "ash_nlp": {
+      "name": "Ash-NLP",
+      "health_url": "${ASH_COMPONENT_NLP_URL}",
+      "enabled": "${ASH_COMPONENT_NLP_ENABLED}",
+      "defaults": {
+        "health_url": "http://ash-nlp:30880/health",
+        "enabled": true
+      }
+    },
+    "ash_dash": {
+      "name": "Ash-Dash",
+      "health_url": "${ASH_COMPONENT_DASH_URL}",
+      "enabled": "${ASH_COMPONENT_DASH_ENABLED}",
+      "defaults": {
+        "health_url": "http://ash-dash:30883/health/detailed",
+        "enabled": true
+      }
+    },
+    "ash_vault": {
+      "name": "Ash-Vault",
+      "health_url": "${ASH_COMPONENT_VAULT_URL}",
+      "enabled": "${ASH_COMPONENT_VAULT_ENABLED}",
+      "defaults": {
+        "health_url": "http://10.20.30.202:30886/status",
+        "enabled": true
+      }
+    },
+    "ash_thrash": {
+      "name": "Ash-Thrash",
+      "health_url": "${ASH_COMPONENT_THRASH_URL}",
+      "enabled": "${ASH_COMPONENT_THRASH_ENABLED}",
+      "defaults": {
+        "health_url": "http://ash-thrash:30888/health",
+        "enabled": false
+      }
+    }
+  },
+
+  "connections": {
+    "description": "Inter-component connectivity checks",
+    "checks": [
+      {
+        "name": "ash-bot -> ash-nlp",
+        "description": "Bot can reach NLP for crisis classification",
+        "source": "ash_bot",
+        "target": "ash_nlp",
+        "critical": true
+      },
+      {
+        "name": "ash-dash -> ash-vault",
+        "description": "Dashboard can reach archive storage",
+        "source": "ash_dash",
+        "target": "ash_vault",
+        "critical": false
+      },
+      {
+        "name": "ash-dash -> ash-bot",
+        "description": "Dashboard can reach bot health endpoint",
+        "source": "ash_dash",
+        "target": "ash_bot",
+        "critical": false
+      },
+      {
+        "name": "ash-dash -> ash-nlp",
+        "description": "Dashboard can reach NLP health endpoint",
+        "source": "ash_dash",
+        "target": "ash_nlp",
+        "critical": false
+      }
+    ]
+  },
+
+  "alerting": {
+    "description": "Discord webhook alerting configuration for ecosystem health changes",
+    "enabled": "${ASH_ALERTING_ENABLED}",
+    "check_interval_seconds": "${ASH_ALERTING_INTERVAL}",
+    "cooldown_seconds": "${ASH_ALERTING_COOLDOWN}",
+    "alert_on_degraded": "${ASH_ALERTING_ON_DEGRADED}",
+    "alert_on_recovery": "${ASH_ALERTING_ON_RECOVERY}",
+    "alert_on_connection_issues": "${ASH_ALERTING_ON_CONNECTION}",
+    "defaults": {
+      "enabled": true,
+      "check_interval_seconds": 60,
+      "cooldown_seconds": 300,
+      "alert_on_degraded": true,
+      "alert_on_recovery": true,
+      "alert_on_connection_issues": true
+    },
+    "validation": {
+      "enabled": {
+        "type": "boolean",
+        "required": true
+      },
+      "check_interval_seconds": {
+        "type": "integer",
+        "range": [30, 300],
+        "required": false
+      },
+      "cooldown_seconds": {
+        "type": "integer",
+        "range": [60, 3600],
+        "required": false
+      },
+      "alert_on_degraded": {
+        "type": "boolean",
+        "required": false
+      },
+      "alert_on_recovery": {
+        "type": "boolean",
+        "required": false
+      },
+      "alert_on_connection_issues": {
+        "type": "boolean",
+        "required": false
+      }
+    }
+  },
+
+  "metrics": {
+    "description": "Historical metrics and retention configuration for Phase 5",
+    "enabled": "${ASH_METRICS_ENABLED}",
+    "db_path": "${ASH_METRICS_DB_PATH}",
+    "retention_snapshots_days": "${ASH_METRICS_RETENTION_SNAPSHOTS_DAYS}",
+    "retention_incidents_days": "${ASH_METRICS_RETENTION_INCIDENTS_DAYS}",
+    "retention_aggregates_days": "${ASH_METRICS_RETENTION_AGGREGATES_DAYS}",
+    "maintenance_hour": "${ASH_METRICS_MAINTENANCE_HOUR}",
+    "defaults": {
+      "enabled": true,
+      "db_path": "/app/data/metrics.db",
+      "retention_snapshots_days": 7,
+      "retention_incidents_days": 90,
+      "retention_aggregates_days": 365,
+      "maintenance_hour": 3
+    },
+    "validation": {
+      "enabled": {
+        "type": "boolean",
+        "required": true
+      },
+      "db_path": {
+        "type": "string",
+        "required": true
+      },
+      "retention_snapshots_days": {
+        "type": "integer",
+        "range": [1, 30],
+        "required": false
+      },
+      "retention_incidents_days": {
+        "type": "integer",
+        "range": [7, 365],
+        "required": false
+      },
+      "retention_aggregates_days": {
+        "type": "integer",
+        "range": [30, 730],
+        "required": false
+      },
+      "maintenance_hour": {
+        "type": "integer",
+        "range": [0, 23],
+        "required": false
+      }
+    }
+  }
+}
