@@ -13,9 +13,9 @@ MISSION - NEVER TO BE VIOLATED:
 ============================================================================
 Unified Configuration Manager - JSON Config with Environment Overrides
 ----------------------------------------------------------------------------
-FILE VERSION: v5.0-5-2.0-1
-LAST MODIFIED: 2026-01-17
-PHASE: Phase 5 - Metrics & History
+FILE VERSION: v5.0-6-1.0-1
+LAST MODIFIED: 2026-01-18
+PHASE: Phase 6 - Logging Colorization
 CLEAN ARCHITECTURE: Compliant
 Repository: https://github.com/the-alphabet-cartel/ash
 ============================================================================
@@ -27,7 +27,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from src.managers.logging_manager import create_logging_manager, LoggingConfigManager
+from src.managers.logging_config_manager import create_logging_config_manager, LoggingConfigManager
 
 
 # =============================================================================
@@ -60,7 +60,7 @@ class ConfigManager:
             logger: Optional logging manager instance
         """
         # Set up logging first (bootstrap with defaults)
-        self._logger = logger or create_logging_manager()
+        self._logger = logger or create_logging_config_manager()
         self._log = self._logger.get_logger("config_manager")
 
         # Determine config file path
