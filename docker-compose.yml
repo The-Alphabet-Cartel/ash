@@ -58,9 +58,9 @@ services:
   ash:
     image: ghcr.io/the-alphabet-cartel/ash:latest
     container_name: ash
-    build:
-      context: .
-      dockerfile: Dockerfile
+    #build:
+    #  context: .
+    #  dockerfile: Dockerfile
     <<: *common
 
     # Resource limits (production)
@@ -110,13 +110,13 @@ services:
       - "net.alphabetcartel.description=Ash Ecosystem Health API"
 
     # Dependencies - wait for other services to be healthy
-    #depends_on:
-    #ash-nlp:
-    #condition: service_healthy
-    #ash-bot:
-    #condition: service_healthy
-    #ash-dash:
-    #condition: service_healthy
+    depends_on:
+      ash-nlp:
+        condition: service_healthy
+      ash-bot:
+        condition: service_healthy
+      ash-dash:
+        condition: service_healthy
 
   # ===========================================================================
   # Ash-NLP Service
@@ -209,8 +209,6 @@ services:
     volumes:
       # Logs
       - ./ash-bot/logs:/app/logs
-      # Testing (Development only)
-      - /storage/nas/git/ash/ash-bot/tests:/app/tests
 
     # Port mapping for health checks (Ash ecosystem: 30881)
     ports:
