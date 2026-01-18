@@ -11,73 +11,143 @@ MISSION - NEVER TO BE VIOLATED:
     Protect  → Safeguard our LGBTQIA+ chosen family through early crisis response
 
 ============================================================================
-Logging Configuration Manager - Colorized, Human-Readable Logging
+Logging Configuration Manager - Charter v5.2 Compliant Colorized Logging
 ----------------------------------------------------------------------------
-FILE VERSION: v5.0-1-1.2-1
-LAST MODIFIED: 2026-01-15
-PHASE: Phase 1 - Ecosystem Health API
+FILE VERSION: v5.0-6-1.0-3
+LAST MODIFIED: 2026-01-17
+PHASE: Phase 6 - Logging Colorization Enforcement
 CLEAN ARCHITECTURE: Compliant
+FILE RENAME: logging_manager.py → logging_config_manager.py (ecosystem consistency)
 Repository: https://github.com/the-alphabet-cartel/ash
 ============================================================================
+
+RESPONSIBILITIES:
+- Configure colorized console logging per Charter v5.2 Rule #9
+- Support JSON format for production log aggregation
+- Provide consistent log formatting across all Ash (Core) modules
+- Enable log level filtering via configuration
+- Create child loggers for component isolation
+- Custom SUCCESS level for positive confirmations
 """
 
 import logging
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
+
+# Module version
+__version__ = "v5.0-6-1.0-1"
 
 
 # =============================================================================
-# ANSI Color Codes for Human-Readable Logs
+# Custom SUCCESS Log Level (between INFO and WARNING)
+# =============================================================================
+SUCCESS_LEVEL = 25
+logging.addLevelName(SUCCESS_LEVEL, "SUCCESS")
+
+
+def _success(self, message, *args, **kwargs):
+    """Log a SUCCESS level message."""
+    if self.isEnabledFor(SUCCESS_LEVEL):
+        self._log(SUCCESS_LEVEL, message, args, **kwargs)
+
+
+# Add success method to Logger class
+logging.Logger.success = _success
+
+
+# =============================================================================
+# ANSI Color Codes - Charter v5.2 Standard
 # =============================================================================
 class Colors:
-    """ANSI escape codes for colorized console output."""
+    """
+    ANSI escape codes for colorized console output.
 
+    Charter v5.2 Rule #9 Compliant Color Scheme:
+    - CRITICAL: Bright Red Bold - System failures, data loss risks
+    - ERROR:    Bright Red      - Exceptions, failed operations
+    - WARNING:  Bright Yellow   - Degraded state, potential issues
+    - INFO:     Bright Cyan     - Normal operations, status updates
+    - DEBUG:    Gray            - Diagnostic details, verbose output
+    - SUCCESS:  Bright Green    - Successful completions
+    """
+
+    # Reset
     RESET = "\033[0m"
+
+    # Styles
     BOLD = "\033[1m"
     DIM = "\033[2m"
 
-    # Log level colors
-    DEBUG = "\033[36m"      # Cyan
-    INFO = "\033[32m"       # Green
-    WARNING = "\033[33m"    # Yellow
-    ERROR = "\033[31m"      # Red
-    CRITICAL = "\033[35m"   # Magenta
+    # Charter v5.2 Standard Log Level Colors
+    CRITICAL = "\033[1;91m"  # Bright Red Bold
+    ERROR = "\033[91m"        # Bright Red
+    WARNING = "\033[93m"      # Bright Yellow
+    INFO = "\033[96m"         # Bright Cyan
+    DEBUG = "\033[90m"        # Gray
+    SUCCESS = "\033[92m"      # Bright Green
 
-    # Component colors
-    TIMESTAMP = "\033[90m"  # Gray
-    NAME = "\033[94m"       # Light blue
-    MESSAGE = "\033[97m"    # White
+    # Additional colors for formatting
+    TIMESTAMP = "\033[90m"    # Gray
+    LOGGER_NAME = "\033[94m"  # Bright Blue
+    MESSAGE = "\033[97m"      # Bright White
 
 
 # =============================================================================
-# Custom Formatter for Human-Readable Logs
+# Colorized Formatter - Charter v5.2 Compliant
 # =============================================================================
 class HumanReadableFormatter(logging.Formatter):
     """
-    Custom formatter that produces colorized, human-readable log output.
+    Custom formatter with Charter v5.2 compliant colorization.
 
     Format: [TIMESTAMP] LEVEL    | logger_name | message
     """
 
     LEVEL_COLORS = {
-        logging.DEBUG: Colors.DEBUG,
-        logging.INFO: Colors.INFO,
-        logging.WARNING: Colors.WARNING,
-        logging.ERROR: Colors.ERROR,
         logging.CRITICAL: Colors.CRITICAL,
+        logging.ERROR: Colors.ERROR,
+        logging.WARNING: Colors.WARNING,
+        logging.INFO: Colors.INFO,
+        logging.DEBUG: Colors.DEBUG,
+        SUCCESS_LEVEL: Colors.SUCCESS,
     }
+
+    LEVEL_SYMBOLS = {
+        logging.CRITICAL: "🚨",
+        logging.ERROR: "❌",
+        logging.WARNING: "⚠️ ",
+        logging.INFO: "ℹ️ ",
+        logging.DEBUG: "🔍",
+        SUCCESS_LEVEL: "✅",
+    }
+
+    def __init__(
+        self,
+        use_colors: bool = True,
+        use_symbols: bool = True,
+        datefmt: str = "%Y-%m-%d %H:%M:%S",
+    ):
+        """
+        Initialize the colorized formatter.
+
+        Args:
+            use_colors: Whether to use ANSI color codes
+            use_symbols: Whether to use emoji symbols
+            datefmt: Date format string
+        """
+        super().__init__(datefmt=datefmt)
+        self.use_colors = use_colors
+        self.use_symbols = use_symbols
 
     def format(self, record: logging.LogRecord) -> str:
         """Format the log record with colors and alignment."""
         # Get color for this level
         level_color = self.LEVEL_COLORS.get(record.levelno, Colors.RESET)
+        symbol = self.LEVEL_SYMBOLS.get(record.levelno, "") if self.use_symbols else ""
 
         # Format timestamp
-        timestamp = datetime.fromtimestamp(record.created).strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        timestamp = datetime.fromtimestamp(record.created).strftime(self.datefmt)
 
         # Pad level name for alignment
         level_name = record.levelname.ljust(8)
@@ -86,24 +156,40 @@ class HumanReadableFormatter(logging.Formatter):
         logger_name = record.name
         if len(logger_name) > 25:
             logger_name = "..." + logger_name[-22:]
+        logger_name = logger_name.ljust(25)
 
-        # Build the formatted message
-        formatted = (
-            f"{Colors.TIMESTAMP}[{timestamp}]{Colors.RESET} "
-            f"{level_color}{Colors.BOLD}{level_name}{Colors.RESET} "
-            f"{Colors.DIM}|{Colors.RESET} "
-            f"{Colors.NAME}{logger_name.ljust(25)}{Colors.RESET} "
-            f"{Colors.DIM}|{Colors.RESET} "
-            f"{Colors.MESSAGE}{record.getMessage()}{Colors.RESET}"
-        )
+        # Get the message
+        message = record.getMessage()
+
+        # Build formatted output
+        if self.use_colors:
+            formatted = (
+                f"{Colors.TIMESTAMP}[{timestamp}]{Colors.RESET} "
+                f"{level_color}{level_name}{Colors.RESET} "
+                f"{Colors.DIM}|{Colors.RESET} "
+                f"{Colors.LOGGER_NAME}{logger_name}{Colors.RESET} "
+                f"{Colors.DIM}|{Colors.RESET} "
+                f"{symbol} {level_color}{message}{Colors.RESET}"
+            )
+        else:
+            formatted = (
+                f"[{timestamp}] {level_name} | {logger_name} | {symbol} {message}"
+            )
 
         # Add exception info if present
         if record.exc_info:
-            formatted += f"\n{Colors.ERROR}{self.formatException(record.exc_info)}{Colors.RESET}"
+            exc_text = self.formatException(record.exc_info)
+            if self.use_colors:
+                formatted += f"\n{Colors.ERROR}{exc_text}{Colors.RESET}"
+            else:
+                formatted += f"\n{exc_text}"
 
         return formatted
 
 
+# =============================================================================
+# JSON Formatter for Production
+# =============================================================================
 class JsonFormatter(logging.Formatter):
     """JSON formatter for structured logging in production."""
 
@@ -112,7 +198,7 @@ class JsonFormatter(logging.Formatter):
         import json
 
         log_data = {
-            "timestamp": datetime.fromtimestamp(record.created).isoformat(),
+            "timestamp": datetime.fromtimestamp(record.created).isoformat() + "Z",
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
@@ -132,13 +218,20 @@ class JsonFormatter(logging.Formatter):
 # =============================================================================
 class LoggingConfigManager:
     """
-    Manages logging configuration with colorized human-readable output.
+    Manages logging configuration with Charter v5.2 compliant colorization.
 
     Features:
-        - Colorized console output for development
-        - JSON format option for production log aggregation
-        - File logging with rotation support
-        - Per-module log level configuration
+        - Colorized console output (human format) per Charter v5.2 Rule #9
+        - JSON format for production log aggregation
+        - Custom SUCCESS level for positive confirmations
+        - File logging with JSON format
+        - Per-module logger creation
+
+    Example:
+        >>> logging_manager = create_logging_manager()
+        >>> logger = logging_manager.get_logger("my_module")
+        >>> logger.info("Ecosystem health check starting")
+        >>> logger.success("All components healthy")
     """
 
     def __init__(
@@ -164,6 +257,7 @@ class LoggingConfigManager:
         self.log_file = log_file
         self.console_enabled = console_enabled
         self.app_name = app_name
+        self._configured_loggers: Dict[str, logging.Logger] = {}
 
         # Configure the root logger
         self._configure_logging()
@@ -181,7 +275,8 @@ class LoggingConfigManager:
         if self.log_format == "json":
             formatter = JsonFormatter()
         else:
-            formatter = HumanReadableFormatter()
+            use_colors = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
+            formatter = HumanReadableFormatter(use_colors=use_colors)
 
         # Add console handler if enabled
         if self.console_enabled:
@@ -196,8 +291,8 @@ class LoggingConfigManager:
             log_path = Path(self.log_file)
             log_path.parent.mkdir(parents=True, exist_ok=True)
 
-            file_handler = logging.FileHandler(self.log_file)
-            file_handler.setLevel(self.level)
+            file_handler = logging.FileHandler(self.log_file, encoding="utf-8")
+            file_handler.setLevel(logging.DEBUG)
             # Always use JSON for file logging (easier to parse)
             file_handler.setFormatter(JsonFormatter())
             root_logger.addHandler(file_handler)
@@ -222,11 +317,16 @@ class LoggingConfigManager:
         Returns:
             Configured logger instance
         """
+        if name in self._configured_loggers:
+            return self._configured_loggers[name]
+
         # Create a child logger under our app name
         if not name.startswith(self.app_name):
             name = f"{self.app_name}.{name}"
 
-        return logging.getLogger(name)
+        logger = logging.getLogger(name)
+        self._configured_loggers[name] = logger
+        return logger
 
     def set_level(self, level: str) -> None:
         """
@@ -242,11 +342,19 @@ class LoggingConfigManager:
         for handler in root_logger.handlers:
             handler.setLevel(self.level)
 
+    def get_level(self) -> str:
+        """Get current log level name."""
+        return logging.getLevelName(self.level)
+
+    def get_format(self) -> str:
+        """Get current log format."""
+        return self.log_format
+
 
 # =============================================================================
 # Factory Function (Clean Architecture Rule #1)
 # =============================================================================
-def create_logging_manager(
+def create_logging_config_manager(
     level: str = "INFO",
     log_format: str = "human",
     log_file: Optional[str] = None,
@@ -275,10 +383,16 @@ def create_logging_manager(
     )
 
 
+# Backward compatibility alias
+create_logging_manager = create_logging_config_manager
+
+
 __all__ = [
     "LoggingConfigManager",
-    "create_logging_manager",
+    "create_logging_config_manager",
+    "create_logging_manager",  # Backward compatibility
     "Colors",
     "HumanReadableFormatter",
     "JsonFormatter",
+    "SUCCESS_LEVEL",
 ]

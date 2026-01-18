@@ -13,9 +13,9 @@ MISSION - NEVER TO BE VIOLATED:
 ============================================================================
 Main Application - FastAPI Entry Point for Ash Ecosystem Health API
 ----------------------------------------------------------------------------
-FILE VERSION: v5.0-5-3.0-1
+FILE VERSION: v5.0-6-1.0-3
 LAST MODIFIED: 2026-01-17
-PHASE: Phase 5 - Metrics & History Integration
+PHASE: Phase 6 - Logging Colorization Enforcement
 CLEAN ARCHITECTURE: Compliant
 Repository: https://github.com/the-alphabet-cartel/ash
 ============================================================================
@@ -30,7 +30,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.managers.config_manager import create_config_manager
-from src.managers.logging_manager import create_logging_manager
+from src.managers.logging_config_manager import create_logging_config_manager
 from src.managers.ecosystem.ecosystem_health_manager import (
     EcosystemHealthManager,
     create_ecosystem_health_manager,
@@ -280,7 +280,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # =========================================================================
 
     # Initialize logging first (with bootstrap defaults)
-    bootstrap_logger = create_logging_manager(
+    bootstrap_logger = create_logging_config_manager(
         level="INFO",
         log_format="human",
         app_name="ash",
@@ -296,7 +296,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     config_manager = create_config_manager(logger=bootstrap_logger)
 
     # Reconfigure logging with loaded settings
-    logger = create_logging_manager(
+    logger = create_logging_config_manager(
         level=config_manager.log_level,
         log_format=config_manager.log_format,
         log_file=config_manager.log_file,
