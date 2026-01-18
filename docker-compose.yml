@@ -1,7 +1,7 @@
 # ============================================================================
 # Ash v5.0 Docker Compose Configuration
 # ============================================================================
-# FILE VERSION: v5.0.4
+# FILE VERSION: v5.0.5
 # LAST MODIFIED: 2026-01-18
 # Repository: https://github.com/the-alphabet-cartel/ash
 # Community: The Alphabet Cartel - https://discord.gg/alphabetcartel
@@ -42,6 +42,8 @@ x-env: &env
   PGID: ${PGID:-1000}
   PUID: ${PUID:-1000}
   TZ: ${TZ:-America/Los_Angeles}
+  # Force ANSI colors in Docker logs (Charter v5.2 colorized logging)
+  FORCE_COLOR: "1"
 
 ### Healthchecks ###
 x-health: &health
