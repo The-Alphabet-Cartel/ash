@@ -1,8 +1,8 @@
 # ============================================================================
 # Ash v5.0 Production Dockerfile (Multi-Stage Build)
 # ============================================================================
-# FILE VERSION: v5.0-1-1.1-1
-# LAST MODIFIED: 2026-01-15
+# FILE VERSION: v5.0-6-1.0-1
+# LAST MODIFIED: 2026-01-22
 # Repository: https://github.com/the-alphabet-cartel/ash
 # Community: The Alphabet Cartel - https://discord.gg/alphabetcartel
 # ============================================================================
@@ -18,8 +18,9 @@
 #   Stage 1 (builder): Install Python dependencies
 #   Stage 2 (runtime): Minimal production image
 #
-# CLEAN ARCHITECTURE: Rule #12 - Environment Version Specificity
-#   All pip commands use python3.11 -m pip for version consistency
+# CLEAN ARCHITECTURE COMPLIANCE:
+#   - Rule #10: Environment Version Specificity (python3.11 -m pip)
+#   - Rule #13: Pure Python entrypoint for PUID/PGID
 #
 # ============================================================================
 
@@ -46,7 +47,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 
 # Install Python dependencies
-# Rule #12: Use python3.11 -m pip for version specificity
+# Rule #10: Use python3.11 -m pip for version specificity
 RUN python3.11 -m pip install --upgrade pip && \
     python3.11 -m pip install --no-cache-dir -r requirements.txt
 
@@ -55,6 +56,10 @@ RUN python3.11 -m pip install --upgrade pip && \
 # Stage 2: Runtime - Production image
 # =============================================================================
 FROM python:3.11-slim AS runtime
+
+# Default user/group IDs (can be overridden at runtime via PUID/PGID)
+ARG DEFAULT_UID=1000
+ARG DEFAULT_GID=1000
 
 # Set runtime environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -66,13 +71,20 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     ASH_ENVIRONMENT=production \
     ASH_LOG_LEVEL=INFO \
     ASH_LOG_FORMAT=human \
-    TZ=America/Los_Angeles
+    TZ=America/Los_Angeles \
+    # Force ANSI colors in Docker logs (Charter v5.2.1)
+    FORCE_COLOR=1 \
+    # Default PUID/PGID (LinuxServer.io style)
+    PUID=${DEFAULT_UID} \
+    PGID=${DEFAULT_GID}
 
 WORKDIR /app
 
-# Install runtime dependencies (minimal - just curl for health checks)
+# Install runtime dependencies
+# tini: PID 1 signal handling (Rule #13)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    tini \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -80,17 +92,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Create non-root user for security
-RUN groupadd -g 1001 ashgroup && \
-    useradd -m -u 1001 -g ashgroup ashuser && \
-    mkdir -p /app/logs && \
-    chown -R ashuser:ashgroup /app
+# Create non-root user (will be modified at runtime by entrypoint if PUID/PGID differ)
+RUN groupadd -g ${DEFAULT_GID} ashgroup && \
+    useradd -m -u ${DEFAULT_UID} -g ashgroup ashuser && \
+    mkdir -p /app/logs /app/data && \
+    chown -R ${DEFAULT_UID}:${DEFAULT_GID} /app
 
 # Copy application code
-COPY --chown=ashuser:ashgroup . .
+COPY --chown=${DEFAULT_UID}:${DEFAULT_GID} . .
 
-# Switch to non-root user
-USER ashuser
+# Copy and set up entrypoint script (Rule #13: Pure Python PUID/PGID handling)
+COPY docker-entrypoint.py /app/docker-entrypoint.py
+RUN chmod +x /app/docker-entrypoint.py
+
+# NOTE: We do NOT switch to USER ashuser here!
+# The entrypoint script handles user switching at runtime after fixing permissions.
+# This allows PUID/PGID to work correctly with mounted volumes.
 
 # Expose the application port
 EXPOSE 30887
@@ -103,6 +120,9 @@ EXPOSE 30887
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:30887/health || exit 1
 
+# Use tini as init system for proper signal handling
+# Then our Python entrypoint for PUID/PGID handling (Rule #13)
+ENTRYPOINT ["/usr/bin/tini", "--", "python", "/app/docker-entrypoint.py"]
+
 # Default command - run with uvicorn
-# Using python -m uvicorn for proper module resolution
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "30887"]
