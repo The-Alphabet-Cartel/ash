@@ -329,71 +329,69 @@ services:
   # ===========================================================================
   # Ash-Thrash Service
   # ===========================================================================
-  #  ash-thrash:
-  #    image: ghcr.io/the-alphabet-cartel/ash-thrash:latest
-  #    container_name: ash-thrash
-  #    #build:
-  #    #  context: .
-  #    #  dockerfile: Dockerfile
-  #    <<: *common
-  #
-  #    # Resource limits (production)
-  #    deploy:
-  #      resources:
-  #        limits:
-  #          memory: 512M
-  #          cpus: "0.5"
-  #
-  #    # Environment variables
-  #    environment:
-  #      <<: *env
-  #    env_file:
-  #      - .env
-  #
-  #    # Volume Mounts
-  #    volumes:
-  #      # Logs
-  #      - ./logs:/app/logs
-  #      # Testing (Development only)
-  #      - ./ash-thrash/tests:/app/tests
-  #
-  #    # Port mapping for health checks (Ash ecosystem: 30883)
-  #    ports:
-  #      - "30883:30883"
-  #
-  #    # Docker Secrets
-  #    secrets:
-  #      #- ash_thrash_discord_alert_token
-  #      #- redis_token
-  #
-  #    # Health check - uses HTTP endpoint from health server
-  #    healthcheck:
-  #      <<: *health
-  #      test: ["CMD", "curl", "-f", "http://localhost:30883/health"]
-  #
-  #    # Logging configuration
-  #    logging:
-  #      driver: "json-file"
-  #      options:
-  #        max-size: "50m"
-  #        max-file: "5"
-  #
-  #    # Labels for organization
-  #    labels:
-  #      - "net.alphabetcartel.service=ash-thrash"
-  #      - "net.alphabetcartel.version=5.0.0"
-  #      - "net.alphabetcartel.description=Ash Crisis Detection Performance Testing"
-  #
-  #    # Depends On
-  #    depends_on:
-  #      ash-nlp:
-  #        condition: service_healthy
-  #      ash-bot:
-  #        condition: service_healthy
-  #      ash-dash:
-  #        condition: service_healthy
-  #      ash-redis:
-  #        condition: service_healthy
+  ash-thrash:
+    image: ghcr.io/the-alphabet-cartel/ash-thrash:latest
+    container_name: ash-thrash
+    build:
+      context: .
+      dockerfile: Dockerfile
+    <<: *common
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
+    # Environment variables
+    environment:
+      <<: *env
+    env_file:
+      - .env
+
+    # Volume Mounts
+    volumes:
+      # Logs (persistent)
+      - ./ash-thrash/logs:/app/logs
+      # Reports (persistent)
+      - ./ash-thrash/reports:/app/reports
+      # Phrase configuration (for live updates)
+      - ./ash-thrash/src/config/phrases:/app/src/config/phrases:ro
+
+    # Port mapping for health checks (Ash ecosystem: 30888)
+    ports:
+      - "30888:30888"
+
+    # Docker Secrets
+    secrets:
+      - ash_internal_bypass_key
+      - ash_thrash_discord_alert_token
+
+    # Health check - uses HTTP endpoint from health server
+    healthcheck:
+      <<: *health
+      test: ["CMD", "curl", "-f", "http://localhost:30888/health"]
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+    # Labels for organization
+    labels:
+      - "net.alphabetcartel.service=ash-thrash"
+      - "net.alphabetcartel.version=5.0.0"
+      - "net.alphabetcartel.description=Ash Crisis Detection Testing Suite"
+
+    # Dependencies - wait for database to be healthy
+    depends_on:
+      ash-nlp:
+        condition: service_healthy
+      ash-dash:
+        condition: service_healthy
 
   # ===========================================================================
   # Ash-Redis Cache
