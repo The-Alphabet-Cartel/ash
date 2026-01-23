@@ -60,9 +60,6 @@ services:
   ash:
     image: ghcr.io/the-alphabet-cartel/ash:latest
     container_name: ash
-    #build:
-    #  context: .
-    #  dockerfile: Dockerfile
     <<: *common
 
     # Resource limits (production)
@@ -126,10 +123,6 @@ services:
   ash-nlp:
     image: ghcr.io/the-alphabet-cartel/ash-nlp:latest
     container_name: ash-nlp
-    #build:
-    #  context: ./ash-nlp/
-    #  dockerfile: Dockerfile
-    #  target: runtime
     <<: *common
 
     # GPU Support (requires NVIDIA Container Toolkit)
@@ -190,9 +183,6 @@ services:
   ash-bot:
     image: ghcr.io/the-alphabet-cartel/ash-bot:latest
     container_name: ash-bot
-    #build:
-    #  context: ./ash-bot/
-    #  dockerfile: Dockerfile
     <<: *common
 
     # Resource limits (production)
@@ -255,9 +245,6 @@ services:
   ash-dash:
     image: ghcr.io/the-alphabet-cartel/ash-dash:latest
     container_name: ash-dash
-    #build:
-    #  context: .
-    #  dockerfile: Dockerfile
     <<: *common
 
     # Resource limits (production)
@@ -332,9 +319,6 @@ services:
   ash-thrash:
     image: ghcr.io/the-alphabet-cartel/ash-thrash:latest
     container_name: ash-thrash
-    build:
-      context: .
-      dockerfile: Dockerfile
     <<: *common
 
     # Resource limits
