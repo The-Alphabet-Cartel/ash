@@ -13,6 +13,3 @@
 [submodule "ash-vault"]
 	path = ash-vault
 	url = https://github.com/the-alphabet-cartel/ash-vault.git
-[submodule "ash-vigil"]
-	path = ash-vigil
-	url = https://github.com/the-alphabet-cartel/ash-vigil.git
