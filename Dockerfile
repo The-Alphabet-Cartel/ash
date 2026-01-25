@@ -35,21 +35,22 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-WORKDIR /build
-
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for layer caching
-COPY requirements.txt .
+# Create app directory
+WORKDIR /app
 
-# Install Python dependencies
-# Rule #10: Use python3.12 -m pip for version specificity
-RUN python3.12 -m pip install --upgrade pip && \
-    python3.12 -m pip install --no-cache-dir -r requirements.txt
+# Create virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
 
 
 # =============================================================================
@@ -73,7 +74,8 @@ ARG DEFAULT_GID=1000
 # Set runtime environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app \
+    APP_HOME=/app \
+    PATH="/opt/venv/bin:$PATH" \
     # Application defaults
     ASH_HOST=0.0.0.0 \
     ASH_PORT=30887 \
@@ -86,8 +88,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     # Default PUID/PGID (LinuxServer.io style)
     PUID=${DEFAULT_UID} \
     PGID=${DEFAULT_GID}
-
-WORKDIR /app
 
 # Install runtime dependencies
 # tini: PID 1 signal handling (Rule #13)
@@ -104,15 +104,21 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 # Create non-root user (will be modified at runtime by entrypoint if PUID/PGID differ)
 RUN groupadd -g ${DEFAULT_GID} ashgroup && \
     useradd -m -u ${DEFAULT_UID} -g ashgroup ashuser && \
-    mkdir -p /app/logs /app/data && \
-    chown -R ${DEFAULT_UID}:${DEFAULT_GID} /app
+    mkdir -p ${APP_HOME}/logs ${APP_HOME}/data && \
+    chown -R ${DEFAULT_UID}:${DEFAULT_GID} ${APP_HOME}
+
+# Set working directory
+WORKDIR ${APP_HOME}
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
 
 # Copy application code
 COPY --chown=${DEFAULT_UID}:${DEFAULT_GID} . .
 
-# Copy and set up entrypoint script (Rule #13: Pure Python PUID/PGID handling)
-COPY docker-entrypoint.py /app/docker-entrypoint.py
-RUN chmod +x /app/docker-entrypoint.py
+# Copy and set up entrypoint script
+COPY docker-entrypoint.py ${APP_HOME}/docker-entrypoint.py
+RUN chmod +x ${APP_HOME}/docker-entrypoint.py
 
 # NOTE: We do NOT switch to USER ashuser here!
 # The entrypoint script handles user switching at runtime after fixing permissions.
