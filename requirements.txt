@@ -10,7 +10,7 @@
 # Repository: https://github.com/the-alphabet-cartel/ash
 #
 # INSTALLATION:
-#   python3.11 -m pip install -r requirements.txt
+#   python3.12 -m pip install -r requirements.txt
 #
 # ============================================================================
 
