@@ -19,7 +19,7 @@
 #   Stage 2 (runtime): Minimal production image
 #
 # CLEAN ARCHITECTURE COMPLIANCE:
-#   - Rule #10: Environment Version Specificity (python3.11 -m pip)
+#   - Rule #10: Environment Version Specificity (python3.12 -m pip)
 #   - Rule #13: Pure Python entrypoint for PUID/PGID
 #
 # ============================================================================
@@ -27,7 +27,7 @@
 # =============================================================================
 # Stage 1: Python Builder - Install Python dependencies
 # =============================================================================
-FROM python:3.11-slim AS builder
+FROM python:3.12-slim AS builder
 
 # Set build-time environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -47,15 +47,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 
 # Install Python dependencies
-# Rule #10: Use python3.11 -m pip for version specificity
-RUN python3.11 -m pip install --upgrade pip && \
-    python3.11 -m pip install --no-cache-dir -r requirements.txt
+# Rule #10: Use python3.12 -m pip for version specificity
+RUN python3.12 -m pip install --upgrade pip && \
+    python3.12 -m pip install --no-cache-dir -r requirements.txt
 
 
 # =============================================================================
 # Stage 2: Runtime - Production image
 # =============================================================================
-FROM python:3.11-slim AS runtime
+FROM python:3.12-slim AS runtime
 
 # Labels
 LABEL maintainer="PapaBearDoes <github.com/PapaBearDoes>"
@@ -98,7 +98,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean
 
 # Copy installed packages from builder stage
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Create non-root user (will be modified at runtime by entrypoint if PUID/PGID differ)
