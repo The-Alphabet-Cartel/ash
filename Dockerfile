@@ -97,21 +97,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Copy installed packages from builder stage
-COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+# Set working directory
+WORKDIR ${APP_HOME}
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
 
 # Create non-root user (will be modified at runtime by entrypoint if PUID/PGID differ)
 RUN groupadd -g ${DEFAULT_GID} ashgroup && \
     useradd -m -u ${DEFAULT_UID} -g ashgroup ashuser && \
     mkdir -p ${APP_HOME}/logs ${APP_HOME}/data && \
     chown -R ${DEFAULT_UID}:${DEFAULT_GID} ${APP_HOME}
-
-# Set working directory
-WORKDIR ${APP_HOME}
-
-# Copy virtual environment from builder
-COPY --from=builder /opt/venv /opt/venv
 
 # Copy application code
 COPY --chown=${DEFAULT_UID}:${DEFAULT_GID} . .
