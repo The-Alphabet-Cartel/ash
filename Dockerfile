@@ -85,7 +85,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     TZ=America/Los_Angeles \
     # Force ANSI colors in Docker logs (Charter v5.2.1)
     FORCE_COLOR=1 \
-    # Default PUID/PGID (LinuxServer.io style)
+    # Default PUID/PGID
     PUID=${DEFAULT_UID} \
     PGID=${DEFAULT_GID}
 
