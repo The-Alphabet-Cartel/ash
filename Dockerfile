@@ -11,8 +11,8 @@
 #   # Build the image
 #   docker build -t ghcr.io/the-alphabet-cartel/ash:latest .
 #
-#   # Run with docker-compose (recommended)
-#   docker-compose up -d
+#   # Run with docker compose (recommended)
+#   docker compose up -d
 #
 # MULTI-STAGE BUILD:
 #   Stage 1 (builder): Install Python dependencies

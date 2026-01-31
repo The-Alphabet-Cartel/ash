@@ -9,16 +9,16 @@
 #
 # USAGE:
 #   # Start services
-#   docker-compose up -d
+#   docker compose up -d
 #
 #   # View logs
-#   docker-compose logs -f {moduleName}
+#   docker compose logs -f {moduleName}
 #
 #   # Stop services
-#   docker-compose down
+#   docker compose down
 #
 #   # Rebuild and start
-#   docker-compose up -d --build
+#   docker compose up -d --build
 #
 # SECRETS:
 #   Secrets are stored in ./secrets/ directory:
@@ -138,6 +138,8 @@ services:
     # Environment variables
     environment:
       <<: *env
+      # GPU
+      NVIDIA_VISIBLE_DEVICES: all
     env_file:
       - .env
 
@@ -212,7 +214,7 @@ services:
     secrets:
       - claude_api_token
       - ash_bot_discord_alert_token
-      - discord_bot_token
+      - ash_bot_token
       - redis_token
 
     # Health check - uses HTTP endpoint from health server
@@ -494,10 +496,12 @@ secrets:
     file: ./secrets/ash_thrash_discord_alert_token
   ash_vault_discord_alert_token:
     file: ./secrets/ash_vault_discord_alert_token
+  ash_vigil_discord_alert_token:
+    file: ./secrets/ash_vigil_discord_alert_token
   claude_api_token:
     file: ./secrets/claude_api_token
-  discord_bot_token:
-    file: ./secrets/discord_bot_token
+  ash_bot_token:
+    file: ./secrets/ash_bot_token
   huggingface_token:
     file: ./secrets/huggingface_token
   minio_root_password:
