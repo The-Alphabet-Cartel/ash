@@ -213,8 +213,8 @@ services:
     # Docker Secrets
     secrets:
       - claude_api_token
-      - ash_bot_discord_alert_token
       - ash_bot_token
+      - ash_bot_discord_alert_token
       - redis_token
 
     # Health check - uses HTTP endpoint from health server
@@ -486,6 +486,8 @@ secrets:
     file: ./secrets/ash_internal_bypass_key
   ash_discord_alert_token:
     file: ./secrets/ash_discord_alert_token
+  ash_bot_token:
+    file: ./secrets/ash_bot_token
   ash_bot_discord_alert_token:
     file: ./secrets/ash_bot_discord_alert_token
   ash_dash_discord_alert_token:
@@ -500,8 +502,6 @@ secrets:
     file: ./secrets/ash_vigil_discord_alert_token
   claude_api_token:
     file: ./secrets/claude_api_token
-  ash_bot_token:
-    file: ./secrets/ash_bot_token
   huggingface_token:
     file: ./secrets/huggingface_token
   minio_root_password:
