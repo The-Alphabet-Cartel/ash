@@ -375,8 +375,8 @@ services:
 
     # Dependencies - wait for database to be healthy
     depends_on:
-      ash-nlp:
-        condition: service_healthy
+      #ash-nlp:
+      #condition: service_healthy
       ash-dash:
         condition: service_healthy
 
